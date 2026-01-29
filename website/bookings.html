@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html class="dark" lang="fr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Réservations - Larena</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <!-- FullCalendar -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <script src="config.js"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <!-- Compatibility for existing Material Icons usage -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#D9FF66",
+                        "background-light": "#F9FAFB",
+                        "background-dark": "#05080F",
+                        "card-dark": "#0D111D",
+                        "sidebar-dark": "#080B14",
+                    },
+                    fontFamily: {
+                        display: ["Outfit", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "1rem",
+                        '2xl': "1.5rem",
+                        '3xl': "2rem",
+                    },
+                },
+            },
+        };
+    </script>
+    <style type="text/tailwindcss">
+        @layer base {
+        body {
+            @apply bg-background-dark text-slate-100 font-body antialiased;
+        }
+    }
+    .neon-glow {
+        box-shadow: 0 0 15px rgba(217, 255, 102, 0.15);
+    }
+    .text-glow {
+        text-shadow: 0 0 10px rgba(217, 255, 102, 0.3);
+    }
+    .sidebar-active {
+        @apply bg-primary text-background-dark font-bold;
+    }
+    .chart-bar {
+        @apply bg-primary rounded-t-sm;
+        min-height: 20px;
+    }
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    /* Styles for Tab navigation */
+    .tab-btn.active {
+        @apply text-primary border-primary;
+    }
+</style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="flex min-h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside
+        class="w-20 md:w-64 bg-sidebar-dark border-r border-slate-800 flex flex-col h-screen fixed left-0 top-0 z-50">
+        <div class="p-6">
+            <div class="flex items-center gap-4 group">
+                <div
+                    class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:rotate-6 transition-transform">
+                    <img src="assets/logo.png" alt="Larena" class="h-6 w-6 object-contain brightness-0" />
+                </div>
+                <div class="hidden md:flex flex-col">
+                    <span
+                        class="text-xl font-display font-black tracking-tighter uppercase leading-none text-white">Larena</span>
+                    <span
+                        class="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none mt-1">PitchPerfect</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <a href="dashboard.html"
+                class="flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">analytics</span>
+                <span class="hidden md:block font-semibold">Tableau de Bord</span>
+            </a>
+            <a href="complexes.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">apartment</span>
+                <span class="hidden md:block font-semibold">Complexes</span>
+            </a>
+            <a href="bookings.html"
+                class="sidebar-active flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">calendar_month</span>
+                <span class="hidden md:block font-semibold">Réservations</span>
+            </a>
+            <a href="sport-types.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">sports_soccer</span>
+                <span class="hidden md:block font-semibold">Types de Sport</span>
+            </a>
+            <a href="academy-mgmt.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">school</span>
+                <span class="hidden md:block font-semibold">Académie</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800 mt-auto">
+            <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer">
+                <div
+                    class="w-10 h-10 rounded-full border-2 border-slate-700 overflow-hidden bg-slate-800 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-slate-400">person</span>
+                </div>
+                <div class="hidden md:block overflow-hidden">
+                    <p id="userName" class="text-sm font-bold truncate">Loading...</p>
+                    <button id="logoutBtn"
+                        class="text-[10px] text-slate-500 uppercase font-bold tracking-wider hover:text-primary text-left">Déconnexion</button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 ml-20 md:ml-64 h-screen overflow-y-auto bg-background-dark">
+        <!-- Header -->
+        <header
+            class="sticky top-0 z-40 bg-background-dark/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-display font-bold">Réservations</h1>
+                <p class="text-xs text-slate-500 font-medium">Gestion de vos installations sportives</p>
+            </div>
+
+            <!-- Complex Selector Area in Header -->
+            <div class="flex items-center gap-3">
+                <select id="complexSelect"
+                    class="bg-card-dark border border-slate-700 text-slate-200 text-sm rounded-xl px-4 py-2 focus:ring-primary focus:border-primary">
+                    <option value="">Chargement des complexes...</option>
+                </select>
+
+                <button
+                    class="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined text-xl">notifications</span>
+                </button>
+
+                <button id="addComplexBtn"
+                    class="bg-primary text-background-dark px-4 py-2 rounded-xl text-xs font-bold hover:scale-105 transition-transform flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">add</span> Nouveau Complexe
+                </button>
+            </div>
+        </header>
+
+        <div class="p-6 max-w-7xl mx-auto space-y-6">
+
+            <!-- No Complexes Message -->
+            <div id="noComplexesMessage" class="hidden text-center py-12">
+                <div
+                    class="bg-white/5 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/5">
+                    <span class="material-symbols-outlined text-5xl text-slate-700">storefront</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">Aucun Complexe Trouvé</h2>
+                <p class="text-slate-400 mb-8">Créez votre premier complexe pour commencer.</p>
+            </div>
+
+            <div class="bg-card-dark rounded-3xl border border-slate-800 overflow-hidden">
+                <div class="p-6 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <h3 class="text-lg font-bold">Historique des Réservations</h3>
+                        <!-- View Mode Toggle -->
+                        <div class="flex gap-2 bg-slate-900 rounded-xl p-1">
+                            <button id="listViewBtn"
+                                class="view-mode-btn active px-4 py-2 rounded-lg text-xs font-bold transition-all">
+                                <span class="material-symbols-outlined text-sm align-middle">view_list</span>
+                                Liste
+                            </button>
+                            <button id="calendarViewBtn"
+                                class="view-mode-btn px-4 py-2 rounded-lg text-xs font-bold transition-all">
+                                <span class="material-symbols-outlined text-sm align-middle">calendar_month</span>
+                                Calendrier
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button
+                            class="filter-btn active px-4 py-2 rounded-xl text-xs font-bold bg-primary text-background-dark"
+                            data-filter="all">Tous</button>
+                        <button
+                            class="filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700"
+                            data-filter="pending">En attente</button>
+                        <button
+                            class="filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700"
+                            data-filter="approved">Approuvées</button>
+                        <button
+                            class="filter-btn px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700"
+                            data-filter="cancel_request">Demandes</button>
+                    </div>
+                </div>
+
+                <!-- List View (Table) -->
+                <div id="listView" class="overflow-x-auto p-4">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr
+                                class="bg-slate-900/50 border-b border-slate-800 text-xs uppercase tracking-wider text-slate-400 font-bold">
+                                <th class="px-6 py-4">Date & Heure</th>
+                                <th class="px-6 py-4">Terrain</th>
+                                <th class="px-6 py-4">Client</th>
+                                <th class="px-6 py-4">Téléphone</th>
+                                <th class="px-6 py-4">Prix</th>
+                                <th class="px-6 py-4">Statut</th>
+                                <th class="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookingsList" class="divide-y divide-slate-800 text-sm font-medium text-slate-200">
+                            <!-- Table rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Calendar View -->
+                <div id="calendarView" class="hidden p-4">
+                    <div id="calendar"></div>
+                </div>
+            </div>
+
+        </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <!-- Complex Modal -->
+    <div id="complexModal"
+        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 z-[60]">
+        <div
+            class="bg-card-dark rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-slate-800 shadow-2xl shadow-primary/5">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-white" id="complexModalTitle">Ajouter un Complexe</h3>
+                <button class="text-slate-400 hover:text-white transition-colors" onclick="closeModal('complexModal')">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="complexForm" class="space-y-6">
+                <input type="hidden" id="complexId" />
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nom *</label>
+                    <input type="text" id="complexName" required
+                        class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-slate-600" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Adresse</label>
+                    <input type="text" id="complexAddress"
+                        class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-slate-600" />
+                </div>
+                <div>
+                    <label
+                        class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Description</label>
+                    <textarea id="complexDescription" rows="4"
+                        class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-slate-600"></textarea>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Phone</label>
+                        <input type="tel" id="complexPhone"
+                            class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-slate-600" />
+                    </div>
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Email</label>
+                        <input type="email" id="complexEmail"
+                            class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-slate-600" />
+                    </div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Latitude</label>
+                        <input type="number" id="complexLatitude" step="any" placeholder="36.8065"
+                            class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-slate-600" />
+                    </div>
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Longitude</label>
+                        <input type="number" id="complexLongitude" step="any" placeholder="10.1815"
+                            class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-slate-600" />
+                    </div>
+                </div>
+                <div>
+                    <label
+                        class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Facilities</label>
+                    <textarea id="complexFacilities" rows="3"
+                        placeholder="Parking, Vestiaires, Douches, Café (séparés par des virgules)"
+                        class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-slate-600"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Image
+                        Principale</label>
+                    <div class="mt-2">
+                        <div id="complexMainImagePreview" class="mb-4 hidden">
+                            <img id="complexMainImagePreviewImg" src="" alt="Preview"
+                                class="w-full h-48 object-cover rounded-xl border border-slate-700" />
+                        </div>
+                        <label
+                            class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-700 border-dashed rounded-xl cursor-pointer bg-slate-900 hover:bg-slate-800 transition-colors">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <span class="material-symbols-outlined text-slate-400 mb-2">cloud_upload</span>
+                                <p class="text-xs text-slate-400">Cliquez pour télécharger l'image principale</p>
+                            </div>
+                            <input type="file" id="complexMainImage" accept="image/*" class="hidden" />
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Images de la
+                        Galerie</label>
+                    <div class="mt-2">
+                        <div id="complexGalleryPreview" class="grid grid-cols-3 gap-2 mb-4"></div>
+                        <label
+                            class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-700 border-dashed rounded-xl cursor-pointer bg-slate-900 hover:bg-slate-800 transition-colors">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <span class="material-symbols-outlined text-slate-400 mb-2">perm_media</span>
+                                <p class="text-xs text-slate-400">Cliquez pour télécharger les images de la galerie</p>
+                            </div>
+                            <input type="file" id="complexGallery" accept="image/*" multiple class="hidden" />
+                        </label>
+                    </div>
+                </div>
+                <div class="flex gap-4 pt-4 border-t border-slate-800">
+                    <button type="submit"
+                        class="flex-1 bg-primary text-background-dark py-3 rounded-xl font-bold hover:shadow-lg hover:shadow-primary/20 transition-all">Enregistrer
+                        le
+                        Complexe</button>
+                    <button type="button" onclick="closeModal('complexModal')"
+                        class="px-6 py-3 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-700 transition-all">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Pitch Modal -->
+    <div id="pitchModal"
+        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 z-[60]">
+        <div
+            class="bg-card-dark rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-slate-800 shadow-2xl shadow-primary/5">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-white" id="pitchModalTitle">Ajouter un Terrain</h3>
+                <button class="text-slate-400 hover:text-white transition-colors" onclick="closeModal('pitchModal')">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="pitchForm" class="space-y-6">
+                <input type="hidden" id="pitchId" />
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nom du Terrain
+                        *</label>
+                    <input type="text" id="pitchName" required
+                        class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-slate-600" />
+                </div>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Dimension</label>
+                        <select id="pitchSize"
+                            class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                            <option>5 a side</option>
+                            <option>7 a side</option>
+                            <option>11 a side</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Surface</label>
+                        <select id="pitchSurface"
+                            class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                            <option>Grass</option>
+                            <option>Artificial</option>
+                            <option>Concrete</option>
+                            <option>Clay</option>
+                            <option>Padel Court</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Type de
+                            Sport</label>
+                        <select id="pitchSportType"
+                            class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                            <option>Football</option>
+                            <option>Padel</option>
+                            <option>Basketball</option>
+                            <option>Tennis</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Statut</label>
+                        <select id="pitchStatus"
+                            class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                            <option value="active">Actif</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="closed">Fermé</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Configuration
+                        des
+                        créneaux</label>
+                    <select id="pitchSlotConfig"
+                        class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                        <option value="">— Custom —</option>
+                    </select>
+                    <p class="text-xs text-slate-500 mt-1">Utilisez un type de sport pour la durée et le buffer (ex.
+                        Football
+                        90min, Padel 60min), ou Personnalisé pour régler manuellement.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Prix par Heure
+                        (TND)</label>
+                    <input type="number" id="pitchPrice" min="0" step="0.01"
+                        class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-slate-600" />
+                </div>
+                <div class="grid md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Heure
+                            d'Ouverture
+                        </label>
+                        <input type="number" id="pitchOpeningHour" min="0" max="23" value="8"
+                            class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Heure de
+                            Fermeture
+                        </label>
+                        <input type="number" id="pitchClosingHour" min="0" max="23" value="23"
+                            class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Durée
+                            (min)</label>
+                        <input type="number" id="pitchDuration" min="30" step="15" value="75"
+                            class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Image du
+                        Terrain</label>
+                    <div class="mt-2">
+                        <div id="pitchImagePreview" class="mb-4 hidden">
+                            <img id="pitchImagePreviewImg" src="" alt="Preview"
+                                class="w-full h-48 object-cover rounded-xl border border-slate-700" />
+                        </div>
+                        <label
+                            class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-700 border-dashed rounded-xl cursor-pointer bg-slate-900 hover:bg-slate-800 transition-colors">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <span class="material-symbols-outlined text-slate-400 mb-2">photo_camera</span>
+                                <p class="text-xs text-slate-400">Cliquez pour télécharger l'image du terrain</p>
+                            </div>
+                            <input type="file" id="pitchImage" accept="image/*" class="hidden" />
+                        </label>
+                    </div>
+                </div>
+                <div class="flex gap-4 pt-4 border-t border-slate-800">
+                    <button type="submit"
+                        class="flex-1 bg-primary text-background-dark py-3 rounded-xl font-bold hover:shadow-lg hover:shadow-primary/20 transition-all">Enregistrer
+                        le
+                        Terrain</button>
+                    <button type="button" onclick="closeModal('pitchModal')"
+                        class="px-6 py-3 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-700 transition-all">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

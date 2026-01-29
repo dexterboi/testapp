@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html class="dark" lang="fr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Portail Élève - Académie PitchPerfect</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Bungee&family=Space+Grotesk:wght@500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#D9FF66",
+                        secondary: "#00E0FF",
+                        "background-dark": "#05080F",
+                        "card-dark": "#0D111D",
+                    },
+                    fontFamily: {
+                        display: ["Space Grotesk", "sans-serif"],
+                        body: ["Plus Jakarta Sans", "sans-serif"],
+                        accent: ["Bungee", "cursive"],
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        :root {
+            --primary: #D9FF66;
+            --secondary: #00E0FF;
+            --background-dark: #05080F;
+            --card-dark: #0D111D;
+        }
+
+        body {
+            background-color: var(--background-dark);
+            color: #f1f5f9;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .stats-card {
+            background-color: var(--card-dark);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8rem;
+            height: 8rem;
+            background-color: rgba(217, 255, 102, 0.05);
+            border-radius: 9999px;
+            filter: blur(40px);
+            margin-right: -4rem;
+            margin-top: -4rem;
+        }
+
+        .badge-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .badge {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #334155;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .badge.earned {
+            background-color: rgba(217, 255, 102, 0.1);
+            color: var(--primary);
+            border-color: rgba(217, 255, 102, 0.2);
+            transform: scale(1.1);
+            box-shadow: 0 10px 15px -3px rgba(217, 255, 102, 0.2);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <nav
+        class="h-20 border-b border-white/5 px-8 flex items-center justify-between sticky top-0 bg-background-dark/80 backdrop-blur-md z-40">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+                <span class="material-symbols-outlined text-background-dark font-bold">school</span>
+            </div>
+            <span class="text-xl font-display font-bold">Tableau de bord Élève</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span id="studentName" class="text-xs font-black uppercase text-slate-400">Chargement...</span>
+            <button onclick="logout()"
+                class="p-2.5 bg-white/5 rounded-xl text-slate-500 hover:text-red-400 transition-all border border-white/10">
+                <span class="material-symbols-outlined">logout</span>
+            </button>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-8 space-y-8">
+        <!-- Profile Banner -->
+        <section
+            class="bg-gradient-to-r from-primary/10 via-background-dark to-secondary/10 p-8 rounded-[3rem] border border-white/5 flex flex-col md:flex-row items-center gap-8">
+            <div
+                class="w-32 h-32 rounded-[2rem] bg-slate-900 border-4 border-background-dark shadow-2xl overflow-hidden relative group">
+                <img id="profilePhoto" class="hidden w-full h-full object-cover" alt="Photo de profil">
+                <div id="profilePlaceholder"
+                    class="w-full h-full flex items-center justify-center text-4xl text-slate-800 font-accent">H</div>
+            </div>
+            <div class="flex-1 text-center md:text-left">
+                <h2 class="text-4xl font-display font-bold text-white mb-2" id="welcomeMsg">Bienvenue, Champion !</h2>
+                <div class="flex flex-wrap justify-center md:justify-start gap-4">
+                    <span
+                        class="px-4 py-1.5 bg-sidebar-dark rounded-full text-[10px] font-black uppercase text-primary border border-primary/20"
+                        id="programName">Programme : Équipe Élite</span>
+                    <span
+                        class="px-4 py-1.5 bg-sidebar-dark rounded-full text-[10px] font-black uppercase text-slate-400 border border-white/10"
+                        id="studentCode">Code : ST-XXXXXX</span>
+                </div>
+            </div>
+            <div class="bg-card-dark p-6 rounded-3xl border border-white/5 text-center">
+                <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Points de Rang</p>
+                <p class="text-3xl font-accent text-primary">1 250</p>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Side: Stats and Badges -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Achievement Badges -->
+                <div class="stats-card">
+                    <h3
+                        class="text-sm font-black uppercase text-slate-500 tracking-widest mb-6 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm text-amber-400">workspace_premium</span>
+                        Badges de l'Académie
+                    </h3>
+                    <div class="badge-grid" id="badgeGrid">
+                        <!-- Badges will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Training Schedule -->
+                <div class="stats-card">
+                    <h3
+                        class="text-sm font-black uppercase text-slate-500 tracking-widest mb-6 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm text-secondary">event_note</span>
+                        Emploi du temps hebdomadaire
+                    </h3>
+                    <div class="space-y-4" id="scheduleList">
+                        <!-- Schedule will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Coach Notes and Attendance -->
+            <div class="space-y-8">
+                <div class="stats-card bg-primary/5 border-primary/10">
+                    <h3 class="text-sm font-black uppercase text-primary tracking-widest mb-6 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm">edit_note</span>
+                        Commentaires du Coach
+                    </h3>
+                    <div id="coachNotesContainer" class="space-y-4">
+                        <!-- Interactions will be injected here -->
+                        <div
+                            class="p-4 bg-background-dark rounded-2xl border border-white/5 italic text-slate-500 text-sm">
+                            Pas encore de commentaires pour le moment.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-card">
+                    <h3
+                        class="text-sm font-black uppercase text-slate-500 tracking-widest mb-6 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm text-green-400">check_circle</span>
+                        Assiduité
+                    </h3>
+                    <div class="flex items-end gap-1 mb-4 h-24">
+                        <div class="flex-1 bg-green-500/10 h-2/3 rounded-t-lg border-x border-t border-green-500/20">
+                        </div>
+                        <div class="flex-1 bg-green-500/40 h-full rounded-t-lg border-x border-t border-green-500/20">
+                        </div>
+                        <div class="flex-1 bg-red-500/20 h-1/4 rounded-t-lg border-x border-t border-red-500/20"></div>
+                        <div class="flex-1 bg-green-500/60 h-5/6 rounded-t-lg border-x border-t border-green-500/20">
+                        </div>
+                        <div class="flex-1 bg-green-500 h-full rounded-t-lg"></div>
+                    </div>
+                    <div
+                        class="flex justify-between items-center bg-sidebar-dark p-4 rounded-2xl border border-white/5">
+                        <span class="text-xl font-accent text-white">92%</span>
+                        <span class="text-[10px] text-slate-500 font-black uppercase">Taux de présence</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="academy-student.js"></script>
+</body>
+
+</html>

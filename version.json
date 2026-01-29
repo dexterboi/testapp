@@ -1,6 +1,6 @@
 {
-    "version": "1.1.1",
-    "latest_version": "1.1.1",
+    "version": "1.1.2",
+    "latest_version": "1.1.2Extra information",
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "release_notes": "Implemented adaptive theme system for Spaces, Lobby, and Team pages (v1.1.1)."
+    "release_notes": "Refactored booking confirmation and checkout components for full adaptive theme support (v1.1.2)."
 }

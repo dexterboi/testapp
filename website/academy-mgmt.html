@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html class="dark" lang="fr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Gestion d'Académie - Larena CRM</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#D9FF66",
+                        "background-dark": "#05080F",
+                        "card-dark": "#0D111D",
+                        "sidebar-dark": "#080B14",
+                    },
+                    fontFamily: {
+                        display: ["Outfit", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "1rem",
+                        '2xl': "1.5rem",
+                        '3xl': "2rem",
+                    },
+                },
+            },
+        };
+    </script>
+    <style type="text/tailwindcss">
+        @layer base {
+        body {
+            @apply bg-background-dark text-slate-100 font-body antialiased;
+        }
+    }
+    .neon-glow {
+        box-shadow: 0 0 20px rgba(217, 255, 102, 0.2);
+    }
+    .sidebar-active {
+        @apply bg-primary text-background-dark font-bold;
+    }
+    .magic-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .magic-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(800px circle at var(--mouse-x) var(--mouse-y), rgba(217, 255, 102, 0.08), transparent 40%);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.5s;
+    }
+    .magic-card:hover::before {
+        opacity: 1;
+    }
+    .glass-morphism {
+        background: rgba(13, 17, 29, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .gradient-border {
+        position: relative;
+        background: #0D111D;
+        border-radius: 1.5rem;
+    }
+    .gradient-border::after {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        background: linear-gradient(45deg, transparent, rgba(217, 255, 102, 0.3), transparent);
+        border-radius: 1.5rem;
+        z-index: -1;
+    }
+    .tab-btn.active {
+        @apply bg-primary text-background-dark font-bold shadow-lg shadow-primary/20;
+    }
+
+    /* Professional FullCalendar Dark Theme */
+    #scheduleCalendar {
+        --fc-border-color: rgba(255, 255, 255, 0.05);
+        --fc-daygrid-event-dot-width: 8px;
+        --fc-list-event-dot-width: 8px;
+        --fc-list-event-hover-bg-color: rgba(255, 255, 255, 0.05);
+        --fc-page-bg-color: transparent;
+        --fc-neutral-bg-color: rgba(255, 255, 255, 0.02);
+        --fc-today-bg-color: rgba(217, 255, 102, 0.05);
+    }
+
+    .fc {
+        @apply font-body;
+    }
+
+    .fc .fc-toolbar-title {
+        @apply text-xl font-display font-black text-white;
+    }
+
+    .fc .fc-button {
+        @apply bg-card-dark border-slate-800 text-slate-400 font-bold text-xs uppercase tracking-widest px-4 py-2 rounded-xl transition-all hover:bg-slate-800 hover:text-white border-none;
+    }
+
+    .fc .fc-button-primary:not(:disabled).fc-button-active,
+    .fc .fc-button-primary:not(:disabled):active {
+        @apply bg-primary text-background-dark hover:bg-primary;
+    }
+
+    .fc .fc-col-header-cell-cushion {
+        @apply text-[10px] font-black uppercase tracking-widest text-slate-500 py-3 block;
+    }
+
+    .fc .fc-timegrid-slot-label-cushion {
+        @apply text-[10px] font-black uppercase text-slate-600;
+    }
+
+    .fc .fc-timegrid-axis-cushion {
+        @apply text-[10px] font-black uppercase text-slate-600;
+    }
+
+    .fc-theme-standard td, .fc-theme-standard th {
+        border-color: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .fc-event {
+        @apply border-0 shadow-xl overflow-hidden cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98];
+        border-radius: 12px !important;
+    }
+
+    .fc-v-event .fc-event-main {
+        @apply p-2;
+    }
+
+    .fc-event-title {
+        @apply text-[11px] font-black leading-tight uppercase;
+    }
+
+    .fc-event-time {
+        @apply text-[9px] font-bold opacity-70 mb-1 block;
+    }
+
+    .fc .fc-timegrid-now-indicator-line {
+        border-color: #D9FF66;
+    }
+
+    .fc .fc-timegrid-now-indicator-arrow {
+        border-color: #D9FF66;
+        background-color: #D9FF66;
+    }
+
+    /* Custom Scrollbar for Calendar */
+    .fc-scroller::-webkit-scrollbar {
+        width: 4px;
+    }
+    .fc-scroller::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .fc-scroller::-webkit-scrollbar-thumb {
+        background: rgba(217, 255, 102, 0.1);
+        border-radius: 10px;
+    }
+    .fc-scroller::-webkit-scrollbar-thumb:hover {
+        background: rgba(217, 255, 102, 0.3);
+    }
+</style>
+</head>
+
+<body class="flex min-h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside
+        class="w-20 md:w-64 bg-sidebar-dark border-r border-slate-800 flex flex-col h-screen fixed left-0 top-0 z-50">
+        <div class="p-6">
+            <div class="flex items-center gap-4 group">
+                <div
+                    class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:rotate-6 transition-transform">
+                    <img src="assets/logo.png" alt="Larena" class="h-6 w-6 object-contain brightness-0" />
+                </div>
+                <div class="hidden md:flex flex-col">
+                    <span
+                        class="text-xl font-display font-black tracking-tighter uppercase leading-none text-white">Larena</span>
+                    <span
+                        class="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none mt-1">PitchPerfect</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <a href="dashboard.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">analytics</span>
+                <span class="hidden md:block font-semibold">Tableau de Bord</span>
+            </a>
+            <a href="complexes.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">apartment</span>
+                <span class="hidden md:block font-semibold">Complexes</span>
+            </a>
+            <a href="bookings.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">calendar_month</span>
+                <span class="hidden md:block font-semibold">Réservations</span>
+            </a>
+            <a href="sport-types.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">sports_soccer</span>
+                <span class="hidden md:block font-semibold">Types de Sport</span>
+            </a>
+            <a href="academy-mgmt.html"
+                class="sidebar-active flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">school</span>
+                <span class="hidden md:block font-semibold">Académie</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800 mt-auto">
+            <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer">
+                <div
+                    class="w-10 h-10 rounded-full border-2 border-slate-700 overflow-hidden bg-slate-800 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-slate-400">person</span>
+                </div>
+                <div class="hidden md:block overflow-hidden">
+                    <p id="userName" class="text-sm font-bold truncate">Chargement...</p>
+                    <button id="logoutBtn"
+                        class="text-[10px] text-slate-500 uppercase font-bold tracking-wider hover:text-primary text-left">Déconnexion</button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 ml-20 md:ml-64 h-screen overflow-y-auto bg-background-dark">
+        <!-- Header -->
+        <header
+            class="sticky top-0 z-40 glass-morphism border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-display font-bold">Centre de l'Académie</h1>
+                <p class="text-xs text-slate-500 font-medium">Dynamisez la prochaine génération d'athlètes</p>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <select id="complexSelect"
+                    class="bg-card-dark border border-slate-700 text-slate-200 text-sm rounded-xl px-4 py-2 focus:ring-primary focus:border-primary">
+                    <option value="">Chargement des complexes...</option>
+                </select>
+
+                <button id="createAcademyBtn"
+                    class="bg-primary text-background-dark px-5 py-2.5 rounded-xl text-sm font-bold hover:scale-102 hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm font-bold">add_circle</span>
+                    Créer une Académie
+                </button>
+
+                <button id="addProgramBtn"
+                    class="hidden bg-primary text-background-dark px-5 py-2.5 rounded-xl text-sm font-bold hover:scale-102 hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm font-bold">add_circle</span>
+                    Ajouter un Programme
+                </button>
+            </div>
+        </header>
+
+        <div class="p-8 max-w-7xl mx-auto space-y-8">
+            <!-- Navigation Tabs -->
+            <div class="flex gap-2 p-1 bg-sidebar-dark rounded-2xl border border-slate-800 w-fit">
+                <button onclick="switchTab('programs')" id="programsTabBtn"
+                    class="tab-btn active px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">auto_awesome_motion</span>
+                    Programmes
+                </button>
+                <button onclick="switchTab('requests')" id="requestsTabBtn"
+                    class="tab-btn px-6 py-2 text-slate-400 hover:text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 relative">
+                    <span class="material-symbols-outlined text-sm">person_add</span>
+                    Demandes
+                    <span id="requestsBadge"
+                        class="hidden absolute -top-1 -right-1 w-5 h-5 bg-primary text-background-dark text-[10px] font-black rounded-full flex items-center justify-center border-2 border-background-dark animate-pulse">0</span>
+                </button>
+                <button onclick="switchTab('students')" id="studentsTabBtn"
+                    class="tab-btn px-6 py-2 text-slate-400 hover:text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">group</span>
+                    Élèves
+                </button>
+                <button onclick="switchTab('coaches')" id="coachesTabBtn"
+                    class="tab-btn px-6 py-2 text-slate-400 hover:text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">sports</span>
+                    Coachs
+                </button>
+                <button onclick="switchTab('schedule')" id="scheduleTabBtn"
+                    class="tab-btn px-6 py-2 text-slate-400 hover:text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">calendar_view_week</span>
+                    Emploi du temps
+                </button>
+            </div>
+
+            <!-- Programs View -->
+            <div id="programsView" class="space-y-6">
+                <!-- Academy Info Card -->
+                <div id="academyInfo" class="hidden">
+                    <div
+                        class="magic-card bg-card-dark p-8 rounded-3xl border border-slate-800 relative group overflow-hidden">
+                        <div
+                            class="absolute -right-8 -top-8 w-48 h-48 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors">
+                        </div>
+                        <div class="relative z-10 flex flex-col md:flex-row gap-8 items-center">
+                            <div id="academyLogoDisplay"
+                                class="w-32 h-32 rounded-3xl bg-slate-900 border border-white/5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                <span class="material-symbols-outlined text-4xl text-slate-800">school</span>
+                            </div>
+                            <div class="flex-1">
+                                <h2 id="academyNameDisplay"
+                                    class="text-3xl font-display font-bold text-white mb-2 leading-tight">Académie de
+                                    Football Élite</h2>
+                                <p id="academyDescDisplay" class="text-slate-400 text-sm max-w-2xl leading-relaxed">
+                                    Spécialisée dans les compétences techniques et la compréhension tactique pour les
+                                    jeunes joueurs âgés de 6 à 16 ans.
+                                </p>
+                                <div class="flex gap-6 mt-6">
+                                    <div class="flex flex-col">
+                                        <span
+                                            class="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Total
+                                            des Élèves</span>
+                                        <span id="totalStudentsCount"
+                                            class="text-xl font-display font-bold text-primary">0</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span
+                                            class="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Programmes
+                                            Actifs</span>
+                                        <span id="activeProgramsCount"
+                                            class="text-xl font-display font-bold text-white">0</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span
+                                            class="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Nouvelles
+                                            Demandes</span>
+                                        <span id="newInquiriesCount"
+                                            class="text-xl font-display font-bold text-amber-400">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <button onclick="openAcademyProfileModal()"
+                                    class="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-400 hover:text-white transition-all border border-white/5 hover:border-white/10">
+                                    <span class="material-symbols-outlined text-xl font-bold">settings</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between mt-12 mb-6">
+                        <h3 class="text-xl font-display font-bold flex items-center gap-2">
+                            <span class="w-2 h-8 bg-primary rounded-full"></span>
+                            Programmes d'Entraînement
+                        </h3>
+                    </div>
+
+                    <!-- Programs Grid -->
+                    <div id="programsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Program cards will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="academyEmpty"
+                    class="hidden text-center py-24 glass-morphism rounded-3xl border border-dashed border-slate-700">
+                    <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="material-symbols-outlined text-4xl text-primary font-bold">school</span>
+                    </div>
+                    <h3 class="text-2xl font-display font-bold text-white mb-3 tracking-tight">Configurez Votre Académie
+                    </h3>
+                    <p class="text-slate-500 max-w-sm mx-auto mb-8 leading-relaxed">Définissez vos programmes, fixez les
+                        groupes d'âge et commencez à accepter les demandes d'inscription des parents.</p>
+                    <button onclick="openAcademyProfileModal()"
+                        class="bg-primary text-background-dark px-8 py-3 rounded-xl font-black hover:scale-105 transition-all shadow-xl shadow-primary/10">
+                        Lancer Votre Académie
+                    </button>
+                </div>
+            </div>
+
+            <!-- Requests View (Hidden by default) -->
+            <div id="requestsView" class="hidden space-y-6">
+                <!-- Request filtering -->
+                <div class="flex gap-4">
+                    <button
+                        class="px-4 py-2 bg-primary text-background-dark rounded-xl text-xs font-bold shadow-lg shadow-primary/10">Toutes
+                        les En Attente</button>
+                    <button
+                        class="px-4 py-2 bg-card-dark text-slate-400 rounded-xl text-xs font-bold border border-slate-800 hover:bg-white/5 transition-all">Aujourd'hui</button>
+                </div>
+
+                <div class="bg-card-dark rounded-3xl border border-slate-800 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-sidebar-dark border-b border-slate-800">
+                                <th class="px-6 py-4 text-[10px] text-slate-500 uppercase font-black tracking-widest">
+                                    Parent</th>
+                                <th class="px-6 py-4 text-[10px] text-slate-500 uppercase font-black tracking-widest">
+                                    Contact</th>
+                                <th class="px-6 py-4 text-[10px] text-slate-500 uppercase font-black tracking-widest">
+                                    Programme</th>
+                                <th class="px-6 py-4 text-[10px] text-slate-500 uppercase font-black tracking-widest">
+                                    Inscrit le</th>
+                                <th
+                                    class="px-6 py-4 text-[10px] text-slate-500 uppercase font-black tracking-widest text-right">
+                                    Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requestsList" class="divide-y divide-slate-800">
+                            <!-- Injected requests -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Students View (Hidden by default) -->
+            <div id="studentsView" class="hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <h3 class="text-xl font-display font-bold flex items-center gap-2">
+                            <span class="w-2 h-8 bg-primary rounded-full"></span>
+                            Registre des Élèves
+                        </h3>
+                        <span id="studentCount"
+                            class="px-3 py-1 bg-white/5 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest border border-white/5">0
+                            Élèves</span>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="relative">
+                            <span
+                                class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">search</span>
+                            <input type="text" id="studentSearchInput" placeholder="Rechercher un élève..."
+                                class="pl-11 pr-6 py-2.5 bg-card-dark border border-slate-800 rounded-xl text-sm w-80 focus:border-primary transition-all">
+                        </div>
+                        <button id="viewArchivedBtn" onclick="toggleArchivedView()"
+                            class="px-4 py-2.5 bg-card-dark border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-all flex items-center gap-2 text-xs font-bold">
+                            <span class="material-symbols-outlined text-sm">archive</span>
+                            Archive
+                        </button>
+                        <button id="studentFilterBtn" onclick="toggleFilterPanel()"
+                            class="px-4 py-2.5 bg-card-dark border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-all flex items-center gap-2 text-xs font-bold">
+                            <span class="material-symbols-outlined text-sm">filter_list</span>
+                            Filtres
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Advanced Filter Panel -->
+                <div id="studentFilterPanel"
+                    class="hidden grid grid-cols-4 gap-4 p-6 mb-6 bg-card-dark/50 border border-slate-800 rounded-3xl backdrop-blur-sm">
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Âge</label>
+                        <select id="filterAgeRange" onchange="applyAdvancedFilters()"
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-xs text-white focus:border-primary">
+                            <option value="">Tous les âges</option>
+                            <option value="0-8">0 - 8 ans</option>
+                            <option value="9-12">9 - 12 ans</option>
+                            <option value="13-17">13 - 17 ans</option>
+                            <option value="18+">18 ans et +</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Programme</label>
+                        <select id="filterProgram" onchange="applyAdvancedFilters()"
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-xs text-white focus:border-primary">
+                            <option value="">Tous les programmes</option>
+                            <!-- Program options will be injected by JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Statut
+                            Paiement</label>
+                        <select id="filterPaymentStatus" onchange="applyAdvancedFilters()"
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-xs text-white focus:border-primary">
+                            <option value="">Tous les statuts</option>
+                            <option value="active">Actif</option>
+                            <option value="expiring">Expire bientôt</option>
+                            <option value="expired">Expiré</option>
+                            <option value="undefined">Non défini</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end pb-1">
+                        <button onclick="resetFilters()"
+                            class="flex items-center gap-2 text-[10px] text-slate-500 hover:text-primary uppercase font-black transition-all">
+                            <span class="material-symbols-outlined text-sm">restart_alt</span>
+                            Réinitialiser
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-card-dark rounded-3xl border border-slate-800 overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-sidebar-dark border-b border-slate-800">
+                                <th class="px-6 py-4 text-[10px] text-slate-500 uppercase font-black tracking-widest">
+                                    Élève</th>
+                                <th class="px-6 py-4 text-[10px] text-slate-500 uppercase font-black tracking-widest">
+                                    Parent & Contact</th>
+                                <th class="px-6 py-4 text-[10px] text-slate-500 uppercase font-black tracking-widest">
+                                    Programme</th>
+                                <th class="px-6 py-4 text-[10px] text-slate-500 uppercase font-black tracking-widest">
+                                    Code Unique</th>
+                                <th class="px-6 py-4 text-[10px] text-slate-500 uppercase font-black tracking-widest">
+                                    Statut Paiement</th>
+                                <th
+                                    class="px-6 py-4 text-[10px] text-slate-500 uppercase font-black tracking-widest text-right">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody" class="divide-y divide-slate-800">
+                            <!-- Injected students -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Coaches View -->
+            <div id="coachesView" class="hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-display font-bold flex items-center gap-2">
+                        <span class="w-2 h-8 bg-primary rounded-full"></span>
+                        Nos Coachs
+                    </h3>
+                    <button onclick="openCoachModal()"
+                        class="bg-primary text-background-dark px-5 py-2.5 rounded-xl text-sm font-bold hover:scale-102 transition-all flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm font-bold">person_add</span>
+                        Recruter un Coach
+                    </button>
+                </div>
+                <div id="coachesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Coach cards will be injected here -->
+                </div>
+            </div>
+
+            <!-- Schedule View -->
+            <div id="scheduleView" class="hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-6">
+                        <h3 class="text-xl font-display font-bold flex items-center gap-2">
+                            <span class="w-2 h-8 bg-primary rounded-full"></span>
+                            Emploi du temps
+                        </h3>
+                        <!-- View Toggle -->
+                        <div class="flex gap-1 bg-slate-900/50 p-1 rounded-xl border border-white/5">
+                            <button onclick="setScheduleView('list')" id="viewListBtn"
+                                class="px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all bg-primary text-background-dark">
+                                <span class="material-symbols-outlined text-sm align-middle mr-1">view_list</span>Liste
+                            </button>
+                            <button onclick="setScheduleView('calendar')" id="viewCalendarBtn"
+                                class="px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all text-slate-500 hover:text-white">
+                                <span
+                                    class="material-symbols-outlined text-sm align-middle mr-1">calendar_view_week</span>Calendrier
+                            </button>
+                        </div>
+                    </div>
+                    <button onclick="openSessionModal()"
+                        class="bg-primary text-background-dark px-5 py-2.5 rounded-xl text-sm font-bold hover:scale-102 transition-all flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm font-bold">more_time</span>
+                        Ajouter une Session
+                    </button>
+                </div>
+
+                <!-- List View (Default) -->
+                <div id="scheduleListView" class="glass-morphism rounded-3xl border border-slate-800 p-8">
+                    <div id="scheduleGrid" class="space-y-4">
+                        <!-- Schedule rows will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Calendar View (Hidden by default) -->
+                <div id="scheduleCalendarView" class="hidden glass-morphism rounded-3xl border border-slate-800 p-8">
+                    <div id="scheduleCalendar" class="min-h-[600px]"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Academy Profile Modal -->
+    <div id="academyProfileModal"
+        class="hidden fixed inset-0 bg-background-dark/80 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+        <div class="bg-card-dark w-full max-w-xl rounded-3xl border border-slate-800 shadow-2xl p-8 space-y-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-display font-bold text-white tracking-tight">Profil de l'Académie</h3>
+                    <p class="text-xs text-slate-500 mt-1">Configurez votre image et vos informations de base</p>
+                </div>
+                <button onclick="closeModal('academyProfileModal')"
+                    class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <form id="academyProfileForm" class="space-y-6">
+                <div class="flex flex-col items-center">
+                    <div id="logoUploadArea"
+                        class="w-32 h-32 rounded-[2.5rem] bg-slate-900 border-2 border-dashed border-slate-700 flex items-center justify-center relative group cursor-pointer overflow-hidden">
+                        <span
+                            class="material-symbols-outlined text-3xl text-slate-700 group-hover:text-primary transition-colors">add_a_photo</span>
+                        <img id="logoPreview" class="hidden absolute inset-0 w-full h-full object-cover">
+                        <input type="file" id="logoInput" class="hidden" accept="image/*">
+                    </div>
+                    <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-4">Logo de l'Académie
+                    </p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Nom de
+                            l'Académie</label>
+                        <input type="text" id="profileNameInput" required
+                            class="w-full px-5 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:border-primary transition-all text-sm text-white">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Description</label>
+                        <textarea id="profileDescInput" rows="3"
+                            class="w-full px-5 py-3 bg-slate-900/50 border border-slate-800 rounded-xl focus:border-primary transition-all text-sm text-white"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 pt-4">
+                    <button type="submit"
+                        class="flex-1 bg-primary text-background-dark py-3.5 rounded-xl font-black shadow-lg shadow-primary/10">Enregistrer
+                        le Profil</button>
+                    <button type="button" onclick="closeModal('academyProfileModal')"
+                        class="px-8 py-3.5 bg-white/5 text-slate-300 rounded-xl font-bold">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Program Setup Modal -->
+    <div id="programModal"
+        class="hidden fixed inset-0 bg-background-dark/80 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+        <div class="bg-card-dark w-full max-w-xl rounded-3xl border border-slate-800 shadow-2xl p-8 space-y-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 id="programModalTitle" class="text-2xl font-display font-bold text-white tracking-tight">Ajouter
+                        un Programme</h3>
+                    <p class="text-xs text-slate-500 mt-1">Configurez les détails des sessions d'entraînement</p>
+                </div>
+                <button onclick="closeModal('programModal')"
+                    class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <form id="programForm" class="space-y-6">
+                <input type="hidden" id="editProgramIndex">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Nom du
+                            Programme</label>
+                        <input type="text" id="pNameInput" required placeholder="ex: Élite Junior"
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Groupe
+                            d'Âge</label>
+                        <input type="text" id="pAgeInput" required placeholder="ex: 8-12 Ans"
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Emploi
+                            du temps</label>
+                        <input type="text" id="pScheduleInput" required placeholder="ex: Lun & Mer 16h"
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Prix
+                            Mensuel (TND)</label>
+                        <input type="number" id="pPriceInput" required placeholder="ex: 150"
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Coach
+                            Responsable</label>
+                        <select id="pCoachSelect"
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                            <option value="">Chargement...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 pt-4">
+                    <button type="submit"
+                        class="flex-1 bg-primary text-background-dark py-3.5 rounded-xl font-black shadow-lg shadow-primary/10">Enregistrer
+                        le Programme</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Student Confirmation Modal -->
+    <div id="confirmStudentModal"
+        class="hidden fixed inset-0 bg-background-dark/80 backdrop-blur-md z-[110] flex items-center justify-center p-6">
+        <div class="bg-card-dark w-full max-w-lg rounded-3xl border border-slate-800 shadow-2xl p-8">
+            <h3 class="text-2xl font-display font-bold text-white mb-6 tracking-tight">Confirmer l'Inscription</h3>
+            <form id="confirmStudentForm" class="space-y-6">
+                <input type="hidden" id="regIdInput">
+                <div class="flex flex-col items-center mb-6">
+                    <div id="childPhotoPreview"
+                        class="w-32 h-32 rounded-3xl bg-slate-900 border-2 border-dashed border-slate-700 flex items-center justify-center mb-4 overflow-hidden relative group cursor-pointer">
+                        <span
+                            class="material-symbols-outlined text-3xl text-slate-700 group-hover:text-primary transition-colors">add_a_photo</span>
+                        <input type="file" id="childPhotoInput" class="hidden" accept="image/*">
+                        <img id="previewImg" class="hidden absolute inset-0 w-full h-full object-cover">
+                    </div>
+                    <p class="text-xs text-slate-500 font-medium">Cliquez pour télécharger la photo de l'athlète</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Programme
+                            Assigné</label>
+                        <select id="assignProgram"
+                            class="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-800 rounded-xl text-sm focus:border-primary">
+                            <!-- Inject options -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Taille
+                            du Kit</label>
+                        <input type="text" id="kitSize" placeholder="ex: 12-14"
+                            class="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-800 rounded-xl text-sm focus:border-primary">
+                    </div>
+                </div>
+
+                <div class="pt-4 flex gap-4">
+                    <button type="submit"
+                        class="flex-1 bg-primary text-background-dark py-3.5 rounded-xl font-black shadow-lg shadow-primary/10">Confirmer
+                        l'Élève</button>
+                    <button type="button" onclick="closeModal('confirmStudentModal')"
+                        class="px-6 py-3.5 bg-white/5 text-slate-300 rounded-xl font-bold">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Coach Modal -->
+    <div id="coachModal"
+        class="hidden fixed inset-0 bg-background-dark/80 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+        <div class="bg-card-dark w-full max-w-xl rounded-3xl border border-slate-800 shadow-2xl p-8 space-y-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 id="coachModalTitle" class="text-2xl font-display font-bold text-white tracking-tight">Ajouter
+                        un Coach</h3>
+                    <p class="text-xs text-slate-500 mt-1">Gérez les informations du personnel</p>
+                </div>
+                <button onclick="closeModal('coachModal')"
+                    class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <form id="coachForm" class="space-y-6">
+                <input type="hidden" id="editCoachId">
+
+                <!-- Avatar Upload -->
+                <div class="flex flex-col items-center">
+                    <div id="coachAvatarUploadArea"
+                        class="w-24 h-24 rounded-2xl bg-slate-900 border-2 border-dashed border-slate-700 flex items-center justify-center relative group cursor-pointer overflow-hidden">
+                        <span
+                            class="material-symbols-outlined text-2xl text-slate-700 group-hover:text-primary transition-colors">add_a_photo</span>
+                        <img id="coachAvatarPreview" class="hidden absolute inset-0 w-full h-full object-cover">
+                        <input type="file" id="coachAvatarInput" class="hidden" accept="image/*">
+                    </div>
+                    <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-2">Photo de Profil</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Nom
+                            Complet</label>
+                        <input type="text" id="coachNameInput" required
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Email</label>
+                        <input type="email" id="coachEmailInput" required
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Téléphone</label>
+                        <input type="tel" id="coachPhoneInput" placeholder="ex: +216 55 123 456"
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Spécialités</label>
+                        <input type="text" id="coachSpecialtiesInput" placeholder="ex: Dribble, Tactique"
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                    </div>
+                </div>
+
+                <div>
+                    <label
+                        class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Biographie</label>
+                    <textarea id="coachBioInput" rows="2" placeholder="Décrivez l'expérience et le style du coach..."
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary"></textarea>
+                </div>
+
+                <div class="flex gap-4 pt-4">
+                    <button type="submit"
+                        class="flex-1 bg-primary text-background-dark py-3.5 rounded-xl font-black shadow-lg shadow-primary/10">Enregistrer
+                        Coach</button>
+                    <button type="button" onclick="closeModal('coachModal')"
+                        class="px-8 py-3.5 bg-white/5 text-slate-300 rounded-xl font-bold">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Session Modal -->
+    <div id="sessionModal"
+        class="hidden fixed inset-0 bg-background-dark/80 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+        <div class="bg-card-dark w-full max-w-xl rounded-3xl border border-slate-800 shadow-2xl p-8 space-y-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-display font-bold text-white tracking-tight">Programmer une Session</h3>
+                    <p class="text-xs text-slate-500 mt-1">Liez un programme à un coach et un horaire</p>
+                </div>
+                <button onclick="closeModal('sessionModal')"
+                    class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <form id="sessionForm" class="space-y-6">
+                <input type="hidden" id="editSessionId">
+
+                <div class="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <input type="checkbox" id="sessionRecurringCheck" checked
+                        class="w-5 h-5 rounded border-slate-700 bg-slate-900 text-primary focus:ring-primary focus:ring-offset-background-dark">
+                    <label for="sessionRecurringCheck" class="text-sm font-bold text-slate-300">Session Récurrente
+                        (Chaque semaine)</label>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Programme</label>
+                        <select id="sessionProgramSelect" required
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                            <!-- Injected programs -->
+                        </select>
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Coach</label>
+                        <select id="sessionCoachSelect" required
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                            <!-- Injected coaches -->
+                        </select>
+                    </div>
+                </div>
+                <!-- Dynamic Slots Container -->
+                <div id="sessionSlotsContainer" class="space-y-4">
+                    <!-- Slots will be injected here via JS -->
+                </div>
+
+                <!-- Add Slot Button (only for recurring) -->
+                <div id="addSlotBtnContainer" class="pt-2">
+                    <button type="button" onclick="addSessionSlot()"
+                        class="flex items-center gap-2 text-primary font-bold text-xs hover:opacity-80 transition-all">
+                        <span class="material-symbols-outlined text-sm">add_circle</span>
+                        Ajouter un autre créneau
+                    </button>
+                </div>
+
+                <!-- Specific Date (Fallback for non-recurring) -->
+                <div id="dateSelectGroup" class="hidden">
+                    <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Date
+                        Spécifique</label>
+                    <input type="date" id="sessionDateInput"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                </div>
+
+                <div class="flex gap-4 pt-4">
+                    <button type="submit"
+                        class="flex-1 bg-primary text-background-dark py-3.5 rounded-xl font-black shadow-lg shadow-primary/10">Valider
+                        Session</button>
+                    <button type="button" onclick="closeModal('sessionModal')"
+                        class="px-8 py-3.5 bg-white/5 text-slate-300 rounded-xl font-bold">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="academy.js"></script>
+    <script>
+        // Magic Card Spotlight
+        function updateSpotlight(e) {
+            const card = e.currentTarget;
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            card.style.setProperty('--mouse-x', `${x}px`);
+            card.style.setProperty('--mouse-y', `${y}px`);
+        }
+
+        document.querySelectorAll('.magic-card').forEach(card => {
+            card.addEventListener('mousemove', updateSpotlight);
+        });
+    </script>
+
+
+    <!-- Edit Student Modal -->
+    <div id="editStudentModal"
+        class="hidden fixed inset-0 bg-background-dark/80 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+        <div class="bg-card-dark w-full max-w-xl rounded-3xl border border-slate-800 shadow-2xl p-8 space-y-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-display font-bold text-white tracking-tight">Modifier l'Élève</h3>
+                    <p class="text-xs text-slate-500 mt-1">Mettez à jour les informations de profil et d'inscription</p>
+                </div>
+                <button onclick="closeModal('editStudentModal')"
+                    class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <form id="editStudentForm" class="space-y-6">
+                <input type="hidden" id="editStudentId">
+                <input type="hidden" id="editRegId">
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Nom de
+                            l'Enfant</label>
+                        <input type="text" id="editChildName" required
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Âge</label>
+                        <input type="number" id="editChildAge" required
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Nom du
+                            Parent</label>
+                        <input type="text" id="editParentName"
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Téléphone
+                            Parent</label>
+                        <input type="tel" id="editParentPhone"
+                            class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Programme
+                        Assigné</label>
+                    <select id="editStudentProgram"
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                        <!-- Options filled via JS -->
+                    </select>
+                </div>
+
+                <div class="flex gap-4 pt-4">
+                    <button type="submit"
+                        class="flex-1 bg-primary text-background-dark py-3.5 rounded-xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">Enregistrer
+                        les Modifications</button>
+                    <button type="button" onclick="closeModal('editStudentModal')"
+                        class="px-8 py-3.5 bg-white/5 text-slate-300 rounded-xl font-bold">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Update Payment Modal -->
+    <div id="paymentModal"
+        class="hidden fixed inset-0 bg-background-dark/80 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+        <div class="bg-card-dark w-full max-w-md rounded-3xl border border-slate-800 shadow-2xl p-8 space-y-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-display font-bold text-white tracking-tight">Mettre à jour le Paiement</h3>
+                    <p class="text-xs text-slate-500 mt-1">Gérez la validité de l'inscription</p>
+                </div>
+                <button onclick="closeModal('paymentModal')"
+                    class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <form id="paymentForm" class="space-y-6">
+                <input type="hidden" id="paymentStudentId">
+                <div>
+                    <label class="block text-[10px] text-slate-500 uppercase font-black tracking-widest mb-2">Nouvelle
+                        Date d'Expiration</label>
+                    <input type="date" id="paymentExpiryInput" required
+                        class="w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-sm text-white focus:border-primary">
+                    <p class="text-[10px] text-slate-500 mt-2 italic">L'accès de l'élève expirera à cette date.</p>
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="submit"
+                        class="flex-1 bg-primary text-background-dark py-3.5 rounded-xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">Mettre
+                        à Jour</button>
+                    <button type="button" onclick="closeModal('paymentModal')"
+                        class="px-8 py-3.5 bg-white/5 text-slate-300 rounded-xl font-bold">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+</body>
+
+</html>
