@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html class="dark" lang="fr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Connexion - Larena</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800&family=Material+Icons+Outlined&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#D9FF66",
+                        "background-dark": "#05080F",
+                        "card-dark": "#0D111D",
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+
+<body class="bg-background-dark text-slate-100 min-h-screen flex items-center justify-center px-6">
+    <div class="max-w-md w-full">
+        <div class="text-center mb-12">
+            <div class="flex flex-col items-center justify-center gap-4 mb-6 group">
+                <div
+                    class="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/20 group-hover:rotate-6 transition-transform">
+                    <img src="assets/logo.png" alt="Larena" class="h-10 w-10 object-contain brightness-0" />
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-3xl font-display font-black tracking-tighter uppercase leading-none">Larena</span>
+                    <span
+                        class="text-xs font-black text-primary uppercase tracking-[0.3em] leading-none mt-2">PitchPerfect</span>
+                </div>
+            </div>
+            <h1 class="text-3xl font-black text-white mb-2 uppercase tracking-tight">Accès Portail</h1>
+            <p class="text-slate-500 font-medium">Gérez votre complexe sportif en toute simplicité</p>
+        </div>
+
+        <div class="bg-card-dark rounded-[2.5rem] p-8 border border-white/5 shadow-2xl">
+            <div class="flex p-1.5 bg-background-dark/50 rounded-2xl border border-white/5 mb-8">
+                <button id="ownerLoginToggle"
+                    class="flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-background-dark shadow-xl shadow-primary/20 transition-all">Propriétaire</button>
+                <button id="coachLoginToggle"
+                    class="flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Coach</button>
+                <button id="studentLoginToggle"
+                    class="flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Élève</button>
+            </div>
+
+            <div id="errorMessage"
+                class="hidden mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm"></div>
+
+            <!-- Token Login Form (Owner & Coach) -->
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-300 mb-2">Jeton d'Accès</label>
+                    <input type="text" id="token" required
+                        class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-primary transition-colors font-mono text-sm"
+                        placeholder="Entrez votre jeton d'accès" />
+                    <p class="text-xs text-slate-500 mt-2">Utilisez le jeton fourni pour vous connecter</p>
+                </div>
+                <button type="submit" id="loginBtn"
+                    class="w-full bg-primary text-background-dark py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/20 transition-all active:scale-95 disabled:opacity-50">
+                    Se Connecter
+                </button>
+            </form>
+
+            <!-- Student Login Form -->
+            <form id="studentLoginForm" class="hidden space-y-6">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-300 mb-2">Code Élève</label>
+                    <input type="text" id="studentCode" required
+                        class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-primary transition-colors font-mono text-sm"
+                        placeholder="ex : ST-XKJ72Y" />
+                    <p class="text-xs text-slate-500 mt-2">Demandez à votre coach votre code élève unique</p>
+                </div>
+                <button type="submit" id="studentLoginBtn"
+                    class="w-full bg-primary text-background-dark py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/20 transition-all active:scale-95 disabled:opacity-50">
+                    Accéder à l'Académie
+                </button>
+            </form>
+        </div>
+
+        <p class="mt-6 text-center text-sm text-slate-400">
+            Besoin d'un jeton ? <a href="mailto:support@larena.app"
+                class="text-primary hover:underline">Contactez-nous</a>
+        </p>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://dgpdlwklqvbmdtalyiis.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRncGRsd2tscXZibWR0YWx5aWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzEzMTYsImV4cCI6MjA4NDIwNzMxNn0.REgLPzPG7Xq2I5Ocp7vD8IS2MLuqfbNNioOrS0RNGSA';
+
+        // Initialize Supabase
+        let supabaseClient;
+        function initSupabase() {
+            try {
+                if (typeof supabaseJs !== 'undefined' && supabaseJs.createClient) {
+                    supabaseClient = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                } else if (typeof supabase !== 'undefined' && supabase.createClient) {
+                    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                } else {
+                    setTimeout(initSupabase, 100);
+                    return;
+                }
+                setupHandlers();
+            } catch (err) {
+                console.error('Error initializing Supabase:', err);
+                setTimeout(initSupabase, 100);
+            }
+        }
+
+        function setupHandlers() {
+            if (!supabaseClient) {
+                setTimeout(setupHandlers, 100);
+                return;
+            }
+
+            // Toggle Logic
+            const ownerToggle = document.getElementById('ownerLoginToggle');
+            const coachToggle = document.getElementById('coachLoginToggle');
+            const studentToggle = document.getElementById('studentLoginToggle');
+            const ownerForm = document.getElementById('loginForm');
+            const studentForm = document.getElementById('studentLoginForm');
+            const portalTitle = document.querySelector('h1');
+
+            function setActiveToggle(active) {
+                [ownerToggle, coachToggle, studentToggle].forEach(t => {
+                    if (t === active) {
+                        t.classList.add('bg-primary', 'text-background-dark', 'shadow-lg');
+                        t.classList.remove('text-slate-500');
+                    } else {
+                        t.classList.remove('bg-primary', 'text-background-dark', 'shadow-lg');
+                        t.classList.add('text-slate-500');
+                    }
+                });
+            }
+
+            ownerToggle.addEventListener('click', () => {
+                setActiveToggle(ownerToggle);
+                ownerForm.classList.remove('hidden');
+                studentForm.classList.add('hidden');
+                portalTitle.textContent = 'Portail Propriétaire';
+            });
+
+            coachToggle.addEventListener('click', () => {
+                setActiveToggle(coachToggle);
+                ownerForm.classList.remove('hidden');
+                studentForm.classList.add('hidden');
+                portalTitle.textContent = 'Portail Coach';
+            });
+
+            studentToggle.addEventListener('click', () => {
+                setActiveToggle(studentToggle);
+                studentForm.classList.remove('hidden');
+                ownerForm.classList.add('hidden');
+                portalTitle.textContent = 'Portail Élève';
+            });
+
+            // Token-based Login (Owner)
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const token = document.getElementById('token').value.trim();
+                const btn = document.getElementById('loginBtn');
+                const errorDiv = document.getElementById('errorMessage');
+
+                if (!token) {
+                    errorDiv.textContent = 'Veuillez entrer votre jeton d\'accès';
+                    errorDiv.classList.remove('hidden');
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.textContent = 'Connexion en cours...';
+                errorDiv.classList.add('hidden');
+
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('user_profiles')
+                        .select('id, name, email, role')
+                        .eq('portal_token', token);
+
+                    if (error) throw error;
+                    const profile = data?.[0];
+
+                    if (!profile) {
+                        throw new Error('Jeton d\'accès invalide. Veuillez vérifier votre jeton et réessayer.');
+                    }
+
+                    if (profile.role !== 'owner' && profile.role !== 'coach') {
+                        throw new Error('Votre compte n\'a pas les permissions nécessaires pour accéder à ce portail.');
+                    }
+
+                    sessionStorage.setItem('owner_token', token);
+                    sessionStorage.setItem('owner_id', profile.id);
+                    sessionStorage.setItem('owner_name', profile.name || profile.email);
+                    sessionStorage.setItem('userRole', profile.role);
+                    sessionStorage.setItem('userEmail', profile.email);
+
+                    if (profile.role === 'owner') {
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        window.location.href = 'coach-dashboard.html';
+                    }
+                } catch (err) {
+                    console.error('Login error:', err);
+                    errorDiv.textContent = err.message || 'Échec de la connexion';
+                    errorDiv.classList.remove('hidden');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Se Connecter';
+                }
+            });
+
+            // Student Login Handler
+            document.getElementById('studentLoginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const code = document.getElementById('studentCode').value.trim();
+                const btn = document.getElementById('studentLoginBtn');
+                const errorDiv = document.getElementById('errorMessage');
+
+                if (!code) {
+                    errorDiv.textContent = 'Veuillez entrer votre code élève';
+                    errorDiv.classList.remove('hidden');
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.textContent = 'Authentification en cours...';
+                errorDiv.classList.add('hidden');
+
+                try {
+                    const { data: student, error } = await supabaseClient
+                        .from('academy_students')
+                        .select('id, student_code, academy_registrations!inner(child_name)')
+                        .eq('student_code', code)
+                        .single();
+
+                    if (error || !student) {
+                        throw new Error('Code élève invalide. Utilisez le code fourni par votre académie.');
+                    }
+
+                    sessionStorage.setItem('student_code', code);
+                    sessionStorage.setItem('student_id', student.id);
+                    sessionStorage.setItem('child_name', student.academy_registrations.child_name);
+                    sessionStorage.setItem('userRole', 'student');
+
+                    window.location.href = 'academy-student.html';
+                } catch (err) {
+                    console.error('Login error:', err);
+                    errorDiv.textContent = err.message || 'Accès refusé';
+                    errorDiv.classList.remove('hidden');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Entrer dans l\'Académie';
+                }
+            });
+
+            // Check if already logged in (Owner/Coach)
+            const storedToken = sessionStorage.getItem('owner_token');
+            if (storedToken) {
+                (async () => {
+                    const { data } = await supabaseClient
+                        .from('user_profiles')
+                        .select('id, role')
+                        .eq('portal_token', storedToken);
+
+                    if (data && data.length > 0) {
+                        const profile = data[0];
+                        if (profile.role === 'owner') window.location.href = 'dashboard.html';
+                        else if (profile.role === 'coach') window.location.href = 'coach-dashboard.html';
+                    } else {
+                        sessionStorage.removeItem('owner_token');
+                    }
+                })();
+            }
+        }
+
+        // Start initialization
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSupabase);
+        } else {
+            initSupabase();
+        }
+    </script>
+</body>
+
+</html>

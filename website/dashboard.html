@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html class="dark" lang="fr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Tableau de bord Propriétaire - Larena</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="config.js"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <!-- Compatibility for existing Material Icons usage -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#D9FF66",
+                        "background-light": "#F9FAFB",
+                        "background-dark": "#05080F",
+                        "card-dark": "#0D111D",
+                        "sidebar-dark": "#080B14",
+                    },
+                    fontFamily: {
+                        display: ["Outfit", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "1rem",
+                        '2xl': "1.5rem",
+                        '3xl': "2rem",
+                    },
+                },
+            },
+        };
+    </script>
+    <style type="text/tailwindcss">
+        @layer base {
+        body {
+            @apply bg-background-dark text-slate-100 font-body antialiased;
+        }
+    }
+    .neon-glow {
+        box-shadow: 0 0 15px rgba(217, 255, 102, 0.15);
+    }
+    .text-glow {
+        text-shadow: 0 0 10px rgba(217, 255, 102, 0.3);
+    }
+    .sidebar-active {
+        @apply bg-primary text-background-dark font-bold;
+    }
+    .chart-bar {
+        @apply bg-primary rounded-t-sm;
+        min-height: 20px;
+    }
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    /* Styles for Tab navigation */
+    .tab-btn.active {
+        @apply bg-primary text-background-dark font-bold rounded-xl;
+    }
+
+    /* Magic UI: Magic Card (Spotlight Effect) */
+    .magic-card {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .magic-card::before {
+        content: '';
+        position: absolute;
+        top: var(--mouse-y, 50%);
+        left: var(--mouse-x, 50%);
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(217, 255, 102, 0.15) 0%, transparent 70%);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .magic-card:hover::before {
+        opacity: 1;
+    }
+
+    /* Magic UI: Border Beam */
+    .border-beam {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .border-beam::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #D9FF66, transparent);
+        animation: border-beam 3s infinite;
+    }
+
+    @keyframes border-beam {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
+
+    /* Magic UI: Number Ticker */
+    .number-ticker {
+        display: inline-block;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Magic UI: Neon Gradient Card */
+    .neon-gradient-card {
+        position: relative;
+        background: linear-gradient(135deg, rgba(217, 255, 102, 0.05) 0%, rgba(217, 255, 102, 0.02) 100%);
+    }
+
+    .neon-gradient-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        padding: 1px;
+        background: linear-gradient(135deg, rgba(217, 255, 102, 0.3), rgba(217, 255, 102, 0.1), transparent);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .neon-gradient-card:hover::before {
+        opacity: 1;
+    }
+
+    /* Magic UI: Shimmer Button */
+    .shimmer-button {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .shimmer-button::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
+
+    /* Magic UI: Text Reveal */
+    .text-reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+
+    .text-reveal.revealed {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* Magic UI: Animated Grid Pattern */
+    .animated-grid-bg {
+        position: absolute;
+        inset: 0;
+        background-image: 
+            linear-gradient(to right, rgba(217, 255, 102, 0.03) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(217, 255, 102, 0.03) 1px, transparent 1px);
+        background-size: 20px 20px;
+        opacity: 0.5;
+        animation: grid-move 20s linear infinite;
+    }
+
+    @keyframes grid-move {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(20px, 20px); }
+    }
+
+    /* Magic UI: Ripple Effect */
+    .ripple-effect {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ripple-effect::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(217, 255, 102, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+
+    .ripple-effect:active::after {
+        width: 300px;
+        height: 300px;
+    }
+</style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="flex min-h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside
+        class="w-20 md:w-64 bg-sidebar-dark border-r border-slate-800 flex flex-col h-screen fixed left-0 top-0 z-50">
+        <div class="p-6">
+            <div class="flex items-center gap-4 group">
+                <div
+                    class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:rotate-6 transition-transform">
+                    <img src="assets/logo.png" alt="Larena" class="h-6 w-6 object-contain brightness-0" />
+                </div>
+                <div class="hidden md:flex flex-col">
+                    <span
+                        class="text-xl font-display font-black tracking-tighter uppercase leading-none text-white">Larena</span>
+                    <span
+                        class="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none mt-1">PitchPerfect</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <a href="dashboard.html"
+                class="sidebar-active flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">analytics</span>
+                <span class="hidden md:block font-semibold">Tableau de Bord</span>
+            </a>
+            <a href="complexes.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">apartment</span>
+                <span class="hidden md:block font-semibold">Complexes</span>
+            </a>
+            <a href="bookings.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">calendar_month</span>
+                <span class="hidden md:block font-semibold">Réservations</span>
+            </a>
+            <a href="sport-types.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">sports_soccer</span>
+                <span class="hidden md:block font-semibold">Types de Sport</span>
+            </a>
+            <a href="academy-mgmt.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">school</span>
+                <span class="hidden md:block font-semibold">Académie</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800">
+            <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer">
+                <div
+                    class="w-10 h-10 rounded-full border-2 border-slate-700 overflow-hidden bg-slate-800 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-slate-400">person</span>
+                </div>
+                <div class="hidden md:block overflow-hidden">
+                    <p id="userName" class="text-sm font-bold truncate">Chargement...</p>
+                    <button id="logoutBtn"
+                        class="text-[10px] text-slate-500 uppercase font-bold tracking-wider hover:text-primary text-left">Déconnexion</button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 ml-20 md:ml-64 h-screen overflow-y-auto bg-background-dark">
+        <!-- Header -->
+        <header
+            class="sticky top-0 z-40 bg-background-dark/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-display font-bold text-reveal">Vue d'ensemble</h1>
+                <p class="text-xs text-slate-500 font-medium text-reveal" style="animation-delay: 0.1s;">Gestion de vos
+                    installations sportives</p>
+            </div>
+
+            <!-- Complex Selector Area in Header -->
+            <div class="flex items-center gap-3">
+                <select id="complexSelect"
+                    class="bg-card-dark border border-slate-700 text-slate-200 text-sm rounded-xl px-4 py-2 focus:ring-primary focus:border-primary">
+                    <option value="">Chargement des complexes...</option>
+                </select>
+
+                <button
+                    class="ripple-effect w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-primary transition-colors relative">
+                    <span class="material-symbols-outlined text-xl relative z-10">notifications</span>
+                </button>
+
+                <button id="addComplexBtn"
+                    class="shimmer-button ripple-effect bg-primary text-background-dark px-4 py-2 rounded-xl text-xs font-bold hover:scale-105 transition-transform flex items-center gap-2 relative z-10">
+                    <span class="material-symbols-outlined text-sm relative z-10">add</span>
+                    <span class="relative z-10">Nouveau Complexe</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="p-6 max-w-7xl mx-auto space-y-6">
+
+            <!-- No Complexes Message -->
+            <div id="noComplexesMessage" class="hidden text-center py-12">
+                <div
+                    class="magic-card neon-gradient-card bg-white/5 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/5">
+                    <span class="material-symbols-outlined text-5xl text-slate-700">storefront</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2 text-reveal">Aucun Complexe Trouvé</h2>
+                <p class="text-slate-400 mb-8 text-reveal" style="animation-delay: 0.2s;">Créez votre premier complexe
+                    pour commencer.</p>
+            </div>
+
+            <!-- Stats Section -->
+            <div id="statsSection" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
+                <!-- Total Revenue -->
+                <div
+                    class="magic-card neon-gradient-card bg-card-dark p-6 rounded-3xl border border-slate-800 relative overflow-hidden group">
+                    <div class="animated-grid-bg"></div>
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <span class="material-symbols-outlined text-6xl text-primary">payments</span>
+                    </div>
+                    <p class="text-slate-400 text-sm font-medium mb-1 text-reveal">Revenu Total</p>
+                    <h2 class="text-3xl font-display font-extrabold text-white mb-2"><span id="totalRevenue"
+                            class="number-ticker">0</span>
+                        <span class="text-sm text-slate-500 font-normal">TND</span>
+                    </h2>
+                    <div class="flex items-center gap-1 text-primary text-xs font-bold">
+                        <span class="material-symbols-outlined text-sm">trending_up</span> Tout le temps
+                    </div>
+                </div>
+
+                <!-- Monthly Revenue -->
+                <div
+                    class="magic-card neon-gradient-card bg-card-dark p-6 rounded-3xl border border-slate-800 relative overflow-hidden group">
+                    <div class="animated-grid-bg"></div>
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <span class="material-symbols-outlined text-6xl text-primary">calendar_month</span>
+                    </div>
+                    <p class="text-slate-400 text-sm font-medium mb-1 text-reveal" style="animation-delay: 0.1s;">
+                        Revenu Mensuel</p>
+                    <h2 class="text-3xl font-display font-extrabold text-white mb-2"><span id="monthlyRevenue"
+                            class="number-ticker">0</span>
+                        <span class="text-sm text-slate-500 font-normal">TND</span>
+                    </h2>
+                    <div class="flex items-center gap-1 text-primary text-xs font-bold">
+                        <span class="material-symbols-outlined text-sm">trending_up</span> Ce mois-ci
+                    </div>
+                </div>
+
+                <!-- Occupancy Rate -->
+                <div
+                    class="magic-card neon-gradient-card bg-card-dark p-6 rounded-3xl border border-slate-800 relative overflow-hidden group">
+                    <div class="animated-grid-bg"></div>
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <span class="material-symbols-outlined text-6xl text-primary">stars</span>
+                    </div>
+                    <p class="text-slate-400 text-sm font-medium mb-1 text-reveal" style="animation-delay: 0.2s;">
+                        Taux d'Occupation</p>
+                    <h2 class="text-3xl font-display font-extrabold text-white mb-2"><span id="occupancyRate"
+                            class="number-ticker">0</span>%
+                    </h2>
+                    <div class="flex items-center gap-1 text-primary text-xs font-bold">
+                        <span class="material-symbols-outlined text-sm">show_chart</span> Utilisation
+                    </div>
+                </div>
+
+                <!-- Monthly Bookings -->
+                <div
+                    class="magic-card neon-gradient-card bg-card-dark p-6 rounded-3xl border border-slate-800 relative overflow-hidden group">
+                    <div class="animated-grid-bg"></div>
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <span class="material-symbols-outlined text-6xl text-primary">event_available</span>
+                    </div>
+                    <p class="text-slate-400 text-sm font-medium mb-1 text-reveal" style="animation-delay: 0.3s;">
+                        Réservations Mensuelles</p>
+                    <h2 class="text-3xl font-display font-extrabold text-white mb-2"><span id="monthlyBookings"
+                            class="number-ticker">0</span></h2>
+                </div>
+
+                <!-- Pending Requests -->
+                <div
+                    class="magic-card neon-gradient-card bg-card-dark p-6 rounded-3xl border border-slate-800 relative overflow-hidden group border-beam">
+                    <div class="animated-grid-bg"></div>
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <span class="material-symbols-outlined text-6xl text-amber-400">notification_important</span>
+                    </div>
+                    <p class="text-slate-400 text-sm font-medium mb-1 text-reveal" style="animation-delay: 0.4s;">
+                        Demandes en Attente</p>
+                    <h2 class="text-3xl font-display font-extrabold text-white mb-2"><span id="pendingRequests"
+                            class="number-ticker">0</span></h2>
+                    <div class="flex items-center gap-1 text-amber-400 text-xs font-bold">
+                        Action requise
+                    </div>
+                </div>
+
+                <!-- Avg Booking Value -->
+                <div
+                    class="magic-card neon-gradient-card bg-card-dark p-6 rounded-3xl border border-slate-800 relative overflow-hidden group">
+                    <div class="animated-grid-bg"></div>
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <span class="material-symbols-outlined text-6xl text-green-400">account_balance_wallet</span>
+                    </div>
+                    <p class="text-slate-400 text-sm font-medium mb-1 text-reveal" style="animation-delay: 0.5s;">Valeur
+                        Moyenne des Réservations</p>
+                    <h2 class="text-3xl font-display font-extrabold text-white mb-2"><span id="avgBookingValue"
+                            class="number-ticker">0</span>
+                        <span class="text-sm text-slate-500 font-normal">TND</span>
+                    </h2>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div id="chartsSection" class="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden">
+                <div
+                    class="magic-card neon-gradient-card bg-card-dark p-6 rounded-3xl border border-slate-800 relative overflow-hidden">
+                    <div class="animated-grid-bg"></div>
+                    <h3 class="text-lg font-bold mb-6 text-reveal relative z-10">Tendance des Revenus</h3>
+                    <div class="h-64 relative z-10">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+
+                <div
+                    class="magic-card neon-gradient-card bg-card-dark p-6 rounded-3xl border border-slate-800 relative overflow-hidden">
+                    <div class="animated-grid-bg"></div>
+                    <h3 class="text-lg font-bold mb-6 text-reveal relative z-10" style="animation-delay: 0.1s;">Statut
+                        des Réservations</h3>
+                    <div class="h-64 relative z-10">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Section -->
+            <div id="analyticsSection" class="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden">
+                <div
+                    class="magic-card neon-gradient-card bg-card-dark p-6 rounded-3xl border border-slate-800 relative overflow-hidden">
+                    <div class="animated-grid-bg"></div>
+                    <h3 class="text-lg font-bold mb-6 text-reveal relative z-10">Performance des Terrains</h3>
+                    <div class="h-64 relative z-10">
+                        <canvas id="pitchPerformanceChart"></canvas>
+                    </div>
+                </div>
+
+                <div
+                    class="magic-card neon-gradient-card bg-card-dark p-6 rounded-3xl border border-slate-800 relative overflow-hidden">
+                    <div class="animated-grid-bg"></div>
+                    <h3 class="text-lg font-bold mb-6 text-reveal relative z-10" style="animation-delay: 0.1s;">Heures
+                        de Pointe</h3>
+                    <div class="h-64 relative z-10">
+                        <canvas id="peakHoursChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Patterns Section -->
+            <div id="patternsSection" class="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden">
+                <div
+                    class="magic-card neon-gradient-card bg-card-dark p-6 rounded-3xl border border-slate-800 relative overflow-hidden">
+                    <div class="animated-grid-bg"></div>
+                    <h3 class="text-lg font-bold mb-6 text-reveal relative z-10">Modèle Hebdomadaire</h3>
+                    <div class="h-64 relative z-10">
+                        <canvas id="weeklyPatternChart"></canvas>
+                    </div>
+                </div>
+
+                <div
+                    class="magic-card neon-gradient-card bg-card-dark p-6 rounded-3xl border border-slate-800 relative overflow-hidden">
+                    <div class="animated-grid-bg"></div>
+                    <h3 class="text-lg font-bold mb-6 text-reveal relative z-10" style="animation-delay: 0.1s;">
+                        Répartition des Revenus</h3>
+                    <div class="h-64 relative z-10">
+                        <canvas id="revenueBreakdownChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Management Section -->
+    </main>
+    <script src="dashboard.js"></script>
+    <script>
+        // Magic Card: Spotlight effect on mouse move
+        document.querySelectorAll('.magic-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                card.style.setProperty('--mouse-x', `${x}%`);
+                card.style.setProperty('--mouse-y', `${y}%`);
+            });
+        });
+
+        // Text Reveal on Scroll
+        function initTextReveal() {
+            const textElements = document.querySelectorAll('.text-reveal');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('revealed');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+            textElements.forEach(el => observer.observe(el));
+        }
+
+        // Initialize on load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initTextReveal);
+        } else {
+            initTextReveal();
+        }
+    </script>
+</body>
+
+</html>

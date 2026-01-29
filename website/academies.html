@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html class="dark" lang="fr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <title>PitchPerfect | Académies</title>
+
+    <!-- Scripts & Styles from Index -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800&family=Material+Icons+Outlined&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#D9FF66",
+                        "background-light": "#F9FAFB",
+                        "background-dark": "#05080F",
+                        "card-dark": "#0D111D",
+                        "sidebar-dark": "#080B14",
+                    },
+                    fontFamily: {
+                        display: ["Outfit", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "1rem",
+                        '2xl': "1.5rem",
+                        '3xl': "2rem",
+                    },
+                },
+            },
+        };
+    </script>
+
+    <style>
+        /* Cursor Styles from Index */
+        .cursor-dot,
+        .cursor-outline {
+            pointer-events: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            z-index: 9999;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, background-color 0.3s ease-in-out, border-color 0.3s ease-in-out;
+        }
+
+        .cursor-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #D9FF66;
+        }
+
+        .cursor-outline {
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(217, 255, 102, 0.5);
+            box-shadow: 0 0 15px rgba(217, 255, 102, 0.2);
+        }
+
+        .cursor-hover .cursor-dot {
+            transform: translate(-50%, -50%) scale(1.5);
+            background-color: #D9FF66;
+        }
+
+        .cursor-hover .cursor-outline {
+            transform: translate(-50%, -50%) scale(1.5);
+            border-color: #D9FF66;
+            background-color: rgba(217, 255, 102, 0.1);
+            box-shadow: 0 0 25px rgba(217, 255, 102, 0.4);
+        }
+
+        .cursor-hidden {
+            opacity: 0;
+        }
+
+        /* Navigation Styles from Index */
+        .nav-shadow {
+            box-shadow: 0 2px 16px 0 rgba(5, 8, 15, 0.08);
+        }
+
+        /* Page Specific Styles */
+        :root {
+            --primary: #D9FF66;
+            --background-dark: #05080F;
+            --card-dark: #0D111D;
+        }
+
+        body {
+            background-color: var(--background-dark);
+            color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+            cursor: none;
+        }
+
+        .academy-card {
+            position: relative;
+            background-color: var(--card-dark);
+            border-radius: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: none;
+        }
+
+        .academy-card:hover {
+            border-color: rgba(217, 255, 102, 0.2);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -20px rgba(217, 255, 102, 0.1);
+        }
+
+        a,
+        button {
+            cursor: none;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div class="cursor-outline" id="cursorOutline"></div>
+    <nav
+        class="fixed top-0 left-0 right-0 z-50 bg-background-light/90 dark:bg-background-dark/95 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/5 nav-shadow">
+        <div class="max-w-screen-xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-4 group">
+                <div
+                    class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:rotate-6 transition-transform">
+                    <img src="assets/logo.png" alt="Larena" class="h-6 w-6 object-contain brightness-0" />
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-xl font-display font-black tracking-tighter uppercase leading-none">Larena</span>
+                    <span
+                        class="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none mt-1">PitchPerfect</span>
+                </div>
+            </div>
+            <div class="hidden md:flex items-center gap-10">
+                <a class="text-sm font-bold text-slate-500 hover:text-primary transition-all tracking-wide uppercase hover:-translate-y-0.5"
+                    href="index.html#features">Fonctionnalités</a>
+                <a class="text-sm font-bold text-slate-500 hover:text-primary transition-all tracking-wide uppercase hover:-translate-y-0.5"
+                    href="academies.html">Académies</a>
+                <a class="text-sm font-bold text-slate-500 hover:text-primary transition-all tracking-wide uppercase hover:-translate-y-0.5"
+                    href="index.html#owners">Propriétaires</a>
+                <a class="text-sm font-bold text-slate-500 hover:text-primary transition-all tracking-wide uppercase hover:-translate-y-0.5"
+                    href="index.html#about">À Propos</a>
+            </div>
+            <div class="flex items-center gap-6">
+                <a href="login.html"
+                    class="hidden sm:block text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Connexion</a>
+                <button onclick="window.location.href='login.html'"
+                    class="bg-primary text-background-dark px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 hover:shadow-xl hover:shadow-primary/20 transition-all active:scale-95">
+                    Tableau de Bord
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-20">
+        <!-- Hero Section -->
+        <section class="relative py-24 overflow-hidden">
+            <div
+                class="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -mr-64 -mt-64 animate-pulse">
+            </div>
+            <div
+                class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] -ml-64 -mb-64">
+            </div>
+
+            <div class="max-w-7xl mx-auto px-6 text-center relative z-10">
+                <h1 class="text-5xl md:text-7xl font-display font-bold text-white mb-6 leading-[1.1] tracking-tight">
+                    Améliorez votre jeu avec des <br>
+                    <span class="text-primary">Académies de Sport d'Élite</span>
+                </h1>
+                <p class="text-lg text-slate-400 max-w-2xl mx-auto mb-12 font-medium">
+                    Trouvez le programme d'entraînement idéal pour vos enfants, trié par proximité.
+                    Coachs experts, installations premium et curriculum professionnel.
+                </p>
+
+                <!-- Search/Location Bar -->
+                <div
+                    class="max-w-3xl mx-auto p-2 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-md flex flex-col md:flex-row gap-2">
+                    <div class="flex-1 flex items-center gap-3 px-6 h-14">
+                        <span class="material-symbols-outlined text-slate-500">near_me</span>
+                        <input type="text" id="locationSearch" placeholder="Détection de votre emplacement..."
+                            class="bg-transparent border-none text-white focus:ring-0 text-sm font-bold flex-1"
+                            readonly>
+                    </div>
+                    <button id="useMyLocation"
+                        class="px-8 bg-primary text-background-dark rounded-2xl font-black text-sm hover:scale-102 transition-all shadow-lg shadow-primary/20">
+                        Trier par Proximité
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Academies Grid -->
+        <section class="py-24 bg-background-dark/50 px-6">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex items-center justify-between mb-12">
+                    <h2 class="text-3xl font-display font-bold text-white flex items-center gap-3">
+                        <span class="w-1.5 h-10 bg-primary rounded-full"></span>
+                        Recommandé Près de Chez Vous
+                    </h2>
+                    <div class="flex gap-2">
+                        <button
+                            class="px-4 py-2 bg-sidebar-dark rounded-xl text-xs font-bold text-slate-400 border border-white/5">Sport
+                            : Tous</button>
+                        <button
+                            class="px-4 py-2 bg-sidebar-dark rounded-xl text-xs font-bold text-slate-400 border border-white/5">Âge
+                            : Tous</button>
+                    </div>
+                </div>
+
+                <div id="academiesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Loading state -->
+                    <div class="col-span-full py-24 text-center">
+                        <div
+                            class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4">
+                        </div>
+                        <p class="text-slate-500 font-bold uppercase tracking-widest text-xs">Recherche d'académies à
+                            proximité...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Academy Detail Modal -->
+    <div id="academyModal"
+        class="hidden fixed inset-0 bg-background-dark/90 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+        <div
+            class="bg-card-dark w-full max-w-4xl rounded-[3rem] border border-white/5 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col relative">
+
+            <!-- Scrolling Content -->
+            <div class="flex-1 overflow-y-auto p-8 md:p-12">
+                <div class="flex flex-col md:flex-row gap-8 md:gap-12">
+                    <div class="w-full md:w-5/12">
+                        <div
+                            class="aspect-square bg-slate-900 rounded-[2.5rem] overflow-hidden border border-white/5 relative">
+                            <img id="modalCover" src="" class="hidden absolute inset-0 w-full h-full object-cover">
+                            <div id="modalPlaceholder"
+                                class="absolute inset-0 flex items-center justify-center text-slate-800 text-6xl font-black">
+                                A</div>
+                        </div>
+                    </div>
+                    <div class="flex-1 flex flex-col">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span
+                                class="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase rounded-lg">Académie
+                                Jeunesse</span>
+                            <span id="modalProximity"
+                                class="px-3 py-1 bg-white/5 text-slate-400 text-[10px] font-black uppercase rounded-lg tracking-widest">DÉCOUVERTE</span>
+                        </div>
+                        <h3 id="modalName"
+                            class="text-3xl md:text-4xl font-display font-bold text-white mb-4 leading-tight tracking-tight">
+                            Nom de
+                            l'Académie</h3>
+                        <p id="modalDesc" class="text-slate-400 text-sm leading-relaxed mb-6 font-medium">Description
+                            détaillée
+                            ici...</p>
+
+                        <div class="mt-auto p-6 md:p-8 rounded-[2rem] bg-sidebar-dark border border-white/5">
+                            <h4 class="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] mb-4">Programmes
+                                Disponibles</h4>
+                            <div id="modalPrograms" class="space-y-3">
+                                <!-- Programs injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registration Form (Toggleable) -->
+                <div id="registrationSection" class="hidden pt-12 border-t border-white/5 mt-12">
+                    <h4 class="text-2xl font-display font-bold text-white mb-6">Inscrire Votre Enfant</h4>
+                    <form id="registrationForm" class="space-y-6">
+                        <input type="hidden" id="regAcademyId">
+
+                        <div class="space-y-2 mb-6">
+                            <label class="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Choisir
+                                un Programme</label>
+                            <select id="regProgramSelect" required
+                                class="w-full px-5 py-3.5 bg-sidebar-dark border border-white/10 rounded-2xl text-white text-sm focus:border-primary transition-all">
+                                <option value="">Séléctionner un programme</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Nom
+                                    de l'Enfant</label>
+                                <input type="text" id="regChildName" required
+                                    class="w-full px-5 py-3.5 bg-sidebar-dark border border-white/10 rounded-2xl text-white text-sm focus:border-primary transition-all placeholder-slate-600 font-medium"
+                                    placeholder="Nom complet de l'enfant">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Âge
+                                    de l'Enfant</label>
+                                <input type="number" id="regChildAge" required
+                                    class="w-full px-5 py-3.5 bg-sidebar-dark border border-white/10 rounded-2xl text-white text-sm focus:border-primary transition-all placeholder-slate-600 font-medium"
+                                    placeholder="ex: 10">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Nom
+                                    du Parent</label>
+                                <input type="text" id="regParentName" required
+                                    class="w-full px-5 py-3.5 bg-sidebar-dark border border-white/10 rounded-2xl text-white text-sm focus:border-primary transition-all placeholder-slate-600 font-medium"
+                                    placeholder="Nom complet du parent">
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="text-[10px] text-slate-500 uppercase font-black tracking-widest ml-1">Téléphone
+                                    du Parent</label>
+                                <input type="tel" id="regParentPhone" required
+                                    class="w-full px-5 py-3.5 bg-sidebar-dark border border-white/10 rounded-2xl text-white text-sm focus:border-primary transition-all placeholder-slate-600 font-medium"
+                                    placeholder="ex: 22 123 456">
+                            </div>
+                        </div>
+
+                        <div class="pt-4 pb-8">
+                            <button type="submit"
+                                class="w-full bg-primary text-background-dark py-4 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all">
+                                Envoyer la Demande d'Inscription
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Sticky Footer CTA -->
+            <div id="ctaSection"
+                class="p-6 md:p-8 bg-card-dark border-t border-white/5 flex items-center justify-center">
+                <button onclick="toggleRegistration()"
+                    class="w-full max-w-lg bg-primary text-background-dark py-4 rounded-[2rem] font-black text-lg shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
+                    Faire une demande d'inscription
+                </button>
+            </div>
+
+            <!-- Close Button -->
+            <button onclick="closeModal('academyModal')"
+                class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all border border-white/10 z-[110]">
+                <span class="material-symbols-outlined text-xl">close</span>
+            </button>
+        </div>
+    </div>
+
+    <script src="academies.js"></script>
+    <script>
+        // --- Premium Cursor Logic ---
+        const dot = document.getElementById('cursorDot');
+        const outline = document.getElementById('cursorOutline');
+        const interactiveElements = 'a, button, .academy-card, [onclick]';
+
+        let mouseX = 0, mouseY = 0;
+        let dotX = 0, dotY = 0;
+        let outlineX = 0, outlineY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        function animateCursor() {
+            dotX += (mouseX - dotX) * 0.2;
+            dotY += (mouseY - dotY) * 0.2;
+            dot.style.left = `${dotX}px`;
+            dot.style.top = `${dotY}px`;
+
+            outlineX += (mouseX - outlineX) * 0.15;
+            outlineY += (mouseY - outlineY) * 0.15;
+            outline.style.left = `${outlineX}px`;
+            outline.style.top = `${outlineY}px`;
+
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+
+        function updateHovers() {
+            document.querySelectorAll(interactiveElements).forEach(el => {
+                el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
+                el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
+            });
+        }
+        updateHovers();
+
+        // Handle dynamic content hover
+        const observer = new MutationObserver(() => updateHovers());
+        observer.observe(document.body, { childList: true, subtree: true });
+    </script>
+</body>
+
+</html>
