@@ -1,0 +1,12 @@
+# Distribution-Only Repo Config
+# Ignore everything by default
+*
+
+# Allow specific redistribution assets
+!app-debug.apk
+!version.json
+!.gitignore
+!netlify.toml
+
+# Allow directory structure for allowed files if needed
+!*/

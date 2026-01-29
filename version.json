@@ -1,6 +1,6 @@
 {
-    "version": "1.1.0",
-    "latest_version": "1.1.0",
+    "version": "1.1.1",
+    "latest_version": "1.1.1",
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "release_notes": "Critical project reorganization and performance optimization (v1.1.0)."
+    "release_notes": "Implemented adaptive theme system for Spaces, Lobby, and Team pages (v1.1.1)."
 }
