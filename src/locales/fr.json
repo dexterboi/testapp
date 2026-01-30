@@ -198,7 +198,7 @@
             "wants_to_join": "VEUT REJOINDRE VOTRE ÉQUIPE",
             "my_crew": "Mon Équipe",
             "members_count": "Membres",
-            "checking_status": "Vérification du statut...",
+            "checking_status": "VÉRIFICATION DU STATUT...",
             "empty_crew": "Votre équipe est vide.",
             "search_players_above": "Recherchez des joueurs pour constituer votre équipe !",
             "active": "Actif",
@@ -290,6 +290,43 @@
             "spaces": "Espaces",
             "crew": "Crewmates",
             "profile": "Vous"
+        },
+        "owner": {
+            "welcome": "Bienvenue",
+            "pitch_owner": "Propriétaire",
+            "statistics": "Statistiques",
+            "total_revenue": "Revenu Total",
+            "monthly_revenue": "Revenu Mensuel",
+            "bookings_week": "Réservations Semaine",
+            "pending_requests": "Demandes en Attente",
+            "recent_bookings": "Réservations Récentes",
+            "view_all": "Voir Tout",
+            "venue_settings": "Paramètres du Complexe",
+            "timeline": "Planning",
+            "full_ledger": "Registre Complet",
+            "settings": "Paramètres",
+            "configuration": "Configuration",
+            "no_bookings": "Pas de réservations en attente",
+            "status": {
+                "confirmed": "CONF",
+                "pending": "ATT",
+                "rejected": "REJ",
+                "cancelled": "ANN"
+            },
+            "inventory": "Inventaire",
+            "active_pitches": "Terrains Actifs",
+            "add_pitch": "Ajouter un terrain",
+            "edit_pitch": "Modifier le terrain",
+            "create_pitch": "Créer le terrain",
+            "save_changes": "Enregistrer",
+            "manage_bookings": "Gérer"
+        },
+        "update": {
+            "available": "Mise à jour disponible !",
+            "version": "Version",
+            "whats_new": "Nouveautés :",
+            "download": "Télécharger la mise à jour",
+            "later": "Plus tard"
         }
     }
 }

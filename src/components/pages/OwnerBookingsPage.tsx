@@ -113,17 +113,17 @@ const OwnerBookingsPage = () => {
     });
 
     return (
-        <div className="min-h-screen bg-slate-950 pb-24 font-sans text-white">
+        <div className="min-h-screen bg-app-bg pb-24 font-sans text-app-text">
             {/* Header */}
-            <div className="bg-slate-950 px-6 pt-[calc(3rem+env(safe-area-inset-top))] pb-6 border-b border-app-border sticky top-0 z-50 backdrop-blur-xl bg-slate-950/80">
+            <div className="bg-app-bg px-6 pt-[calc(3rem+env(safe-area-inset-top))] pb-6 border-b border-app-border sticky top-0 z-50 backdrop-blur-xl bg-app-bg/80">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                         <button onClick={() => navigate('/owner')} className="w-10 h-10 rounded-full bg-app-surface-2 hover:bg-app-surface-2 text-white flex items-center justify-center transition-all active:scale-90">
                             <ChevronLeft size={20} />
                         </button>
                         <div>
-                            <h1 className="text-2xl font-black tracking-tighter text-white leading-none">
-                                Manage <span className="text-primary">Bookings</span>
+                            <h1 className="text-2xl font-black tracking-tighter text-app-text leading-none">
+                                {t('owner.manage_bookings')} <span className="text-primary">Bookings</span>
                             </h1>
                         </div>
                     </div>
@@ -141,7 +141,7 @@ const OwnerBookingsPage = () => {
                             placeholder="Search customer or pitch..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-slate-900/60 border border-app-border rounded-2xl pl-12 pr-4 py-3.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-primary/30 transition-all"
+                            className="w-full bg-app-surface border border-app-border rounded-2xl pl-12 pr-4 py-3.5 text-sm text-app-text placeholder:text-slate-500 focus:outline-none focus:border-primary/30 transition-all"
                         />
                     </div>
                 </div>
@@ -173,7 +173,7 @@ const OwnerBookingsPage = () => {
                                 }}
                                 className={`flex-shrink-0 px-4 py-2.5 rounded-full text-[11px] font-black uppercase tracking-tight transition-all relative ${isSelected
                                     ? 'bg-primary text-slate-950 shadow-lg shadow-primary/20'
-                                    : 'bg-slate-900/60 text-white border border-app-border'
+                                    : 'bg-app-surface text-app-text border border-app-border'
                                     } ${!hasBookings ? 'opacity-50' : ''}`}
                             >
                                 {dayName} {dayNum}
@@ -221,7 +221,7 @@ const OwnerBookingsPage = () => {
                         const endTime = new Date(booking.end_time);
 
                         return (
-                            <div key={booking.id} className="bg-slate-900/60 rounded-3xl p-5 border border-app-border group hover:bg-slate-900 transition-all">
+                            <div key={booking.id} className="bg-app-surface rounded-3xl p-5 border border-app-border group hover:bg-app-surface transition-all">
                                 <div className="flex items-center gap-4">
                                     {/* Sport Icon */}
                                     <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center flex-shrink-0">

@@ -112,8 +112,6 @@ const App = () => {
 
       if (latestVersion && latestVersion !== currentVersion) {
         console.log('🚀 [Version] New version detected! Opening modal...');
-        // Temporary Debug Alert
-        alert(`Update Found: Remote=${latestVersion} | Local=${currentVersion}`);
 
         setUpdateInfo({
           latestVersion: latestVersion,
@@ -124,7 +122,6 @@ const App = () => {
       }
     } catch (error) {
       console.warn('⚠️ [Version] Check failed:', error);
-      alert('Version Check Failed: ' + (error as Error).message);
     }
   };
 

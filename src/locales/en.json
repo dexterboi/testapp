@@ -286,6 +286,43 @@
             "spaces": "Spaces",
             "crew": "Crew",
             "profile": "You"
+        },
+        "owner": {
+            "welcome": "Welcome",
+            "pitch_owner": "Pitch Owner",
+            "statistics": "Statistics",
+            "total_revenue": "Total Revenue",
+            "monthly_revenue": "Monthly Revenue",
+            "bookings_week": "Bookings Week",
+            "pending_requests": "Pending Requests",
+            "recent_bookings": "Recent Bookings",
+            "view_all": "View All",
+            "venue_settings": "Venue Settings",
+            "timeline": "Timeline",
+            "full_ledger": "Full Ledger",
+            "settings": "Settings",
+            "configuration": "Configuration",
+            "no_bookings": "No Pending Bookings",
+            "status": {
+                "confirmed": "CONF",
+                "pending": "PEND",
+                "rejected": "REJ",
+                "cancelled": "CANC"
+            },
+            "inventory": "Inventory",
+            "active_pitches": "Active Pitches",
+            "add_pitch": "Add Pitch",
+            "edit_pitch": "Edit Pitch",
+            "create_pitch": "Create Pitch",
+            "save_changes": "Save Changes",
+            "manage_bookings": "Manage"
+        },
+        "update": {
+            "available": "Update Available!",
+            "version": "Version",
+            "whats_new": "What's New:",
+            "download": "Download Update",
+            "later": "Later"
         }
     }
 }

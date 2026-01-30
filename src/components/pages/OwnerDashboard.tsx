@@ -149,20 +149,20 @@ export const OwnerDashboard = () => {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
-            <h2 className="text-[11px] font-black text-white uppercase tracking-widest">STATISTICS</h2>
+            <h2 className="text-[11px] font-black text-app-text uppercase tracking-widest">{t('owner.statistics')}</h2>
           </div>
           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
             {/* Total Revenue Card */}
-            <div className="flex-shrink-0 w-[280px] bg-slate-900/60 rounded-3xl p-6 border border-app-border">
+            <div className="flex-shrink-0 w-[280px] bg-app-surface rounded-3xl p-6 border border-app-border">
               <div className="flex items-start justify-between mb-4">
                 <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
                   <span className="material-symbols-rounded text-2xl text-primary">account_balance_wallet</span>
                 </div>
                 <span className="text-[10px] font-black text-primary uppercase tracking-widest">+12%</span>
               </div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total Revenue</p>
-              <p className="text-2xl font-black text-white tracking-tight mb-3">
-                {stats?.totalRevenue ? `${stats.totalRevenue.toLocaleString()}` : '0'} <span className="text-xs text-slate-500">TND</span>
+              <p className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mb-2">{t('owner.total_revenue')}</p>
+              <p className="text-2xl font-black text-app-text tracking-tight mb-3">
+                {stats?.totalRevenue ? `${stats.totalRevenue.toLocaleString()}` : '0'} <span className="text-xs text-app-text-muted">TND</span>
               </p>
               <div className="h-1 bg-primary/20 rounded-full overflow-hidden">
                 <div className="h-full bg-primary rounded-full" style={{ width: '75%' }}></div>
@@ -170,16 +170,16 @@ export const OwnerDashboard = () => {
             </div>
 
             {/* Monthly Revenue Card */}
-            <div className="flex-shrink-0 w-[280px] bg-slate-900/60 rounded-3xl p-6 border border-app-border">
+            <div className="flex-shrink-0 w-[280px] bg-app-surface rounded-3xl p-6 border border-app-border">
               <div className="flex items-start justify-between mb-4">
                 <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
                   <span className="material-symbols-rounded text-2xl text-primary">trending_up</span>
                 </div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase">This Month</span>
+                <span className="text-[10px] font-bold text-app-text-muted uppercase">This Month</span>
               </div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Monthly Revenue</p>
-              <p className="text-2xl font-black text-white tracking-tight mb-3">
-                {stats?.thisMonth?.revenue ? `${stats.thisMonth.revenue.toLocaleString()}` : '0'} <span className="text-xs text-slate-500">TND</span>
+              <p className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mb-2">{t('owner.monthly_revenue')}</p>
+              <p className="text-2xl font-black text-app-text tracking-tight mb-3">
+                {stats?.thisMonth?.revenue ? `${stats.thisMonth.revenue.toLocaleString()}` : '0'} <span className="text-xs text-app-text-muted">TND</span>
               </p>
               <div className="h-1 bg-primary/20 rounded-full overflow-hidden">
                 <div className="h-full bg-primary rounded-full" style={{ width: '60%' }}></div>
@@ -187,15 +187,15 @@ export const OwnerDashboard = () => {
             </div>
 
             {/* Bookings Week Card */}
-            <div className="flex-shrink-0 w-[280px] bg-slate-900/60 rounded-3xl p-6 border border-app-border">
+            <div className="flex-shrink-0 w-[280px] bg-app-surface rounded-3xl p-6 border border-app-border">
               <div className="flex items-start justify-between mb-4">
                 <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20">
                   <span className="material-symbols-rounded text-2xl text-primary">calendar_month</span>
                 </div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Today</span>
+                <span className="text-[10px] font-bold text-app-text-muted uppercase">Today</span>
               </div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Bookings Week</p>
-              <p className="text-2xl font-black text-white tracking-tight mb-3">
+              <p className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mb-2">{t('owner.bookings_week')}</p>
+              <p className="text-2xl font-black text-app-text tracking-tight mb-3">
                 {stats?.thisMonth?.bookings || 0}
               </p>
               <div className="h-1 bg-primary/20 rounded-full overflow-hidden">
@@ -204,14 +204,14 @@ export const OwnerDashboard = () => {
             </div>
 
             {/* Pending Requests Card */}
-            <div className="flex-shrink-0 w-[280px] bg-slate-900/60 rounded-3xl p-6 border border-app-border">
+            <div className="flex-shrink-0 w-[280px] bg-app-surface rounded-3xl p-6 border border-app-border">
               <div className="flex items-start justify-between mb-4">
                 <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center border border-amber-500/20">
                   <span className="material-symbols-rounded text-2xl text-amber-400">notification_important</span>
                 </div>
               </div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Pending Requests</p>
-              <p className="text-2xl font-black text-white tracking-tight mb-3">
+              <p className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mb-2">{t('owner.pending_requests')}</p>
+              <p className="text-2xl font-black text-app-text tracking-tight mb-3">
                 {stats?.pending || 0}
               </p>
               <div className="h-1 bg-amber-500/20 rounded-full overflow-hidden">
@@ -226,13 +226,13 @@ export const OwnerDashboard = () => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
-              <h2 className="text-[11px] font-black text-white uppercase tracking-widest">RECENT BOOKINGS</h2>
+              <h2 className="text-[11px] font-black text-app-text uppercase tracking-widest">{t('owner.recent_bookings')}</h2>
             </div>
             <button
               onClick={() => navigate(`/owner/bookings/${selectedComplex?.id}`)}
-              className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-primary transition-colors"
+              className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest hover:text-primary transition-colors"
             >
-              View All
+              {t('owner.view_all')}
             </button>
           </div>
           <div className="space-y-3">
@@ -244,29 +244,29 @@ export const OwnerDashboard = () => {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
-            <h2 className="text-[11px] font-black text-white uppercase tracking-widest">VENUE SETTINGS</h2>
+            <h2 className="text-[11px] font-black text-app-text uppercase tracking-widest">{t('owner.venue_settings')}</h2>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <button
               onClick={() => navigate(`/owner/bookings/${selectedComplex?.id}`)}
-              className="bg-slate-900/60 rounded-3xl p-6 border border-app-border text-left group hover:bg-slate-900 transition-all"
+              className="bg-app-surface rounded-3xl p-6 border border-app-border text-left group hover:bg-app-surface transition-all"
             >
               <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 mb-4 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-rounded text-2xl text-primary">history</span>
               </div>
-              <h3 className="text-sm font-black text-white uppercase tracking-tight">Timeline</h3>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Full Ledger</p>
+              <h3 className="text-sm font-black text-app-text uppercase tracking-tight">{t('owner.timeline')}</h3>
+              <p className="text-[9px] font-bold text-app-text-muted uppercase tracking-widest mt-1">{t('owner.full_ledger')}</p>
             </button>
 
             <button
               onClick={() => navigate(`/owner/pitches/${selectedComplex?.id}`)}
-              className="bg-slate-900/60 rounded-3xl p-6 border border-app-border text-left group hover:bg-slate-900 transition-all"
+              className="bg-app-surface rounded-3xl p-6 border border-app-border text-left group hover:bg-app-surface transition-all"
             >
               <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 mb-4 group-hover:scale-110 transition-transform">
                 <span className="material-symbols-rounded text-2xl text-primary">tune</span>
               </div>
-              <h3 className="text-sm font-black text-white uppercase tracking-tight">Settings</h3>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Configuration</p>
+              <h3 className="text-sm font-black text-app-text uppercase tracking-tight">{t('owner.settings')}</h3>
+              <p className="text-[9px] font-bold text-app-text-muted uppercase tracking-widest mt-1">{t('owner.configuration')}</p>
             </button>
           </div>
         </div>
