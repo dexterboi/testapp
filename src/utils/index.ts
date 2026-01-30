@@ -79,7 +79,7 @@ export const getAvatarUrl = (avatar: string | null | undefined, name?: string, u
 
     // If we have a filename but not a full URL, use ImageKit base
     // Note: The endpoint should match what's in your .env or the hardcoded one used in UserProfile
-    const IMAGEKIT_BASE = 'https://ik.imagekit.io/kanze88sec';
+    const IMAGEKIT_BASE = import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT || 'https://ik.imagekit.io/kanze88sec';
 
     if (avatar && avatar.trim()) {
         const cleanPath = avatar.trim().startsWith('/') ? avatar.trim() : `/${avatar.trim()}`;

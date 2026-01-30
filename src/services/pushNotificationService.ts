@@ -9,6 +9,9 @@ export const initializePushNotifications = async (userId: string) => {
     try {
         console.log('🔔 [Push] Starting initialization for user:', userId);
 
+        // Remove existing listeners to avoid duplicates/leaks
+        await PushNotifications.removeAllListeners();
+
         // Request permission to use push notifications
         let permStatus = await PushNotifications.checkPermissions();
         console.log('🔔 [Push] Current permission status:', permStatus);

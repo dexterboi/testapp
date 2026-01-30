@@ -33,6 +33,15 @@ import OwnerPitchesPage from '@/components/pages/OwnerPitchesPage';
 import { VersionCheckModal } from '@/components/layout/VersionCheckModal';
 import pkg from '../package.json';
 
+export interface User {
+  id: string;
+  email?: string;
+  name: string;
+  avatar: string | null;
+  role: string;
+  phone: string | null;
+}
+
 // Component to scroll to top on route change
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -43,7 +52,7 @@ const ScrollToTop = () => {
 };
 
 const App = () => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState<Record<string, any>>({});
@@ -99,9 +108,15 @@ const App = () => {
   }, [user?.id]);
 
   const checkForUpdates = async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
     try {
       // Fetch version.json from GitHub with a cache-buster
-      const response = await fetch(`https://raw.githubusercontent.com/dexterboi/testapp/main/version.json?t=${Date.now()}`);
+      const response = await fetch(`https://raw.githubusercontent.com/dexterboi/testapp/main/version.json?t=${Date.now()}`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
       if (!response.ok) return;
 
       const data = await response.json();
@@ -295,8 +310,8 @@ const App = () => {
       refreshCount(userId);
 
       const friendshipChannel = supabase
-        .channel(`public: friendships: friend_id = eq.${userId} `)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `friend_id = eq.${userId} ` }, () => {
+        .channel(`public:friendships:friend_id=eq.${userId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `friend_id=eq.${userId}` }, () => {
           refreshCount(userId);
         })
         .subscribe();

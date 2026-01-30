@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { MOCK_PITCHES } from '../constants';
 import { Pitch } from '../types';
 
-const apiKey = process.env.API_KEY || ''; // In a real app, strict handling.
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
 /**
@@ -21,14 +21,14 @@ export const searchPitchesAI = async (query: string): Promise<string[]> => {
         You are a soccer pitch booking assistant. 
         I have a list of pitches with these details:
         ${JSON.stringify(MOCK_PITCHES.map(p => ({
-          id: p.id,
-          name: p.name,
-          surface: p.surface,
-          price: p.pricePerHour,
-          amenities: p.amenities,
-          size: p.size,
-          location: p.location.address
-        })))}
+        id: p.id,
+        name: p.name,
+        surface: p.surface,
+        price: p.pricePerHour,
+        amenities: p.amenities,
+        size: p.size,
+        location: p.location.address
+      })))}
 
         The user is asking: "${query}"
 
@@ -57,10 +57,10 @@ export const searchPitchesAI = async (query: string): Promise<string[]> => {
 /**
  * Chat Support Bot
  */
-export const chatWithSupport = async (history: {role: string, parts: {text: string}[]}[], userMessage: string): Promise<string> => {
-   if (!apiKey) return "I'm offline right now (No API Key).";
+export const chatWithSupport = async (history: { role: string, parts: { text: string }[] }[], userMessage: string): Promise<string> => {
+  if (!apiKey) return "I'm offline right now (No API Key).";
 
-   try {
+  try {
     // We construct a new chat for each request to keep it simple and stateless for this demo, 
     // but passing history allows context.
     const chat = ai.chats.create({
@@ -77,10 +77,10 @@ export const chatWithSupport = async (history: {role: string, parts: {text: stri
 
     const result = await chat.sendMessage({ message: userMessage });
     return result.text || "I didn't catch that.";
-   } catch (error) {
-     console.error("Chat Error", error);
-     return "Sorry, I'm having trouble connecting to the locker room.";
-   }
+  } catch (error) {
+    console.error("Chat Error", error);
+    return "Sorry, I'm having trouble connecting to the locker room.";
+  }
 }
 
 /**

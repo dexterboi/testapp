@@ -4,7 +4,8 @@ import { ChevronLeft, MapPin } from 'lucide-react';
 import { getComplexes, calculateDistance, getUserLocation } from '@/services/dataService';
 
 // Fallback for image generation if missing
-const getRealPlaceholderImage = (id: string, type: string) => `https://source.unsplash.com/featured/?football,pitch&${id}`;
+// Stable placeholder for images
+const getRealPlaceholderImage = (id: string, type: string) => `https://images.unsplash.com/photo-1574629810360-7de6a7d9b757?auto=format&fit=crop&q=80&w=400&h=400&sig=${id}`;
 
 interface MapViewProps {
     onBack?: () => void;

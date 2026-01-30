@@ -1,6 +1,6 @@
 {
-    "version": "1.1.6",
-    "latest_version": "1.1.6",
+    "version": "1.1.7",
+    "latest_version": "1.1.7",
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "release_notes": "Fixed phone number container theme colors in User Profile."
+    "release_notes": "Security hardening: Consolidated all API keys into environment variables and removed hardcoded secrets (Supabase, Firebase, ImageKit)."
 }

@@ -8,6 +8,10 @@ const PUBLIC_KEY = import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY;
 const URL_ENDPOINT = import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT;
 const PRIVATE_KEY = import.meta.env.VITE_IMAGEKIT_PRIVATE_KEY;
 
+if (!PUBLIC_KEY || !URL_ENDPOINT || !PRIVATE_KEY) {
+    console.error('❌ [ImageKit] Missing environment variables. Uploads will fail.');
+}
+
 export const uploadToImageKit = async (file: File): Promise<string> => {
     try {
         const formData = new FormData();
@@ -40,15 +44,15 @@ export const uploadToImageKit = async (file: File): Promise<string> => {
         const data = await response.json();
         // Clean the URL - remove any trailing brackets or invalid characters
         let imageUrl = data.url || data.filePath || '';
-        
+
         // Remove trailing brackets if present
         imageUrl = imageUrl.replace(/\]+$/, '').trim();
-        
+
         // If it's a filePath, construct the full URL
         if (!imageUrl.startsWith('http') && data.filePath) {
             imageUrl = `${URL_ENDPOINT}/${data.filePath}`;
         }
-        
+
         console.log('[ImageKit] Uploaded image URL:', imageUrl);
         return imageUrl;
     } catch (error: any) {
