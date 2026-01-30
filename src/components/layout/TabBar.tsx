@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface TabBarProps {
     pendingCount: number;
@@ -7,6 +8,7 @@ interface TabBarProps {
 
 const TabBar = ({ pendingCount }: TabBarProps) => {
     const location = useLocation();
+    const { t } = useTranslation();
 
     const isActive = (path: string) =>
         location.pathname === path;
@@ -25,7 +27,7 @@ const TabBar = ({ pendingCount }: TabBarProps) => {
                     className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-full transition-all duration-300 relative group ${isActive('/') ? 'bg-primary text-slate-900 shadow-lg shadow-primary/20 flex-[1.4]' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white flex-1'}`}
                 >
                     <span className={`material-symbols-rounded text-[22px] ${isActive('/') ? 'fill-1' : ''}`}>home</span>
-                    {isActive('/') && <span className="text-[9px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-300">Home</span>}
+                    {isActive('/') && <span className="text-[9px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-300">{t('tabs.home')}</span>}
                     {!isActive('/') && <div className="absolute -top-1.5 w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />}
                 </Link>
 
@@ -34,7 +36,7 @@ const TabBar = ({ pendingCount }: TabBarProps) => {
                     className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-full transition-all duration-300 relative group ${isActive('/spaces') ? 'bg-primary text-slate-900 shadow-lg shadow-primary/20 flex-[1.4]' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white flex-1'}`}
                 >
                     <span className={`material-symbols-rounded text-[22px] ${isActive('/spaces') ? 'fill-1' : ''}`}>stadium</span>
-                    {isActive('/spaces') && <span className="text-[9px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-300">Spaces</span>}
+                    {isActive('/spaces') && <span className="text-[9px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-300">{t('tabs.spaces')}</span>}
                     {!isActive('/spaces') && <div className="absolute -top-1.5 w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />}
                 </Link>
 
@@ -50,7 +52,7 @@ const TabBar = ({ pendingCount }: TabBarProps) => {
                             </div>
                         )}
                     </div>
-                    {isActive('/social') && <span className="text-[9px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-300">Crew</span>}
+                    {isActive('/social') && <span className="text-[9px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-300">{t('tabs.crew')}</span>}
                     {!isActive('/social') && <div className="absolute -top-1.5 w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />}
                 </Link>
 
@@ -59,7 +61,7 @@ const TabBar = ({ pendingCount }: TabBarProps) => {
                     className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-full transition-all duration-300 relative group ${isActive('/profile') ? 'bg-primary text-slate-900 shadow-lg shadow-primary/20 flex-[1.4]' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white flex-1'}`}
                 >
                     <span className={`material-symbols-rounded text-[22px] ${isActive('/profile') ? 'fill-1' : ''}`}>person</span>
-                    {isActive('/profile') && <span className="text-[9px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-300">You</span>}
+                    {isActive('/profile') && <span className="text-[9px] font-black uppercase tracking-widest animate-in fade-in zoom-in duration-300">{t('tabs.profile')}</span>}
                     {!isActive('/profile') && <div className="absolute -top-1.5 w-1 h-1 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />}
                 </Link>
             </nav>

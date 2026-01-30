@@ -9,8 +9,10 @@ import {
 } from '@/services/dataService';
 import { ConfirmationModal, SuccessModal } from '@/components/common/ConfirmationModal';
 import { getAvatarUrl } from '@/utils';
+import { useTranslation } from 'react-i18next';
 
 const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers: Record<string, any> }) => {
+    const { t } = useTranslation();
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [friendships, setFriendships] = useState<any[]>([]);
@@ -70,10 +72,10 @@ const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
         if (!currentUser) return;
         const { success, error } = await sendFriendRequest(currentUser.id, friendId);
         if (success) {
-            setSuccessModal({ isOpen: true, message: 'Friend request sent successfully!' });
+            setSuccessModal({ isOpen: true, message: t('social.request_sent_success') });
             fetchFriendships(currentUser.id);
         } else {
-            setErrorModal({ isOpen: true, message: error || 'Failed to send friend request' });
+            setErrorModal({ isOpen: true, message: error || t('social.request_failed') });
         }
     };
 
@@ -81,13 +83,13 @@ const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
         const { success, error } = await updateFriendshipStatus(friendshipId, status);
         if (success && currentUser) {
             if (status === 'accepted') {
-                setSuccessModal({ isOpen: true, message: 'Friend request accepted! They are now in your crew.' });
+                setSuccessModal({ isOpen: true, message: t('social.request_accepted_msg') });
             }
             fetchFriendships(currentUser.id);
             // Immediately refresh pending requests count
             window.dispatchEvent(new CustomEvent('refreshPendingRequests'));
         } else if (error) {
-            setErrorModal({ isOpen: true, message: error || 'Failed to update friend request' });
+            setErrorModal({ isOpen: true, message: error || t('social.update_failed') });
         }
     };
 
@@ -100,8 +102,8 @@ const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
             <header className="px-8 pt-[calc(3.5rem+env(safe-area-inset-top))] pb-8 sticky top-0 z-40 bg-app-bg/80 backdrop-blur-xl border-b border-app-border">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <p className="text-app-text-muted text-[10px] font-black uppercase tracking-[0.2em] mb-1">Social Hub</p>
-                        <h1 className="text-3xl font-black tracking-tighter text-app-text">The Crew</h1>
+                        <p className="text-app-text-muted text-[10px] font-black uppercase tracking-[0.2em] mb-1">{t('social.hub')}</p>
+                        <h1 className="text-3xl font-black tracking-tighter text-app-text">{t('social.the_crew')}</h1>
                     </div>
                     <div className="flex -space-x-3">
                         {myFriends.slice(0, 3).map((f, i) => {
@@ -126,7 +128,7 @@ const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
                         type="text"
                         value={searchQuery}
                         onChange={(e) => handleSearch(e.target.value)}
-                        placeholder="Search by ID or name..."
+                        placeholder={t('social.search_placeholder')}
                         className="w-full h-14 pl-12 pr-12 rounded-2xl bg-app-surface border border-app-border shadow-inner text-sm font-bold text-app-text focus:ring-2 focus:ring-primary/20 placeholder:text-app-text-muted transition-all"
                     />
                     {searching && (
@@ -141,12 +143,12 @@ const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
                 {searchQuery.trim().length >= 2 ? (
                     <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <h3 className="text-[10px] text-app-text-muted font-black uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <span className="w-1 h-1 bg-primary rounded-full"></span> Potential Crewmates
+                            <span className="w-1 h-1 bg-primary rounded-full"></span> {t('social.potential_crewmates')}
                         </h3>
                         {searchResults.length === 0 && !searching ? (
                             <div className="bg-app-surface p-12 rounded-[3rem] text-center border border-app-border shadow-inner">
                                 <span className="material-symbols-rounded text-4xl text-app-text-muted mb-2">person_search</span>
-                                <p className="text-xs font-black text-app-text-muted uppercase tracking-widest">No players found</p>
+                                <p className="text-xs font-black text-app-text-muted uppercase tracking-widest">{t('social.no_players_found')}</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
@@ -163,7 +165,7 @@ const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-black text-app-text text-sm truncate">{user.name}</p>
-                                                <p className="text-[10px] font-bold text-app-text-muted tracking-wider uppercase">#{user.takwira_id || 'RECRUIT'}</p>
+                                                <p className="text-[10px] font-bold text-app-text-muted tracking-wider uppercase">#{user.takwira_id || t('social.recruit_id')}</p>
                                             </div>
                                             {!friendship ? (
                                                 <button
@@ -174,7 +176,7 @@ const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
                                                 </button>
                                             ) : (
                                                 <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${friendship.status === 'accepted' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-app-surface-2 text-slate-400'}`}>
-                                                    {friendship.status === 'accepted' ? 'Crew' : 'Pending'}
+                                                    {friendship.status === 'accepted' ? t('social.crew_tag') : t('social.pending_tag')}
                                                 </div>
                                             )}
                                         </div>
@@ -191,10 +193,10 @@ const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-[10px] text-app-text-muted font-black uppercase tracking-widest flex items-center gap-2">
                                         <span className="w-1.5 h-1.5 bg-primary rounded-full animate-ping"></span>
-                                        Crew Invites
+                                        {t('social.crew_invites')}
                                     </h3>
                                     <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-[9px] font-black uppercase tracking-widest border border-primary/30">
-                                        {pendingRequests.length} New
+                                        {pendingRequests.length} {t('social.new_invites')}
                                     </span>
                                 </div>
                                 <div className="space-y-3">
@@ -212,7 +214,7 @@ const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-black text-app-text text-sm truncate">{requester.name}</p>
-                                                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Wants to join crew</p>
+                                                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{t('social.wants_to_join')}</p>
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <button
@@ -239,15 +241,15 @@ const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
                         <section className="space-y-4">
                             <div className="flex justify-between items-center">
                                 <h3 className="text-[10px] text-app-text-muted font-black uppercase tracking-widest flex items-center gap-2">
-                                    <span className="w-1 h-1 bg-primary rounded-full"></span> My Crew
+                                    <span className="w-1 h-1 bg-primary rounded-full"></span> {t('social.my_crew')}
                                 </h3>
-                                <span className="px-3 py-1 bg-app-surface rounded-full text-[9px] font-black text-app-text-muted border border-app-border uppercase tracking-widest">{myFriends.length} Members</span>
+                                <span className="px-3 py-1 bg-app-surface rounded-full text-[9px] font-black text-app-text-muted border border-app-border uppercase tracking-widest">{myFriends.length} {t('social.members_count')}</span>
                             </div>
 
                             {loading ? (
                                 <div className="bg-app-surface p-20 rounded-[3rem] flex flex-col items-center justify-center border border-app-border shadow-inner">
                                     <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4" />
-                                    <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">Checking status...</p>
+                                    <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">{t('social.checking_status')}</p>
                                 </div>
                             ) : myFriends.length === 0 ? (
                                 <div className="bg-app-surface border-2 border-dashed border-app-border rounded-[3rem] p-16 text-center animate-in fade-in zoom-in duration-700">
@@ -255,7 +257,7 @@ const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
                                         <span className="material-symbols-rounded text-4xl text-app-text-muted">group_add</span>
                                     </div>
                                     <p className="text-app-text-muted text-[10px] font-black uppercase tracking-widest leading-relaxed">
-                                        Empty crew.<br />Search players above!
+                                        {t('social.empty_crew')}<br />{t('social.search_players_above')}
                                     </p>
                                 </div>
                             ) : (
@@ -287,7 +289,7 @@ const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
                                                     </div>
                                                     <div className="flex items-center gap-3">
                                                         <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${isOnline ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-app-surface-2 text-slate-300 border border-app-border'}`}>
-                                                            {isOnline ? 'Active' : 'Offline'}
+                                                            {isOnline ? t('social.active') : t('social.offline_tag')}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -307,18 +309,18 @@ const CrewPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
             {/* Success Modal */}
             <SuccessModal
                 isOpen={successModal.isOpen}
-                title="Success"
+                title={t('common.success')}
                 message={successModal.message}
-                buttonText="OK"
+                buttonText={t('common.ok')}
                 onClose={() => setSuccessModal({ isOpen: false, message: '' })}
             />
 
             {/* Error Modal */}
             <ConfirmationModal
                 isOpen={errorModal.isOpen}
-                title="Error"
+                title={t('common.error')}
                 message={errorModal.message}
-                confirmText="OK"
+                confirmText={t('common.ok')}
                 cancelText=""
                 type="danger"
                 onConfirm={() => setErrorModal({ isOpen: false, message: '' })}

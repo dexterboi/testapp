@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, User, Plus, Phone, Check, Save, X, MoreVertical } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/services/supabase';
 import { getPitchesByComplex, getComplex } from '@/services/dataService';
 import { ensureArray } from '@/utils';
@@ -8,6 +9,7 @@ import { ImageUpload } from '@/components/common/ImageUpload';
 import { SuccessModal } from '@/components/common/ConfirmationModal';
 
 const OwnerPitchesPage = () => {
+    const { t, i18n } = useTranslation();
     const { complexId } = useParams();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'pitches' | 'complex' | 'images'>('pitches');
@@ -79,7 +81,7 @@ const OwnerPitchesPage = () => {
         } catch (error) {
             console.error('Error saving settings:', error);
             setSaving(false);
-            setErrorMessage('Failed to save settings. Please try again.');
+            setErrorMessage(t('activity.update_failed'));
             setShowErrorModal(true);
         }
     };
@@ -95,43 +97,43 @@ const OwnerPitchesPage = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 px-8 text-center text-white">
+            <div className="min-h-screen flex flex-col items-center justify-center bg-app-bg px-8 text-center text-app-text">
                 <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mb-6"></div>
-                <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Establishing Link...</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('common.loading')}</p>
             </div>
         );
     }
 
     if (!complex) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
-                <p className="text-slate-500 uppercase font-black tracking-widest text-xs italic">Signal Lost - Venue Not Found</p>
+            <div className="min-h-screen flex items-center justify-center bg-app-bg text-app-text">
+                <p className="text-slate-500 uppercase font-black tracking-widest text-xs italic">{t('owner.lost_signal')}</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 pb-32 font-sans text-white">
+        <div className="min-h-screen bg-app-bg pb-32 font-sans text-app-text">
             {/* Header */}
-            <div className="bg-slate-950 px-6 pt-[calc(3rem+env(safe-area-inset-top))] pb-6 border-b border-app-border sticky top-0 z-50 backdrop-blur-xl bg-slate-950/80">
+            <div className="bg-app-bg px-6 pt-[calc(3rem+env(safe-area-inset-top))] pb-6 border-b border-app-border sticky top-0 z-50 backdrop-blur-xl bg-app-bg/80">
                 <div className="flex items-center gap-4 mb-6">
-                    <button onClick={() => navigate('/owner')} className="w-10 h-10 rounded-full bg-app-surface-2 hover:bg-app-surface-2 text-white flex items-center justify-center transition-all active:scale-90">
+                    <button onClick={() => navigate('/owner')} className="w-10 h-10 rounded-full bg-app-surface hover:bg-app-surface text-app-text flex items-center justify-center transition-all active:scale-90 border border-app-border">
                         <ChevronLeft size={20} />
                     </button>
-                    <h1 className="text-2xl font-black tracking-tighter text-white leading-none">
-                        Edit Pitch <span className="text-primary">Details</span>
+                    <h1 className="text-2xl font-black tracking-tighter text-app-text leading-none">
+                        {t('owner.edit')} <span className="text-primary">{t('owner.details')}</span>
                     </h1>
                 </div>
 
                 {/* Tab Selector */}
-                <div className="flex bg-app-surface-2 rounded-2xl p-1 border border-app-border">
+                <div className="flex bg-app-surface rounded-2xl p-1 border border-app-border">
                     {(['pitches', 'complex', 'images'] as const).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-primary text-slate-900 shadow-lg shadow-primary/10' : 'text-slate-500 hover:text-slate-300'}`}
+                            className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-primary text-slate-900 shadow-lg shadow-primary/10' : 'text-slate-500 hover:text-app-text'}`}
                         >
-                            {tab}
+                            {t(`owner.tabs.${tab}`)}
                         </button>
                     ))}
                 </div>
@@ -142,10 +144,10 @@ const OwnerPitchesPage = () => {
                     <div className="space-y-6">
                         {/* Section Header */}
                         <div className="mb-2">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">YOUR INVENTORY</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t('owner.inventory')}</p>
                             <div className="flex items-center justify-between">
-                                <h2 className="text-2xl font-black text-white leading-none">
-                                    Active Pitches <span className="text-primary">{pitches.length}</span>
+                                <h2 className="text-2xl font-black text-app-text leading-none">
+                                    {t('owner.active_pitches')} <span className="text-primary">{pitches.length}</span>
                                 </h2>
                             </div>
                         </div>
@@ -171,25 +173,25 @@ const OwnerPitchesPage = () => {
                             };
 
                             return (
-                                <div key={pitch.id} className="bg-slate-900/60 rounded-3xl p-5 border border-app-border group hover:bg-slate-900 transition-all">
+                                <div key={pitch.id} className="bg-app-surface rounded-3xl p-5 border border-app-border group hover:bg-app-surface transition-all">
                                     <div className="flex items-center gap-4">
                                         {/* Pitch Image/Icon */}
-                                        <div className="w-20 h-20 bg-slate-800 rounded-2xl flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+                                        <div className="w-20 h-20 bg-app-bg rounded-2xl flex items-center justify-center flex-shrink-0 relative overflow-hidden">
                                             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent"></div>
                                             <span className={`material-symbols-rounded text-4xl text-primary relative z-10`}>{getPitchIcon()}</span>
                                         </div>
 
                                         {/* Pitch Info */}
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="font-black text-[16px] text-white uppercase tracking-tight mb-2 truncate">
+                                            <h3 className="font-black text-[16px] text-app-text uppercase tracking-tight mb-2 truncate">
                                                 {pitch.name}
                                             </h3>
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${getPitchType() === 'OUTDOOR'
-                                                        ? 'bg-primary text-slate-950'
-                                                        : 'bg-blue-500 text-white'
+                                                    ? 'bg-primary text-slate-950'
+                                                    : 'bg-blue-500 text-white'
                                                     }`}>
-                                                    {getPitchType()}
+                                                    {getPitchType() === 'OUTDOOR' ? t('pitches.outdoor') : t('pitches.indoor')}
                                                 </span>
                                                 <span className="text-[11px] text-slate-400 font-bold">
                                                     {pitch.size} • {pitch.surface}
@@ -200,7 +202,7 @@ const OwnerPitchesPage = () => {
                                         {/* Edit Button */}
                                         <button
                                             onClick={() => setEditingPitch(pitch)}
-                                            className="w-10 h-10 bg-app-surface-2 rounded-full flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all border border-app-border"
+                                            className="w-10 h-10 bg-app-surface rounded-full flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all border border-app-border"
                                         >
                                             <span className="material-symbols-rounded text-xl text-primary">edit</span>
                                         </button>
@@ -210,19 +212,19 @@ const OwnerPitchesPage = () => {
                         })}
 
                         {/* Add New Pitch Card */}
-                        <div className="bg-slate-900/40 rounded-3xl p-8 border-2 border-dashed border-app-border text-center">
-                            <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <div className="bg-app-surface rounded-3xl p-8 border-2 border-dashed border-app-border text-center">
+                            <div className="w-16 h-16 bg-app-bg rounded-2xl flex items-center justify-center mx-auto mb-4">
                                 <Plus size={24} className="text-slate-400" />
                             </div>
                             <p className="text-[12px] text-slate-400 font-bold leading-relaxed mb-6">
-                                Expand your venue by adding new facilities or courts to your listing.
+                                {t('owner.expand_venue')}
                             </p>
                             <button
                                 onClick={() => setEditingPitch({ name: '', size: '11 a side', surface: 'Grass', price_per_hour: 0, complex_id: complexId })}
                                 className="w-full bg-primary text-slate-950 font-black py-4 rounded-2xl text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2"
                             >
                                 <Plus size={20} />
-                                ADD NEW PITCH
+                                {t('owner.add_pitch')}
                             </button>
                         </div>
                     </div>
@@ -232,27 +234,27 @@ const OwnerPitchesPage = () => {
                     <div className="space-y-10 animate-in fade-in duration-500">
                         {/* Description Section */}
                         <div>
-                            <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest px-2 mb-4 block">About Venue</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-4 block">{t('owner.about_venue')}</label>
                             <textarea
                                 value={settings.description}
                                 onChange={(e) => setSettings({ ...settings, description: e.target.value })}
-                                className="w-full bg-slate-900/50 border border-app-border rounded-[2.5rem] p-6 text-sm font-bold text-white focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-slate-700 min-h-[150px] shadow-inner"
-                                placeholder="Share your venue's story..."
+                                className="w-full bg-app-surface border border-app-border rounded-[2.5rem] p-6 text-sm font-bold text-app-text focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-slate-700 min-h-[150px] shadow-inner"
+                                placeholder={t('owner.share_story')}
                             />
                         </div>
 
                         {/* Contact Grid */}
                         <div className="grid grid-cols-1 gap-6">
                             <div>
-                                <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest px-2 mb-4 block">Direct Contact</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-4 block">{t('common.contact')}</label>
                                 <div className="relative group">
                                     <Phone size={16} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" />
                                     <input
                                         type="tel"
                                         value={settings.phone}
                                         onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-                                        className="w-full bg-slate-900/50 border border-app-border rounded-[1.8rem] pl-14 pr-6 py-4 text-sm font-black text-white focus:ring-2 focus:ring-primary/20 transition-all"
-                                        placeholder="Phone Number"
+                                        className="w-full bg-app-surface border border-app-border rounded-[1.8rem] pl-14 pr-6 py-4 text-sm font-black text-app-text focus:ring-2 focus:ring-primary/20 transition-all"
+                                        placeholder={t('profile.phone')}
                                     />
                                 </div>
                             </div>
@@ -260,15 +262,15 @@ const OwnerPitchesPage = () => {
 
                         {/* Amenities Section */}
                         <div>
-                            <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest px-2 mb-6 block">Venue Tech & Comfort</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-6 block">{t('owner.amenities')}</label>
                             <div className="grid grid-cols-2 gap-3">
                                 {availableFacilities.map((facility) => (
                                     <button
                                         key={facility}
                                         onClick={() => toggleFacility(facility)}
-                                        className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${settings.facilities.includes(facility) ? 'bg-primary/10 border-primary/20 text-primary shadow-lg shadow-primary/5' : 'bg-slate-900/50 border-app-border text-slate-500 hover:text-slate-300'}`}
+                                        className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${settings.facilities.includes(facility) ? 'bg-primary/10 border-primary/20 text-primary shadow-lg shadow-primary/5' : 'bg-app-surface border-app-border text-slate-500 hover:text-slate-300'}`}
                                     >
-                                        <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${settings.facilities.includes(facility) ? 'bg-primary border-primary text-slate-900' : 'bg-slate-950 border-app-border'}`}>
+                                        <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${settings.facilities.includes(facility) ? 'bg-primary border-primary text-slate-900' : 'bg-app-bg border-app-border'}`}>
                                             {settings.facilities.includes(facility) && <Check size={12} strokeWidth={4} />}
                                         </div>
                                         <span className="text-[10px] font-black uppercase tracking-tight">{facility}</span>
@@ -285,7 +287,7 @@ const OwnerPitchesPage = () => {
                                 className="w-full bg-primary text-slate-900 font-black py-5 rounded-[2rem] text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50 transition-all"
                             >
                                 {saving ? <div className="animate-spin h-5 w-5 border-2 border-slate-900 border-t-transparent rounded-full"></div> : <Save size={20} />}
-                                {saving ? 'Syncing...' : 'Deploy Updates'}
+                                {saving ? t('common.saving') : t('owner.actions.deploy')}
                             </button>
                         </div>
                     </div>
@@ -294,9 +296,9 @@ const OwnerPitchesPage = () => {
                 {activeTab === 'images' && (
                     <div className="animate-in fade-in duration-500 space-y-6">
                         <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">VENUE GALLERY</p>
-                            <h2 className="text-2xl font-black text-white leading-none mb-6">
-                                Complex Images
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t('owner.gallery')}</p>
+                            <h2 className="text-2xl font-black text-app-text leading-none mb-6">
+                                {t('owner.complex_images')}
                             </h2>
                             {complex && (
                                 <ImageUpload
@@ -325,13 +327,14 @@ const OwnerPitchesPage = () => {
                     onPitchUpdate={fetchPitches}
                 />
             )}
-            <SuccessModal isOpen={showSuccessModal} title="Settings Saved" message="Your complex settings have been updated successfully." onClose={() => setShowSuccessModal(false)} />
-            <SuccessModal isOpen={showErrorModal} title="Error" message={errorMessage} onClose={() => setShowErrorModal(false)} />
+            <SuccessModal isOpen={showSuccessModal} title={t('owner.settings_saved')} message={t('owner.settings_success')} onClose={() => setShowSuccessModal(false)} />
+            <SuccessModal isOpen={showErrorModal} title={t('common.error')} message={errorMessage} onClose={() => setShowErrorModal(false)} />
         </div>
     );
 };
 
 const PitchEditModal = ({ pitch, complexId, onClose, onPitchUpdate }: { pitch: any; complexId: string; onClose: () => void; onPitchUpdate?: () => void }) => {
+    const { t } = useTranslation();
     const isNewPitch = !pitch.id;
     const [currentPitch, setCurrentPitch] = useState(pitch);
 
@@ -389,7 +392,7 @@ const PitchEditModal = ({ pitch, complexId, onClose, onPitchUpdate }: { pitch: a
 
     const handleSave = async () => {
         if (!formData.name.trim()) {
-            setError('Pitch name is required');
+            setError(t('activity.name_required'));
             return;
         }
 
@@ -424,14 +427,14 @@ const PitchEditModal = ({ pitch, complexId, onClose, onPitchUpdate }: { pitch: a
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[100] flex items-end md:items-center justify-center p-6 animate-in fade-in duration-300">
-            <div className="bg-slate-900 rounded-[3rem] w-full max-w-md border border-app-border shadow-2xl animate-in slide-in-from-bottom duration-500 max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-app-bg/80 backdrop-blur-xl z-[100] flex items-end md:items-center justify-center p-6 animate-in fade-in duration-300">
+            <div className="bg-app-surface rounded-[3rem] w-full max-w-md border border-app-border shadow-2xl animate-in slide-in-from-bottom duration-500 max-h-[90vh] overflow-hidden flex flex-col">
                 <div className="p-8 border-b border-app-border flex-shrink-0">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-black text-white uppercase tracking-tighter">
-                            {isNewPitch ? 'Add New Pitch' : 'Edit Pitch'}
+                        <h2 className="text-xl font-black text-app-text uppercase tracking-tighter">
+                            {isNewPitch ? t('owner.add_pitch') : t('owner.edit_pitch')}
                         </h2>
-                        <button onClick={onClose} className="w-10 h-10 flex items-center justify-center bg-app-surface-2 hover:bg-app-surface-2 rounded-full text-slate-400 transition-all">
+                        <button onClick={onClose} className="w-10 h-10 flex items-center justify-center bg-app-surface hover:bg-app-surface rounded-full text-slate-400 transition-all border border-app-border">
                             <X size={20} />
                         </button>
                     </div>
@@ -445,37 +448,37 @@ const PitchEditModal = ({ pitch, complexId, onClose, onPitchUpdate }: { pitch: a
                     )}
 
                     <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Pitch Name</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">{t('owner.pitch_name')}</label>
                         <input
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="w-full bg-slate-950 border border-app-border rounded-2xl p-4 text-sm font-black text-white focus:border-primary/50 transition-all outline-none"
-                            placeholder="e.g., Main Football Pitch"
+                            className="w-full bg-app-bg border border-app-border rounded-2xl p-4 text-sm font-black text-app-text focus:border-primary/50 transition-all outline-none"
+                            placeholder={t('owner.pitch_placeholder')}
                         />
                     </div>
 
                     <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Sport Type</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">{t('owner.sport_type')}</label>
                         <select
                             value={formData.sport_type}
                             onChange={(e) => setFormData({ ...formData, sport_type: e.target.value })}
-                            className="w-full bg-slate-950 border border-app-border rounded-2xl p-4 text-sm font-black text-white appearance-none focus:border-primary/50 transition-all outline-none"
+                            className="w-full bg-app-bg border border-app-border rounded-2xl p-4 text-sm font-black text-app-text appearance-none focus:border-primary/50 transition-all outline-none"
                         >
-                            <option value="Football">Football</option>
-                            <option value="Padel">Padel</option>
-                            <option value="Tennis">Tennis</option>
-                            <option value="Basketball">Basketball</option>
+                            <option value="Football">{t('pitches.football')}</option>
+                            <option value="Padel">{t('pitches.padel')}</option>
+                            <option value="Tennis">{t('pitches.tennis')}</option>
+                            <option value="Basketball">{t('pitches.basketball')}</option>
                         </select>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Size</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">{t('owner.size')}</label>
                             <select
                                 value={formData.size}
                                 onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                                className="w-full bg-slate-950 border border-app-border rounded-2xl p-4 text-sm font-black text-white appearance-none focus:border-primary/50 transition-all outline-none"
+                                className="w-full bg-app-bg border border-app-border rounded-2xl p-4 text-sm font-black text-app-text appearance-none focus:border-primary/50 transition-all outline-none"
                             >
                                 <option value="6 a side">6 a side</option>
                                 <option value="7 a side">7 a side</option>
@@ -483,64 +486,64 @@ const PitchEditModal = ({ pitch, complexId, onClose, onPitchUpdate }: { pitch: a
                             </select>
                         </div>
                         <div>
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Surface</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">{t('owner.surface')}</label>
                             <select
                                 value={formData.surface}
                                 onChange={(e) => setFormData({ ...formData, surface: e.target.value })}
-                                className="w-full bg-slate-950 border border-app-border rounded-2xl p-4 text-sm font-black text-white appearance-none focus:border-primary/50 transition-all outline-none"
+                                className="w-full bg-app-bg border border-app-border rounded-2xl p-4 text-sm font-black text-app-text appearance-none focus:border-primary/50 transition-all outline-none"
                             >
-                                <option value="Grass">Grass</option>
+                                <option value="Grass">{t('pitches.grass')}</option>
                                 <option value="3G">3G</option>
                                 <option value="4G">4G</option>
-                                <option value="outdoor">Outdoor</option>
-                                <option value="indoor">Indoor</option>
+                                <option value="outdoor">{t('pitches.outdoor')}</option>
+                                <option value="indoor">{t('pitches.indoor')}</option>
                             </select>
                         </div>
                     </div>
 
                     <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Operating Hours</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">{t('owner.operating_hours')}</label>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Opening</label>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">{t('owner.opening')}</label>
                                 <input
                                     type="number"
                                     min="0"
                                     max="23"
                                     value={formData.opening_hour}
                                     onChange={(e) => setFormData({ ...formData, opening_hour: +e.target.value })}
-                                    className="w-full bg-slate-950 border border-app-border rounded-2xl p-4 text-sm font-black text-white focus:border-primary/50 transition-all outline-none"
+                                    className="w-full bg-app-bg border border-app-border rounded-2xl p-4 text-sm font-black text-app-text focus:border-primary/50 transition-all outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Closing</label>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">{t('owner.closing')}</label>
                                 <input
                                     type="number"
                                     min="0"
                                     max="23"
                                     value={formData.closing_hour}
                                     onChange={(e) => setFormData({ ...formData, closing_hour: +e.target.value })}
-                                    className="w-full bg-slate-950 border border-app-border rounded-2xl p-4 text-sm font-black text-white focus:border-primary/50 transition-all outline-none"
+                                    className="w-full bg-app-bg border border-app-border rounded-2xl p-4 text-sm font-black text-app-text focus:border-primary/50 transition-all outline-none"
                                 />
                             </div>
                         </div>
                     </div>
 
                     <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Price Per Hour (TND)</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">{t('owner.price_hour')}</label>
                         <input
                             type="number"
                             min="0"
                             step="0.01"
                             value={formData.price_per_hour}
                             onChange={(e) => setFormData({ ...formData, price_per_hour: +e.target.value })}
-                            className="w-full bg-slate-950 border border-app-border rounded-2xl p-4 text-sm font-black text-white focus:border-primary/50 transition-all outline-none"
+                            className="w-full bg-app-bg border border-app-border rounded-2xl p-4 text-sm font-black text-app-text focus:border-primary/50 transition-all outline-none"
                         />
                     </div>
 
                     {!isNewPitch && pitch.id && (
                         <div>
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Pitch Images</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">{t('owner.pitch_images')}</label>
                             <ImageUpload
                                 collection="pitches"
                                 recordId={pitch.id}
@@ -559,9 +562,9 @@ const PitchEditModal = ({ pitch, complexId, onClose, onPitchUpdate }: { pitch: a
                 <div className="p-8 border-t border-app-border flex-shrink-0 flex gap-3">
                     <button
                         onClick={onClose}
-                        className="flex-1 bg-app-surface-2 text-slate-400 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-app-surface-2 transition-all"
+                        className="flex-1 bg-app-surface text-slate-400 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-app-surface transition-all border border-app-border"
                     >
-                        Cancel
+                        {t('common.cancel')}
                     </button>
                     <button
                         onClick={handleSave}
@@ -571,7 +574,7 @@ const PitchEditModal = ({ pitch, complexId, onClose, onPitchUpdate }: { pitch: a
                         {saving ? (
                             <div className="animate-spin h-5 w-5 border-2 border-slate-950 border-t-transparent rounded-full mx-auto" />
                         ) : (
-                            isNewPitch ? 'Create Pitch' : 'Save Changes'
+                            isNewPitch ? t('owner.create_pitch') : t('owner.save_changes')
                         )}
                     </button>
                 </div>

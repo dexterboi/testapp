@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { LayoutGrid, Map } from 'lucide-react';
 import { supabase, getFileUrl } from '@/services/supabase';
 import { getComplexes, getUserLocation, calculateDistance } from '@/services/dataService';
@@ -39,6 +40,7 @@ export const HomePage = ({ user, pendingCount }: HomePageProps) => {
     const [locationError, setLocationError] = useState<string | null>(null);
 
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     useEffect(() => {
         initializeData();
@@ -488,10 +490,10 @@ export const HomePage = ({ user, pendingCount }: HomePageProps) => {
                     <div>
                         <div className="flex items-center gap-2 mb-1 opacity-60">
                             <span className="material-symbols-rounded text-sm text-primary">location_on</span>
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-text-muted">{userLocation ? 'Tunis, TN' : 'Locating...'}</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-text-muted">{userLocation ? 'Tunis, TN' : t('home.locating')}</p>
                         </div>
                         <h1 className="text-3xl font-black tracking-tighter text-app-text leading-none">
-                            Explore <br /> <span className="text-primary italic">Venues</span>
+                            {t('home.explore')} <br /> <span className="text-primary italic">{t('home.venues')}</span>
                         </h1>
                     </div>
                     <div className="flex items-center gap-3">
@@ -532,7 +534,7 @@ export const HomePage = ({ user, pendingCount }: HomePageProps) => {
                     <span className="material-symbols-rounded absolute left-5 top-1/2 -translate-y-1/2 text-app-text-muted group-focus-within:text-primary transition-all duration-300">search</span>
                     <input
                         type="text"
-                        placeholder="Search venue or sport..."
+                        placeholder={t('home.search_placeholder')}
                         className="w-full h-14 pl-12 pr-14 rounded-[1.5rem] bg-app-surface border border-app-border text-sm font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary/30 text-app-text transition-all placeholder:text-app-text-muted"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -560,13 +562,13 @@ export const HomePage = ({ user, pendingCount }: HomePageProps) => {
                             onClick={() => setViewMode('list')}
                             className={`flex-1 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${viewMode === 'list' ? 'bg-primary text-slate-900 shadow-lg shadow-primary/10' : 'text-app-text-muted hover:text-app-text'}`}
                         >
-                            <LayoutGrid size={16} /> List
+                            <LayoutGrid size={16} /> {t('home.view_list')}
                         </button>
                         <button
                             onClick={() => setViewMode('map')}
                             className={`flex-1 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${viewMode === 'map' ? 'bg-primary text-slate-900 shadow-lg shadow-primary/10' : 'text-app-text-muted hover:text-app-text'}`}
                         >
-                            <Map size={16} /> Map
+                            <Map size={16} /> {t('home.view_map')}
                         </button>
                     </div>
                 </div>
@@ -576,8 +578,8 @@ export const HomePage = ({ user, pendingCount }: HomePageProps) => {
                         {/* Popular Sports Scroller */}
                         <section className="mt-4">
                             <div className="flex justify-between items-end px-6 mb-4">
-                                <h2 className="text-lg font-bold text-app-text">Popular Sports</h2>
-                                <button className="text-primary text-sm font-semibold hover:opacity-80 transition-opacity">View All</button>
+                                <h2 className="text-lg font-bold text-app-text">{t('home.popular_sports')}</h2>
+                                <button className="text-primary text-sm font-semibold hover:opacity-80 transition-opacity">{t('common.view_all')}</button>
                             </div>
                             <div className="flex overflow-x-auto gap-4 px-6 no-scrollbar pb-2">
                                 {sportsTypes.map((sport) => (
@@ -598,7 +600,7 @@ export const HomePage = ({ user, pendingCount }: HomePageProps) => {
                                             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent"></div>
                                             <div className="absolute bottom-5 left-5">
                                                 <span className={`text-black text-[10px] font-bold px-2 py-1 rounded-full uppercase mb-2 inline-block ${sport === 'Football' ? 'bg-primary' : 'bg-blue-400 text-white'}`}>
-                                                    {sport === 'Football' ? 'Popular' : 'Trending'}
+                                                    {sport === 'Football' ? t('home.popular') : t('home.trending')}
                                                 </span>
                                                 <h3 className="text-white font-bold text-lg leading-tight">{sport}</h3>
                                             </div>
@@ -617,8 +619,8 @@ export const HomePage = ({ user, pendingCount }: HomePageProps) => {
                         <section className="mt-6 px-6 pb-10">
                             <div className="flex justify-between items-center mb-6 px-1">
                                 <div>
-                                    <h2 className="text-2xl font-black text-app-text tracking-tighter uppercase">Nearby <span className="text-primary italic">Venues</span></h2>
-                                    <p className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mt-1">Recommended for you</p>
+                                    <h2 className="text-2xl font-black text-app-text tracking-tighter uppercase">{t('home.nearby_venues')} <span className="text-primary italic">{t('home.venues')}</span></h2>
+                                    <p className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mt-1">{t('home.recommended_sub')}</p>
                                 </div>
                                 <button onClick={() => setViewMode('map')} className="w-12 h-12 rounded-2xl bg-app-surface border border-app-border flex items-center justify-center text-app-text-muted hover:text-primary transition-all active:scale-90">
                                     <span className="material-symbols-rounded">map</span>
@@ -704,10 +706,10 @@ export const HomePage = ({ user, pendingCount }: HomePageProps) => {
                             <span className="material-symbols-rounded">location_off</span>
                         </div>
                         <div className="flex-1">
-                            <p className="text-xs font-black text-amber-500 uppercase tracking-tight">Location off</p>
-                            <p className="text-[10px] text-amber-500/80 leading-tight">Enable GPS for precise distance.</p>
+                            <p className="text-xs font-black text-amber-500 uppercase tracking-tight">{t('home.location_off')}</p>
+                            <p className="text-[10px] text-amber-500/80 leading-tight">{t('home.location_off_sub')}</p>
                         </div>
-                        <button onClick={loadUserLocation} className="bg-amber-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-amber-500/20 active:scale-95 transition-transform">Retry</button>
+                        <button onClick={loadUserLocation} className="bg-amber-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-amber-500/20 active:scale-95 transition-transform">{t('home.retry')}</button>
                     </div>
                 )}
             </main>

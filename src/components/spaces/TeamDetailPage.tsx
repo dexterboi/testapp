@@ -9,8 +9,10 @@ import {
     getFriendships
 } from '@/services/dataService';
 import { getAvatarUrl } from '@/utils';
+import { useTranslation } from 'react-i18next';
 
 const TeamDetailPage = ({ currentUser }: { currentUser: any }) => {
+    const { t } = useTranslation();
     const { id: teamId } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [team, setTeam] = useState<any>(null);
@@ -186,9 +188,9 @@ const TeamDetailPage = ({ currentUser }: { currentUser: any }) => {
                 </div>
                 <div className="flex-1 min-w-0">
                     <h1 className="text-xl font-black text-app-text tracking-tighter truncate leading-tight uppercase">{team?.name}</h1>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="material-symbols-rounded text-primary text-sm">verified</span>
-                        <span className="text-[10px] font-black uppercase text-primary-dark tracking-widest">{members.length} SQUAD MEMBERS</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse shadow-lg shadow-primary/50" />
+                        <span className="text-[10px] font-black uppercase text-primary-dark tracking-widest">{members.length} {t('social.squad_members')}</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -208,8 +210,8 @@ const TeamDetailPage = ({ currentUser }: { currentUser: any }) => {
             <div className="px-6 py-4 bg-app-bg border-b border-app-border shrink-0">
                 <div className="flex p-1.5 bg-app-surface rounded-[1.5rem] gap-2 border border-app-border">
                     {[
-                        { key: 'chat', label: 'Squad HQ', icon: 'shield' },
-                        { key: 'members', label: 'Roster', icon: 'sports_soccer' }
+                        { key: 'chat', label: t('social.squad_hq'), icon: 'shield' },
+                        { key: 'members', label: t('social.roster'), icon: 'sports_soccer' }
                     ].map(({ key, label, icon }) => (
                         <button
                             key={key}
@@ -236,8 +238,8 @@ const TeamDetailPage = ({ currentUser }: { currentUser: any }) => {
                                     <div className="w-20 h-20 rounded-[2.5rem] bg-app-surface-2 flex items-center justify-center mb-6">
                                         <span className="material-symbols-rounded text-4xl text-app-text-muted">security</span>
                                     </div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-text-muted">Team HQ is online</p>
-                                    <p className="text-[9px] font-bold text-app-text-muted mt-2 uppercase tracking-tight">Coordinate your next win here...</p>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-text-muted">{t('social.hq_online')}</p>
+                                    <p className="text-[9px] font-bold text-app-text-muted mt-2 uppercase tracking-tight">{t('social.coordinate_win')}</p>
                                 </div>
                             ) : (
                                 messages.map((msg) => {
@@ -280,7 +282,7 @@ const TeamDetailPage = ({ currentUser }: { currentUser: any }) => {
                                         type="text"
                                         value={messageInput}
                                         onChange={(e) => setMessageInput(e.target.value)}
-                                        placeholder="Message the squad..."
+                                        placeholder={t('social.type_message')}
                                         className="flex-1 bg-transparent border-none outline-none text-[13px] font-bold text-app-text placeholder:text-app-text-muted/40"
                                     />
                                     <button type="button" className="text-app-text-muted hover:text-primary transition-colors">
@@ -324,10 +326,10 @@ const TeamDetailPage = ({ currentUser }: { currentUser: any }) => {
                                         )}
                                     </div>
                                     <p className="text-[9px] font-black text-app-text-muted uppercase tracking-widest mt-0.5">#{member.user?.takwira_id || 'SQUAD_MEMBER'}</p>
-                                </div>
-                                <div className="flex flex-col items-end gap-1">
-                                    <span className="text-[8px] font-black text-app-text-muted uppercase tracking-widest">Joined</span>
-                                    <span className="text-[9px] font-black text-app-text-muted uppercase tracking-tighter">{new Date(member.created_at).toLocaleDateString()}</span>
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        <p className="text-[9px] font-black text-app-text-muted uppercase tracking-widest">{t('social.joined')}</p>
+                                        <p className="text-[9px] font-black text-app-text-muted uppercase tracking-tighter">{new Date(member.created_at).toLocaleDateString()}</p>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -347,9 +349,9 @@ const TeamDetailPage = ({ currentUser }: { currentUser: any }) => {
                         </button>
 
                         <div className="mb-8">
-                            <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-1">Squad Recruitment</p>
-                            <h2 className="text-2xl font-black text-app-text tracking-tighter">Draft Friends</h2>
-                            <p className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mt-1">Add friends to {team?.name}</p>
+                            <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-1">{t('social.squad_recruitment')}</p>
+                            <h2 className="text-2xl font-black text-app-text tracking-tighter">{t('social.draft_friends')}</h2>
+                            <p className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mt-1">{t('social.add_friends_to', { team: team?.name })}</p>
                         </div>
 
                         <div className="flex-1 overflow-y-auto pr-2 space-y-4 no-scrollbar">
@@ -375,7 +377,7 @@ const TeamDetailPage = ({ currentUser }: { currentUser: any }) => {
                                             onClick={() => handleInviteFriend(friend.id)}
                                             className="bg-primary hover:bg-primary-dark text-slate-900 h-10 px-5 rounded-[1rem] font-black text-[9px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-primary/20 border-2 border-primary/20"
                                         >
-                                            RECRUIT
+                                            {t('social.recruit')}
                                         </button>
                                     </div>
                                 ))

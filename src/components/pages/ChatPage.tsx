@@ -6,8 +6,10 @@ import {
     supabase
 } from '@/services/dataService';
 import { getAvatarUrl } from '@/utils';
+import { useTranslation } from 'react-i18next';
 
 const ChatPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers: Record<string, any> }) => {
+    const { t } = useTranslation();
     const { friendshipId } = useParams<{ friendshipId: string }>();
     const navigate = useNavigate();
     const [messages, setMessages] = useState<any[]>([]);
@@ -146,7 +148,7 @@ const ChatPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
                         <div className="flex items-center gap-1.5 mt-0.5">
                             <span className={`w-1 h-1 rounded-full ${isOnline ? 'bg-primary' : 'bg-app-text-muted'}`} />
                             <p className={`text-[9px] font-black uppercase tracking-widest ${isOnline ? 'text-primary' : 'text-app-text-muted'}`}>
-                                {isOnline ? 'Active Now' : 'Offline'}
+                                {isOnline ? t('social.active_now') : t('social.offline')}
                             </p>
                         </div>
                     </div>
@@ -173,7 +175,7 @@ const ChatPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
                             <span className="material-symbols-rounded text-4xl text-app-text-muted">forum</span>
                         </div>
                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-text-muted">
-                            No messages yet.<br />Start talking strategy!
+                            {t('social.no_messages_yet')}<br />{t('social.start_talking_strategy')}
                         </p>
                     </div>
                 ) : (
@@ -225,7 +227,7 @@ const ChatPage = ({ currentUser, onlineUsers }: { currentUser: any, onlineUsers:
                             type="text"
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
-                            placeholder="Type a message..."
+                            placeholder={t('social.type_message')}
                             className="w-full bg-app-surface-2 border-none rounded-[1.5rem] py-3.5 px-5 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-app-text-muted text-app-text"
                         />
                     </div>

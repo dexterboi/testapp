@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, User, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getComplexBookings, updateBookingStatus, cancelBooking } from '@/services/bookingService';
 import { getRelation } from '@/utils';
 import { SuccessModal } from '@/components/common/ConfirmationModal';
 
 const OwnerBookingsPage = () => {
+    const { t, i18n } = useTranslation();
     const { complexId } = useParams();
     const navigate = useNavigate();
     const [bookings, setBookings] = useState<any[]>([]);
@@ -34,7 +36,7 @@ const OwnerBookingsPage = () => {
             else await updateBookingStatus(id, status as any);
             fetchBookings();
         } catch (e) {
-            setErrorMessage('Action failed. Please try again.');
+            setErrorMessage(t('activity.update_failed'));
             setShowErrorModal(true);
         }
     };
@@ -65,10 +67,10 @@ const OwnerBookingsPage = () => {
     };
 
     const getStatusText = (status: string) => {
-        if (status === 'approved') return 'CONFIRMED';
-        if (status === 'pending') return 'PENDING';
+        if (status === 'approved') return t('owner.status.confirmed');
+        if (status === 'pending') return t('owner.status.pending');
         if (status === 'cancel_request') return 'CANC';
-        if (status === 'rejected') return 'CANCELLED';
+        if (status === 'rejected') return t('owner.status.rejected');
         return status.toUpperCase();
     };
 
@@ -170,8 +172,8 @@ const OwnerBookingsPage = () => {
                                     }
                                 }}
                                 className={`flex-shrink-0 px-4 py-2.5 rounded-full text-[11px] font-black uppercase tracking-tight transition-all relative ${isSelected
-                                        ? 'bg-primary text-slate-950 shadow-lg shadow-primary/20'
-                                        : 'bg-slate-900/60 text-white border border-app-border'
+                                    ? 'bg-primary text-slate-950 shadow-lg shadow-primary/20'
+                                    : 'bg-slate-900/60 text-white border border-app-border'
                                     } ${!hasBookings ? 'opacity-50' : ''}`}
                             >
                                 {dayName} {dayNum}
@@ -190,8 +192,8 @@ const OwnerBookingsPage = () => {
                             key={s}
                             onClick={() => setFilter(s)}
                             className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${filter === s
-                                    ? 'bg-slate-900/60 text-white border border-app-border'
-                                    : 'bg-transparent text-slate-400 hover:text-white'
+                                ? 'bg-slate-900/60 text-white border border-app-border'
+                                : 'bg-transparent text-slate-400 hover:text-white'
                                 }`}
                         >
                             {s === 'cancel_request' ? 'CANC' : s.replace('_', ' ').toUpperCase()}

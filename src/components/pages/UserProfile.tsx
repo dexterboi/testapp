@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
 import { getAvatarUrl } from '@/utils';
+import { useTranslation } from 'react-i18next';
 
 interface UserProfileProps {
     user: any;
@@ -13,6 +14,7 @@ interface UserProfileProps {
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefresh }) => {
+    const { t } = useTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isEditingPhone, setIsEditingPhone] = useState(false);
@@ -49,9 +51,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                     allowEditing: true,
                     resultType: CameraResultType.Base64,
                     source: CameraSource.Camera,
-                    promptLabelHeader: 'Takwira Profile Photo',
-                    promptLabelPhoto: 'From Gallery',
-                    promptLabelPicture: 'Take Photo'
+                    promptLabelHeader: t('profile.photo_title'),
+                    promptLabelPhoto: t('profile.from_gallery'),
+                    promptLabelPicture: t('profile.take_photo')
                 });
 
                 if (image.base64String) {
@@ -140,13 +142,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
             // 3. Refresh user data to update the UI
             if (onRefresh) {
                 await onRefresh();
-                alert('Profile picture updated successfully!');
+                alert(t('profile.upload_success'));
             } else {
-                alert('Profile picture updated successfully!');
+                alert(t('profile.upload_success'));
             }
         } catch (err: any) {
             console.error('Avatar upload failed', err);
-            alert(`Failed to upload avatar: ${err.message || 'Unknown error'}`);
+            alert(`${t('profile.upload_failed')}: ${err.message || t('common.unknown_error')}`);
         } finally {
             setIsUploading(false);
         }
@@ -217,8 +219,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                     <div className="w-20 h-20 bg-app-surface-2 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6">
                         <span className="material-symbols-rounded text-4xl text-app-text-muted">account_circle</span>
                     </div>
-                    <h2 className="text-xl font-black text-app-text tracking-tighter uppercase mb-2">Not Logged In</h2>
-                    <p className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest leading-loose">Please log in to view your player profile and stats</p>
+                    <h2 className="text-xl font-black text-app-text tracking-tighter uppercase mb-2">{t('profile.not_logged_in')}</h2>
+                    <p className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest leading-loose">{t('profile.please_login_msg')}</p>
                 </div>
             </div>
         );
@@ -238,7 +240,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                             <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover rounded-[3rem] group-hover:blur-[2px] transition-all" />
                             <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[3rem]">
                                 <span className="material-symbols-rounded text-white text-4xl mb-1">photo_camera</span>
-                                <span className="text-[10px] font-black text-white uppercase tracking-widest">Update</span>
+                                <span className="text-[10px] font-black text-white uppercase tracking-widest">{t('profile.update_btn')}</span>
                             </div>
                         </div>
 
@@ -249,7 +251,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                         {isUploading && (
                             <div className="absolute inset-1.5 bg-black/60 backdrop-blur-md rounded-[3rem] flex flex-col items-center justify-center z-20">
                                 <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full shadow-lg mb-3" />
-                                <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] animate-pulse">Syncing...</span>
+                                <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] animate-pulse">{t('profile.syncing')}</span>
                             </div>
                         )}
                         <input
@@ -264,7 +266,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                     {!isEditingName ? (
                         <div className="flex items-center gap-3">
                             <h2 className="text-4xl font-black text-app-text tracking-tighter uppercase leading-none">
-                                {user.name?.split(' ')[0] || 'Pro'} <span className="text-primary italic">{user.name?.split(' ').slice(1).join(' ') || 'Player'}</span>
+                                {user.name?.split(' ')[0] || t('profile.pro_tag')} <span className="text-primary italic">{user.name?.split(' ').slice(1).join(' ') || t('profile.player_tag')}</span>
                             </h2>
                             <button onClick={() => setIsEditingName(true)} className="w-10 h-10 rounded-2xl bg-app-surface text-app-text-muted hover:text-app-text transition-all flex items-center justify-center active:scale-90 border border-app-border">
                                 <span className="material-symbols-rounded text-xl">edit</span>
@@ -301,22 +303,22 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                                         <span className="material-symbols-rounded text-slate-900 text-3xl font-black">verified_user</span>
                                     </div>
                                     <div>
-                                        <span className="text-app-text font-black text-[13px] tracking-[0.4em] uppercase block leading-none mb-1">PITCH-ID</span>
-                                        <span className="text-primary font-black text-[9px] tracking-widest uppercase opacity-90 italic">Redefined Elite Member</span>
+                                        <span className="text-app-text font-black text-[13px] tracking-[0.4em] uppercase block leading-none mb-1">{t('profile.pitch_id')}</span>
+                                        <span className="text-primary font-black text-[9px] tracking-widest uppercase opacity-90 italic">{t('profile.elite_member')}</span>
                                     </div>
                                 </div>
-                                <div className="bg-black/10 backdrop-blur-md px-3 py-1.5 rounded-xl border border-app-border font-black text-[9px] text-white/60 tracking-[0.2em] uppercase">MEMBER SINCE {new Date(user.created_at).getFullYear()}</div>
+                                <div className="bg-black/10 backdrop-blur-md px-3 py-1.5 rounded-xl border border-app-border font-black text-[9px] text-white/60 tracking-[0.2em] uppercase">{t('profile.member_since')} {new Date(user.created_at).getFullYear()}</div>
                             </div>
 
                             <div className="flex justify-between items-end">
                                 <div>
-                                    <p className="text-app-text-muted text-[9px] font-black uppercase tracking-[0.3em] mb-2 leading-none">PLAYER IDENTIFICATION</p>
+                                    <p className="text-app-text-muted text-[9px] font-black uppercase tracking-[0.3em] mb-2 leading-none">{t('profile.player_identification')}</p>
                                     <div className="flex items-center gap-3">
                                         <p className="text-app-text font-black text-2xl tracking-[0.15em] font-mono leading-none">{user.takwira_id || '#TAK-0000'}</p>
                                         <button
                                             onClick={() => {
                                                 navigator.clipboard.writeText(user.takwira_id);
-                                                alert('Takwira ID copied!');
+                                                alert(t('profile.id_copied'));
                                             }}
                                             className="w-8 h-8 flex items-center justify-center bg-app-surface-2 rounded-xl text-app-text-muted hover:text-primary transition-all active:scale-90"
                                         >
@@ -337,7 +339,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                             <div className="flex items-center justify-center gap-3 bg-slate-950/50 border border-app-border py-4 px-6 rounded-[2rem] shadow-inner group hover:border-primary/30 transition-all">
                                 <span className={`material-symbols-rounded text-xl ${user.phone ? 'text-primary' : 'text-app-text-muted'}`}>phone_iphone</span>
                                 <span className={`text-[11px] font-black uppercase tracking-widest ${user.phone ? 'text-app-text-muted' : 'text-app-text-muted opacity-60'}`}>
-                                    {displayPhone}
+                                    {user?.phone || t('profile.no_phone')}
                                 </span>
                                 <button
                                     onClick={() => setIsEditingPhone(true)}
@@ -379,16 +381,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                         {!user.phone && !isEditingPhone && (
                             <div className="flex items-center justify-center gap-1.5 mt-3">
                                 <span className="material-symbols-rounded text-amber-500 text-xs">warning</span>
-                                <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Phone required for match bookings</p>
+                                <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">{t('profile.phone_required')}</p>
                             </div>
                         )}
                     </div>
 
                     <div className="flex gap-4 w-full">
                         {[
-                            { label: 'Played', value: user.gamesPlayed || 0, color: 'slate' },
-                            { label: 'Victory', value: user.wins || 0, color: 'primary' },
-                            { label: 'Defeat', value: user.losses || 0, color: 'rose' }
+                            { label: t('profile.played'), value: user.gamesPlayed || 0, color: 'slate' },
+                            { label: t('profile.victory'), value: user.wins || 0, color: 'primary' },
+                            { label: t('profile.defeat'), value: user.losses || 0, color: 'rose' }
                         ].map((stat, idx) => (
                             <div key={idx} className={`flex-1 p-5 rounded-[2.2rem] text-center border transition-all hover:-translate-y-1 ${stat.color === 'primary'
                                 ? 'bg-primary/5 border-primary/20 shadow-lg shadow-primary/5'
@@ -406,7 +408,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
             {/* Menu Options */}
             <div className="px-8 space-y-6">
                 <div className="flex items-center justify-between px-2">
-                    <h3 className="text-[10px] font-black text-app-text-muted uppercase tracking-[0.2em]">Activity & Career</h3>
+                    <h3 className="text-[10px] font-black text-app-text-muted uppercase tracking-[0.2em]">{t('profile.activity_career')}</h3>
                     <div className="h-px bg-app-border flex-1 ml-4" />
                 </div>
 
@@ -420,18 +422,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                                 <span className="material-symbols-rounded text-3xl">dashboard_customize</span>
                             </div>
                             <div className="flex-1 text-left">
-                                <p className="text-sm font-black text-app-text uppercase tracking-tight group-hover:text-slate-900">Owner Dashboard</p>
-                                <p className="text-[10px] text-app-text-muted font-bold uppercase tracking-widest group-hover:text-slate-800">Manage your complexes</p>
+                                <p className="text-sm font-black text-app-text uppercase tracking-tight group-hover:text-slate-900">{t('profile.owner_dashboard')}</p>
+                                <p className="text-[10px] text-app-text-muted font-bold uppercase tracking-widest group-hover:text-slate-800">{t('profile.owner_dashboard_sub')}</p>
                             </div>
                             <span className="material-symbols-rounded text-app-text-muted group-hover:text-slate-900 group-hover:translate-x-1 transition-transform">chevron_right</span>
                         </button>
                     )}
 
                     {[
-                        { label: 'Achievements', desc: 'Badges & Stats', icon: 'military_tech', color: 'primary', path: '/achievements' },
-                        { label: 'Academy Portal', desc: 'My Training Hub', icon: 'school', color: 'amber', path: '/academy-student' },
-                        { label: 'Match History', desc: 'Booking receipts', icon: 'history', color: 'blue', path: '/history' },
-                        { label: 'Active Squads', desc: 'My sports crews', icon: 'groups', color: 'emerald', path: '/teams' }
+                        { label: t('profile.achievements'), desc: t('profile.achievements_sub'), icon: 'military_tech', color: 'primary', path: '/achievements' },
+                        { label: t('profile.academy'), desc: t('profile.academy_sub'), icon: 'school', color: 'amber', path: '/academy-student' },
+                        { label: t('profile.history'), desc: t('profile.history_sub_receipts'), icon: 'history', color: 'blue', path: '/history' },
+                        { label: t('profile.active_squads'), desc: t('profile.active_squads_sub'), icon: 'groups', color: 'emerald', path: '/teams' }
                     ].map((item, idx) => (
                         <button
                             key={idx}
@@ -451,7 +453,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                 </div>
 
                 <div className="flex items-center justify-between px-2 pt-4">
-                    <h3 className="text-[10px] font-black text-app-text-muted uppercase tracking-[0.2em]">Account Hub</h3>
+                    <h3 className="text-[10px] font-black text-app-text-muted uppercase tracking-[0.2em]">{t('profile.account_hub')}</h3>
                     <div className="h-px bg-app-border flex-1 ml-4" />
                 </div>
 
@@ -464,8 +466,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                             <span className="material-symbols-rounded text-2xl">settings</span>
                         </div>
                         <div className="flex-1 text-left">
-                            <p className="text-sm font-black text-app-text uppercase tracking-tight">Preferences</p>
-                            <p className="text-[10px] text-app-text-muted font-bold uppercase tracking-widest">Notifications & Safety</p>
+                            <p className="text-sm font-black text-app-text uppercase tracking-tight">{t('profile.preferences')}</p>
+                            <p className="text-[10px] text-app-text-muted font-bold uppercase tracking-widest">{t('profile.preferences_sub')}</p>
                         </div>
                         <span className="material-symbols-rounded text-app-text-muted">chevron_right</span>
                     </button>
@@ -478,8 +480,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                             <span className="material-symbols-rounded text-2xl">logout</span>
                         </div>
                         <div className="flex-1 text-left">
-                            <p className="text-sm font-black text-rose-500 uppercase tracking-tight">Sign Out</p>
-                            <p className="text-[10px] text-rose-400 font-bold uppercase tracking-widest">End your session</p>
+                            <p className="text-sm font-black text-rose-500 uppercase tracking-tight">{t('profile.sign_out')}</p>
+                            <p className="text-[10px] text-rose-400 font-bold uppercase tracking-widest">{t('profile.sign_out_sub')}</p>
                         </div>
                     </button>
                 </div>
@@ -489,7 +491,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                 <div className="fixed inset-0 bg-app-bg/80 backdrop-blur-xl z-[100] flex items-end justify-center p-6 animate-in fade-in duration-300">
                     <div className="w-full max-w-sm bg-app-surface rounded-[3rem] border border-app-border p-8 shadow-2xl animate-in slide-in-from-bottom duration-500">
                         <div className="flex justify-between items-center mb-8">
-                            <h3 className="text-xl font-black text-app-text uppercase tracking-tighter">Profile Photo</h3>
+                            <h3 className="text-xl font-black text-app-text uppercase tracking-tighter">{t('profile.photo_title')}</h3>
                             <button onClick={() => setShowSourceModal(false)} className="w-10 h-10 rounded-full bg-app-surface-2 flex items-center justify-center text-app-text-muted">
                                 <span className="material-symbols-rounded">close</span>
                             </button>
@@ -502,7 +504,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                                 <div className="w-16 h-16 bg-app-surface-2 rounded-[1.5rem] flex items-center justify-center text-primary group-hover:text-slate-900 group-hover:bg-white/20 transition-all mb-4">
                                     <span className="material-symbols-rounded text-4xl">photo_camera</span>
                                 </div>
-                                <span className="text-[10px] font-black text-app-text group-hover:text-slate-900 uppercase tracking-widest leading-none">Take Photo</span>
+                                <span className="text-[10px] font-black text-app-text group-hover:text-slate-900 uppercase tracking-widest leading-none">{t('profile.take_photo')}</span>
                             </button>
                             <button
                                 onClick={() => handleSelectSource('gallery')}
@@ -511,7 +513,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                                 <div className="w-16 h-16 bg-app-bg rounded-[1.5rem] flex items-center justify-center text-app-text-muted group-hover:text-app-bg group-hover:bg-app-text transition-all mb-4">
                                     <span className="material-symbols-rounded text-4xl">image</span>
                                 </div>
-                                <span className="text-[10px] font-black text-app-text group-hover:text-app-bg uppercase tracking-widest leading-none">Gallery</span>
+                                <span className="text-[10px] font-black text-app-text group-hover:text-app-bg uppercase tracking-widest leading-none">{t('profile.gallery')}</span>
                             </button>
                         </div>
                     </div>
@@ -523,8 +525,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                 <div className="fixed inset-0 bg-app-bg z-[200] flex flex-col pt-16 animate-in fade-in duration-300">
                     <div className="px-8 flex justify-between items-center mb-8">
                         <div>
-                            <h3 className="text-2xl font-black text-app-text tracking-tighter uppercase leading-none">Camera</h3>
-                            <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-1 italic">Ready for shot</p>
+                            <h3 className="text-2xl font-black text-app-text tracking-tighter uppercase leading-none">{t('profile.camera')}</h3>
+                            <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-1 italic">{t('profile.ready_shot')}</p>
                         </div>
                         <button onClick={stopCamera} className="w-12 h-12 rounded-[1.2rem] bg-app-surface border border-app-border flex items-center justify-center text-app-text active:scale-90 transition-all">
                             <span className="material-symbols-rounded">close</span>
@@ -554,7 +556,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                     </div>
 
                     <div className="px-12 text-center pb-12">
-                        <p className="text-[10px] text-app-text-muted font-black uppercase tracking-[0.3em] leading-relaxed">Position your face in the center for the perfect player profile shot</p>
+                        <p className="text-[10px] text-app-text-muted font-black uppercase tracking-[0.3em] leading-relaxed">{t('profile.camera_guideline')}</p>
                     </div>
                 </div>
             )}

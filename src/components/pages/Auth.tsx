@@ -3,12 +3,14 @@ import { supabase } from '@/services/supabase';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { App as CapApp } from '@capacitor/app';
+import { useTranslation } from 'react-i18next';
 
 interface AuthProps {
     onSuccess: () => void;
 }
 
 export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
+    const { t } = useTranslation();
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -150,13 +152,13 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                 <div className="bg-primary/10 w-24 h-24 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-inner border border-primary/20">
                     <span className="material-symbols-rounded text-5xl text-primary">mark_email_unread</span>
                 </div>
-                <h2 className="text-3xl font-black text-app-text mb-3 text-center tracking-tighter uppercase leading-none">Squad Check! 📧</h2>
+                <h2 className="text-3xl font-black text-app-text mb-3 text-center tracking-tighter uppercase leading-none">{t('auth.squad_check')}</h2>
                 <p className="text-app-text-muted text-[11px] font-bold text-center mb-8 leading-relaxed uppercase tracking-widest">
-                    We've sent a verification link to <br /><span className="text-app-text bg-app-surface/50 px-2 py-0.5 rounded-md">{email}</span>
+                    {t('auth.verification_sent_to')} <br /><span className="text-app-text bg-app-surface/50 px-2 py-0.5 rounded-md">{email}</span>
                 </p>
                 <div className="bg-app-surface border border-app-border rounded-[2rem] p-6 mb-8 w-full">
                     <p className="text-[10px] text-app-text-muted text-center font-black uppercase tracking-widest leading-relaxed">
-                        💡 PRO TIP: Check your spam folder if you don't see the email within 60 seconds.
+                        {t('auth.pro_tip')}
                     </p>
                 </div>
                 <button
@@ -164,13 +166,13 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                     disabled={isLoading}
                     className="w-full bg-app-surface text-app-text font-black text-[11px] uppercase tracking-[0.2em] py-5.5 rounded-[1.8rem] hover:opacity-90 border border-app-border transition-all mb-4 disabled:opacity-50 active:scale-95 shadow-xl"
                 >
-                    {isLoading ? 'Sending...' : 'Resend Verification'}
+                    {isLoading ? t('auth.sending') : t('auth.resend_btn')}
                 </button>
                 <button
                     onClick={() => setShowEmailSent(false)}
                     className="text-[10px] text-primary font-black uppercase tracking-widest hover:underline py-2"
                 >
-                    ← Back to Login
+                    {t('auth.back_to_login')}
                 </button>
             </div>
         );
@@ -191,10 +193,10 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                     </span>
                 </div>
                 <h2 className="text-3xl md:text-4xl font-black text-app-text mb-3 tracking-tighter uppercase leading-none">
-                    {isLogin ? 'Welcome Back' : 'Join the Squad'}
+                    {isLogin ? t('auth.welcome_back') : t('auth.join_squad')}
                 </h2>
                 <p className="text-app-text-muted text-[10px] font-black uppercase tracking-[0.3em] opacity-60">
-                    {isLogin ? 'Enter the arena to play' : 'Build your legacy on the pitch'}
+                    {isLogin ? t('auth.enter_arena_sub') : t('auth.join_squad_sub')}
                 </p>
             </div>
 
@@ -205,14 +207,14 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                     className={`flex-1 py-4 text-[11px] font-black uppercase tracking-[0.2em] rounded-[1.8rem] transition-all duration-300 ${isLogin ? 'bg-primary shadow-xl shadow-primary/20 text-slate-950 translate-z-10' : 'text-app-text-muted hover:text-app-text'
                         }`}
                 >
-                    Login
+                    {t('auth.login_tab')}
                 </button>
                 <button
                     onClick={() => setIsLogin(false)}
                     className={`flex-1 py-4 text-[11px] font-black uppercase tracking-[0.2em] rounded-[1.8rem] transition-all duration-300 ${!isLogin ? 'bg-primary shadow-xl shadow-primary/20 text-slate-950 translate-z-10' : 'text-app-text-muted hover:text-app-text'
                         }`}
                 >
-                    Register
+                    {t('auth.register_tab')}
                 </button>
             </div>
 
@@ -228,7 +230,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                         <span className="material-symbols-rounded absolute left-5 top-1/2 -translate-y-1/2 text-app-text-muted group-focus-within:text-primary transition-all duration-300 group-focus-within:scale-110">person</span>
                         <input
                             type="text"
-                            placeholder="Full Name"
+                            placeholder={t('auth.full_name')}
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             className="w-full bg-app-surface py-5 pl-14 pr-8 rounded-[1.8rem] text-[14px] font-bold text-app-text focus:outline-none focus:ring-2 focus:ring-primary/20 border border-app-border placeholder:text-app-text-muted transition-all font-sans"
@@ -240,7 +242,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                     <span className="material-symbols-rounded absolute left-5 top-1/2 -translate-y-1/2 text-app-text-muted group-focus-within:text-primary transition-all duration-300 group-focus-within:scale-110">mail</span>
                     <input
                         type="email"
-                        placeholder="Email Address"
+                        placeholder={t('auth.email_address')}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full bg-app-surface-2 py-5 pl-14 pr-8 rounded-[1.8rem] text-[14px] font-bold text-white focus:outline-none focus:ring-2 focus:ring-primary/20 border border-app-border placeholder:text-slate-600 transition-all font-sans"
@@ -251,7 +253,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                     <span className="material-symbols-rounded absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-primary transition-all duration-300 group-focus-within:scale-110">lock</span>
                     <input
                         type="password"
-                        placeholder="Password"
+                        placeholder={t('auth.password')}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full bg-app-surface-2 py-5 pl-14 pr-8 rounded-[1.8rem] text-[14px] font-bold text-white focus:outline-none focus:ring-2 focus:ring-primary/20 border border-app-border placeholder:text-slate-600 transition-all font-sans"
@@ -268,7 +270,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                         <div className="animate-spin h-6 w-6 border-3 border-slate-950 border-t-transparent rounded-full" />
                     ) : (
                         <>
-                            {isLogin ? 'Enter Arena' : 'Join Squad'}
+                            {isLogin ? t('auth.enter_arena_btn') : t('auth.join_squad_btn')}
                             <span className="material-symbols-rounded text-2xl group-hover:translate-x-1.5 transition-transform">arrow_forward</span>
                         </>
                     )}
@@ -277,7 +279,7 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
 
             <div className="my-10 flex items-center w-full">
                 <div className="flex-1 h-[1px] bg-app-border"></div>
-                <span className="px-6 text-[9px] text-app-text-muted font-black uppercase tracking-[0.4em]">Social link</span>
+                <span className="px-6 text-[9px] text-app-text-muted font-black uppercase tracking-[0.4em]">{t('auth.social_link')}</span>
                 <div className="flex-1 h-[1px] bg-app-border"></div>
             </div>
 
@@ -292,14 +294,14 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                     ) : (
                         <>
                             <img src="https://www.google.com/favicon.ico" className="w-5 h-5 grayscale group-hover:grayscale-0 transition-all" alt="Google" />
-                            Continue with Google
+                            {t('auth.continue_google')}
                         </>
                     )}
                 </button>
             </div>
 
             <p className="mt-10 text-[9px] text-slate-600 font-bold text-center uppercase tracking-[0.2em] leading-loose opacity-60">
-                Play responsibly. View our <span className="text-slate-400 underline">Terms</span> and <span className="text-slate-400 underline">Privacy</span>.
+                {t('auth.play_responsibly')}
             </p>
         </div>
     );

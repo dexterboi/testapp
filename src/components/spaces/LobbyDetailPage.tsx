@@ -13,8 +13,10 @@ import {
 } from '@/services/dataService';
 import { SuccessModal, ConfirmationModal } from '@/components/common/ConfirmationModal';
 import { getAvatarUrl } from '@/utils';
+import { useTranslation } from 'react-i18next';
 
 const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
+    const { t } = useTranslation();
     const { id: lobbyId } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [lobby, setLobby] = useState<any>(null);
@@ -329,7 +331,7 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
                     <h1 className="text-xl font-black text-app-text tracking-tighter truncate leading-tight uppercase">{lobby?.name}</h1>
                     <div className="flex items-center gap-2 mt-0.5">
                         <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse shadow-lg shadow-primary/50" />
-                        <span className="text-[9px] font-black uppercase text-primary-dark tracking-widest">{lobby?.status} SESSION</span>
+                        <span className="text-[9px] font-black uppercase text-primary-dark tracking-widest">{lobby?.status === 'active' ? t('social.active_session') : lobby?.status?.toUpperCase()}</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -337,7 +339,7 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
                         <button
                             onClick={() => setLeaveModalOpen(true)}
                             className="w-10 h-10 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center active:scale-90 transition-all shadow-sm hover:bg-red-500/20"
-                            title="Leave Lobby"
+                            title={t('social.leave_lobby')}
                         >
                             <span className="material-symbols-rounded">exit_to_app</span>
                         </button>
@@ -362,8 +364,8 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
             <div className="px-6 py-4 bg-app-bg border-b border-app-border shrink-0">
                 <div className="flex p-1.5 bg-app-surface rounded-[1.5rem] gap-2 border border-app-border">
                     {[
-                        { key: 'chat', label: 'Match Chat', icon: 'forum' },
-                        { key: 'players', label: 'Squad List', icon: 'groups' }
+                        { key: 'chat', label: t('social.match_chat'), icon: 'forum' },
+                        { key: 'players', label: t('social.squad_list'), icon: 'groups' }
                     ].map(({ key, label, icon }) => (
                         <button
                             key={key}
@@ -392,17 +394,17 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
                                     <div className="flex-1">
                                         <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">
                                             {hasPendingRequest
-                                                ? 'Access Request Pending'
+                                                ? t('social.access_pending')
                                                 : hasPendingInvite
-                                                    ? 'Invitation Pending'
-                                                    : 'Access Required'}
+                                                    ? t('social.invite_pending')
+                                                    : t('social.access_required')}
                                         </p>
                                         <p className="text-[9px] text-amber-300/80 font-bold">
                                             {hasPendingRequest
-                                                ? 'Your request is being reviewed by the lobby host. You can view but cannot participate yet.'
+                                                ? t('social.pending_approval_msg')
                                                 : hasPendingInvite
-                                                    ? 'You have been invited! Accept the invitation to participate.'
-                                                    : 'You need to request access to chat and participate in this lobby.'}
+                                                    ? t('social.check_squad_tab')
+                                                    : t('social.request_access_msg')}
                                         </p>
                                     </div>
                                 </div>
@@ -429,8 +431,8 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
                                     <div className="w-20 h-20 rounded-[2.5rem] bg-app-surface-2 flex items-center justify-center mb-6">
                                         <span className="material-symbols-rounded text-4xl text-app-text-muted">chat_bubble</span>
                                     </div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-text-muted">Match-day strategy starts here!</p>
-                                    <p className="text-[9px] font-bold text-app-text-muted mt-2 uppercase tracking-tight">Break the ice and lead your team...</p>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-text-muted">{t('social.strategy_starts')}</p>
+                                    <p className="text-[9px] font-bold text-app-text-muted mt-2 uppercase tracking-tight">{t('social.break_ice')}</p>
                                 </div>
                             ) : (
                                 messages.map((msg) => {
@@ -474,7 +476,7 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
                                             type="text"
                                             value={messageInput}
                                             onChange={(e) => setMessageInput(e.target.value)}
-                                            placeholder="Discuss the pitch..."
+                                            placeholder={t('social.type_message')}
                                             className="flex-1 bg-transparent border-none outline-none text-[13px] font-bold text-app-text placeholder:text-app-text-muted/40"
                                         />
                                         <button type="button" className="text-app-text-muted hover:text-primary transition-colors">

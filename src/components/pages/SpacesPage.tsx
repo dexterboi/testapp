@@ -13,11 +13,13 @@ import {
     getComplexes,
     getUserLocation
 } from '@/services/dataService';
+import { useTranslation } from 'react-i18next';
 import { ConfirmationModal, SuccessModal } from '@/components/common/ConfirmationModal';
 import { getAvatarUrl } from '@/utils';
 
 const SpacesPage = ({ currentUser }: { currentUser: any }) => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'lobbies' | 'teams'>('lobbies');
     const [lobbies, setLobbies] = useState<any[]>([]);
     const [teams, setTeams] = useState<any[]>([]);
@@ -245,8 +247,8 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
             <header className="px-8 pt-[calc(3.5rem+env(safe-area-inset-top))] pb-8 sticky top-0 z-40 bg-app-bg/80 backdrop-blur-xl border-b border-app-border">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <p className="text-app-text-muted text-[10px] font-black uppercase tracking-[0.2em] mb-1">Collaboration</p>
-                        <h1 className="text-3xl font-black tracking-tighter text-app-text">Spaces</h1>
+                        <p className="text-app-text-muted text-[10px] font-black uppercase tracking-[0.2em] mb-1">{t('spaces.collaboration')}</p>
+                        <h1 className="text-3xl font-black tracking-tighter text-app-text">{t('spaces.title')}</h1>
                     </div>
                     <div className="w-12 h-12 bg-app-surface-2 rounded-2xl flex items-center justify-center border border-app-border shadow-sm text-primary">
                         <span className="material-symbols-rounded">groups</span>
@@ -256,8 +258,8 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                 {/* Tab Navigation */}
                 <div className="flex gap-2 p-1.5 bg-app-surface/50 rounded-[2rem] border border-app-border shadow-inner">
                     {[
-                        { key: 'lobbies', label: 'Lobbies', icon: 'stadium' },
-                        { key: 'teams', label: 'Teams', icon: 'shield_person' }
+                        { key: 'lobbies', label: t('spaces.lobbies_tab'), icon: 'stadium' },
+                        { key: 'teams', label: t('spaces.teams_tab'), icon: 'shield_person' }
                     ].map(({ key, label, icon }) => (
                         <button
                             key={key}
@@ -287,23 +289,23 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                 <span className="material-symbols-rounded text-3xl">add</span>
                             </div>
                             <div className="text-center">
-                                <span className="block text-sm font-black text-app-text uppercase tracking-widest">Start a Lobby</span>
-                                <span className="text-[10px] text-app-text-muted font-bold uppercase tracking-tight">Gather players for a match</span>
+                                <span className="block text-sm font-black text-app-text uppercase tracking-widest">{t('spaces.start_lobby')}</span>
+                                <span className="text-[10px] text-app-text-muted font-bold uppercase tracking-tight">{t('spaces.gather_players')}</span>
                             </div>
                         </button>
 
                         {loading ? (
                             <div className="bg-app-surface-2 p-20 rounded-[3.5rem] flex flex-col items-center justify-center border border-app-border shadow-inner">
                                 <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
-                                <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">Finding matches...</p>
+                                <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">{t('spaces.finding_matches')}</p>
                             </div>
                         ) : lobbies.length === 0 ? (
                             <div className="bg-app-surface-2 p-20 rounded-[4rem] text-center border border-app-border shadow-inner">
                                 <div className="w-20 h-20 bg-app-surface-2 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                                     <span className="material-symbols-rounded text-4xl text-app-text-muted">sports_soccer</span>
                                 </div>
-                                <p className="text-app-text font-extrabold text-lg mb-2">No active lobbies</p>
-                                <p className="text-app-text-muted text-xs leading-relaxed max-w-[200px] mx-auto">Be the first to organize a game today!</p>
+                                <p className="text-app-text font-extrabold text-lg mb-2">{t('spaces.no_lobbies')}</p>
+                                <p className="text-app-text-muted text-xs leading-relaxed max-w-[200px] mx-auto">{t('spaces.be_first')}</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
@@ -424,10 +426,10 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                                     >
                                                         {lobby.members?.some((m: any) =>
                                                             m.user_id === currentUser?.id && m.status === 'joined'
-                                                        ) ? 'Joined' :
+                                                        ) ? t('spaces.joined') :
                                                             lobby.members?.some((m: any) =>
                                                                 m.user_id === currentUser?.id && m.status === 'requested'
-                                                            ) ? 'Requested' : 'Request Access'}
+                                                            ) ? t('spaces.requested') : t('spaces.request_access')}
                                                     </button>
                                                 ) : (
                                                     <button
@@ -438,7 +440,7 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                                             : 'bg-app-surface-2 text-app-text-muted border border-app-border hover:bg-app-surface-2'
                                                             }`}
                                                     >
-                                                        {lobby.members?.some((m: any) => m.user_id === currentUser?.id) ? 'Joined' : 'Private'}
+                                                        {lobby.members?.some((m: any) => m.user_id === currentUser?.id) ? t('spaces.joined') : t('spaces.private')}
                                                     </button>
                                                 )}
                                             </div>
@@ -459,23 +461,23 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                 <span className="material-symbols-rounded text-3xl">shield_person</span>
                             </div>
                             <div className="text-center">
-                                <span className="block text-sm font-black text-app-text uppercase tracking-widest">Form a Team</span>
-                                <span className="text-[10px] text-app-text-muted font-bold uppercase tracking-tight">Create your own football club</span>
+                                <span className="block text-sm font-black text-app-text uppercase tracking-widest">{t('spaces.form_team')}</span>
+                                <span className="text-[10px] text-app-text-muted font-bold uppercase tracking-tight">{t('spaces.create_club')}</span>
                             </div>
                         </button>
 
                         {loading ? (
                             <div className="bg-app-surface-2 p-20 rounded-[3.5rem] flex flex-col items-center justify-center border border-app-border shadow-inner">
                                 <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
-                                <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">Loading clubs...</p>
+                                <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">{t('spaces.loading_clubs')}</p>
                             </div>
                         ) : teams.length === 0 ? (
                             <div className="bg-app-surface-2 p-20 rounded-[4rem] text-center border border-app-border shadow-inner">
                                 <div className="w-20 h-20 bg-app-surface-2 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                                     <span className="material-symbols-rounded text-4xl text-app-text-muted">shield</span>
                                 </div>
-                                <p className="text-app-text font-extrabold text-lg mb-2">No teams joined</p>
-                                <p className="text-app-text-muted text-xs leading-relaxed max-w-[200px] mx-auto">Start a team and compete in local tournaments!</p>
+                                <p className="text-app-text font-extrabold text-lg mb-2">{t('spaces.no_teams')}</p>
+                                <p className="text-app-text-muted text-xs leading-relaxed max-w-[200px] mx-auto">{t('spaces.start_team_sub')}</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
@@ -495,7 +497,7 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                         <div className="flex-1 min-w-0">
                                             <h3 className="font-black text-xl text-app-text truncate group-hover:text-primary transition-colors tracking-tight">{team.name}</h3>
                                             <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest mb-3">
-                                                {team.members?.length || 0} Professional Members
+                                                {t('spaces.members_count', { count: team.members?.length || 0 })}
                                             </p>
                                             <div className="flex -space-x-2">
                                                 {Array.from({ length: Math.min(team.members?.length || 0, 3) }).map((_, i) => (
@@ -541,9 +543,9 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                         </button>
 
                         <div className="mb-8">
-                            <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-1">New Space</p>
+                            <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-1">{t('spaces.new_space')}</p>
                             <h2 className="text-2xl font-black text-app-text tracking-tighter">
-                                {isLobbyModalOpen ? 'Create Lobby' : 'Register Team'}
+                                {isLobbyModalOpen ? t('spaces.create_lobby') : t('spaces.register_team')}
                             </h2>
                         </div>
 
@@ -552,7 +554,7 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                             className="space-y-8"
                         >
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">Display Name</label>
+                                <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.display_name')}</label>
                                 <input
                                     type="text"
                                     value={newName}
@@ -566,7 +568,7 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                 <>
                                     {/* Lobby Type */}
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">Lobby Type</label>
+                                        <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.lobby_type')}</label>
                                         <div className="flex gap-2">
                                             <button
                                                 type="button"
@@ -576,7 +578,7 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                                     : 'bg-app-surface-2 text-app-text-muted border border-app-border hover:bg-app-surface-2'
                                                     }`}
                                             >
-                                                Public
+                                                {t('spaces.public')}
                                             </button>
                                             <button
                                                 type="button"
@@ -586,24 +588,24 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                                     : 'bg-app-surface-2 text-app-text-muted border border-app-border hover:bg-app-surface-2'
                                                     }`}
                                             >
-                                                Private
+                                                {t('spaces.private')}
                                             </button>
                                         </div>
                                         <p className="text-[9px] text-app-text-muted px-1">
-                                            {lobbyType === 'public' ? 'Anyone can see and request to join' : 'Only your friends can see this lobby'}
+                                            {lobbyType === 'public' ? t('spaces.lobby_public_sub') : t('spaces.lobby_private_sub')}
                                         </p>
                                     </div>
 
                                     {/* Complex Selection */}
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">Venue *</label>
+                                        <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.venue_label')}</label>
                                         <select
                                             value={selectedComplexId}
                                             onChange={(e) => setSelectedComplexId(e.target.value)}
                                             className="w-full bg-app-bg border-2 border-app-border rounded-[1.5rem] px-6 py-4 font-black text-app-text focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                                             required
                                         >
-                                            <option value="">Select a venue...</option>
+                                            <option value="">{t('spaces.select_venue')}</option>
                                             {complexes.map(complex => (
                                                 <option key={complex.id} value={complex.id} className="bg-app-surface">
                                                     {complex.name}
@@ -614,7 +616,7 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
 
                                     {/* Date Selection */}
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">Preferred Date *</label>
+                                        <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.date_label')}</label>
                                         <input
                                             type="date"
                                             value={preferredDate}
@@ -627,7 +629,7 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
 
                                     {/* Time Selection */}
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">Preferred Time *</label>
+                                        <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.time_label')}</label>
                                         <input
                                             type="time"
                                             value={preferredTime}
@@ -640,8 +642,8 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                     {/* Capacity */}
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-center px-1">
-                                            <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">Capacity</label>
-                                            <span className="text-sm font-black text-primary">{maxPlayers} Players</span>
+                                            <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">{t('spaces.capacity')}</label>
+                                            <span className="text-sm font-black text-primary">{t('spaces.players_count', { count: maxPlayers })}</span>
                                         </div>
                                         <input
                                             type="range"
@@ -653,8 +655,8 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                             className="w-full h-1.5 bg-app-surface rounded-lg appearance-none cursor-pointer accent-primary"
                                         />
                                         <div className="flex justify-between text-[8px] font-black text-app-text-muted uppercase tracking-widest">
-                                            <span>2 Players</span>
-                                            <span>22 Players</span>
+                                            <span>{t('spaces.players_count', { count: 2 })}</span>
+                                            <span>{t('spaces.players_count', { count: 22 })}</span>
                                         </div>
                                     </div>
                                 </>
@@ -684,9 +686,9 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                         </button>
 
                         <div className="mb-8">
-                            <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-1">Send Invites</p>
-                            <h2 className="text-2xl font-black text-app-text tracking-tighter">Invite Crew</h2>
-                            <p className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mt-1">To: {selectedItem?.name}</p>
+                            <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-1">{t('spaces.send_invites')}</p>
+                            <h2 className="text-2xl font-black text-app-text tracking-tighter">{t('spaces.invite_crew')}</h2>
+                            <p className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mt-1">{t('spaces.to_label')} {selectedItem?.name}</p>
                         </div>
 
                         <div className="flex-1 overflow-y-auto pr-2 space-y-4 no-scrollbar">
@@ -695,7 +697,7 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                     <div className="w-16 h-16 bg-app-surface-2 rounded-2xl flex items-center justify-center mx-auto mb-4">
                                         <span className="material-symbols-rounded text-app-text-muted">person_off</span>
                                     </div>
-                                    <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">No friends available</p>
+                                    <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">{t('spaces.no_friends')}</p>
                                 </div>
                             ) : (
                                 userFriends.map(friend => (
@@ -711,7 +713,7 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                             onClick={() => handleInviteFriend(friend.id)}
                                             className="bg-primary hover:bg-primary-dark text-slate-900 h-10 px-4 rounded-xl font-black text-[9px] uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-primary/10"
                                         >
-                                            Invite
+                                            {t('spaces.invite_btn')}
                                         </button>
                                     </div>
                                 ))
@@ -736,22 +738,22 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                         </button>
 
                         <div className="mb-8">
-                            <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-1">Request Access</p>
+                            <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-1">{t('spaces.request_access')}</p>
                             <h2 className="text-2xl font-black text-app-text tracking-tighter">
-                                Send Request
+                                {t('spaces.send_request')}
                             </h2>
                             <p className="text-[10px] text-app-text-muted mt-2">
-                                Add an optional message to the lobby owner
+                                {t('spaces.optional_msg')}
                             </p>
                         </div>
 
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">Message (Optional)</label>
+                                <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.message_optional')}</label>
                                 <textarea
                                     value={requestMessage}
                                     onChange={(e) => setRequestMessage(e.target.value)}
-                                    placeholder="Hey! I'd love to join this game..."
+                                    placeholder={t('spaces.request_placeholder')}
                                     rows={4}
                                     className="w-full bg-app-bg border-2 border-app-border rounded-[1.5rem] px-6 py-4 font-black text-app-text placeholder:text-app-text-muted/40 focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
                                 />
@@ -765,13 +767,13 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                     }}
                                     className="flex-1 bg-app-surface-2 text-app-text-muted py-4 rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] hover:bg-app-surface-2 transition-all active:scale-95"
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button
                                     onClick={handleRequestAccess}
                                     className="flex-1 bg-primary text-slate-900 py-4 rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 active:scale-95 transition-all"
                                 >
-                                    Send Request
+                                    {t('spaces.send_request')}
                                 </button>
                             </div>
                         </div>

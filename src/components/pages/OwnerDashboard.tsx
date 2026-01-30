@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/services/supabase';
 import { getComplexStatistics, getComplexBookings, updateBookingStatus, cancelBooking } from '@/services/bookingService';
+import { useTranslation } from 'react-i18next';
 import { ConfirmationModal, SuccessModal } from '@/components/common/ConfirmationModal';
 
 export const OwnerDashboard = () => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [stats, setStats] = useState<any>(null);
   const [complexes, setComplexes] = useState<any[]>([]);
@@ -61,33 +63,33 @@ export const OwnerDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 px-8 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-app-bg px-8 text-center">
         <div className="relative mb-8">
           <div className="w-24 h-24 bg-primary/10 rounded-[2rem] border border-primary/20 flex items-center justify-center animate-pulse">
             <span className="material-symbols-rounded text-4xl text-primary font-black">robot_2</span>
           </div>
           <div className="absolute -inset-4 border-2 border-primary/20 border-dashed rounded-full animate-spin-slow"></div>
         </div>
-        <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-2 italic">Syncing Hub</h3>
-        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Connecting to Command Center</p>
+        <h3 className="text-xl font-black text-app-text uppercase tracking-tighter mb-2 italic">{t('profile.syncing')}</h3>
+        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">{t('auth.securing_identity')}</p>
       </div>
     );
   }
 
   if (complexes.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-app-bg p-8 text-center">
         <div className="max-w-xs">
-          <div className="bg-app-surface-2 w-24 h-24 rounded-[3rem] flex items-center justify-center mx-auto mb-8 border border-app-border">
+          <div className="bg-app-surface w-24 h-24 rounded-[3rem] flex items-center justify-center mx-auto mb-8 border border-app-border">
             <span className="material-symbols-rounded text-5xl text-slate-700">storefront</span>
           </div>
-          <h2 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase">No Venue Found</h2>
-          <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest leading-relaxed mb-8">You don't own any active venues in our system yet.</p>
+          <h2 className="text-3xl font-black text-app-text mb-2 tracking-tighter uppercase">{t('pitch.not_found')}</h2>
+          <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest leading-relaxed mb-8">{t('pitch.go_back')}</p>
           <button
             onClick={() => navigate('/')}
             className="w-full bg-primary text-slate-900 px-8 py-5 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 active:scale-95 transition-all"
           >
-            Return Home
+            {t('common.back')}
           </button>
         </div>
       </div>
@@ -95,7 +97,7 @@ export const OwnerDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-[calc(8rem+env(safe-area-inset-bottom))] font-sans relative overflow-x-hidden">
+    <div className="min-h-screen bg-app-bg pb-[calc(8rem+env(safe-area-inset-bottom))] font-sans relative overflow-x-hidden">
       {/* Dynamic Background */}
       <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
       <div className="absolute top-[-100px] right-[-100px] w-80 h-80 bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
@@ -105,18 +107,18 @@ export const OwnerDashboard = () => {
         {/* Date and Welcome */}
         <div className="mb-6">
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+            {new Date().toLocaleDateString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
           </p>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-black text-white tracking-tighter mb-1">
-                Welcome, <span className="text-primary italic">Pitch Owner</span>
+              <h1 className="text-3xl font-black text-app-text tracking-tighter mb-1">
+                {t('owner.welcome')} <span className="text-primary italic">{t('owner.pitch_owner')}</span>
               </h1>
             </div>
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="w-12 h-12 flex items-center justify-center bg-app-surface-2 rounded-full text-white hover:bg-app-surface-2 transition-all border border-app-border"
+              className="w-12 h-12 flex items-center justify-center bg-app-surface rounded-full text-app-text hover:bg-app-surface transition-all border border-app-border"
             >
               <span className={`material-symbols-rounded text-xl ${refreshing ? 'animate-spin' : ''}`}>sync</span>
             </button>
@@ -131,11 +133,10 @@ export const OwnerDashboard = () => {
                 <button
                   key={complex.id}
                   onClick={() => setSelectedComplex(complex)}
-                  className={`flex-shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
-                    selectedComplex?.id === complex.id
-                      ? 'bg-primary text-slate-950 shadow-lg shadow-primary/20'
-                      : 'bg-app-surface-2 text-slate-400 hover:bg-app-surface-2'
-                  }`}
+                  className={`flex-shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${selectedComplex?.id === complex.id
+                    ? 'bg-primary text-slate-950 shadow-lg shadow-primary/20'
+                    : 'bg-app-surface-2 text-slate-400 hover:bg-app-surface-2'
+                    }`}
                 >
                   {complex.Name || complex.name}
                 </button>
@@ -338,6 +339,8 @@ const PendingBookingsList = ({ complexId, onUpdate }: { complexId: string; onUpd
     }
   };
 
+  const { t, i18n } = useTranslation();
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -348,12 +351,12 @@ const PendingBookingsList = ({ complexId, onUpdate }: { complexId: string; onUpd
 
   if (bookings.length === 0) {
     return (
-      <div className="bg-slate-900/40 p-12 rounded-[3.5rem] text-center border border-app-border flex flex-col items-center">
+      <div className="bg-app-surface p-12 rounded-[3.5rem] text-center border border-app-border flex flex-col items-center">
         <div className="w-20 h-20 bg-primary/5 rounded-[2rem] flex items-center justify-center mb-6 border border-primary/10">
           <span className="material-symbols-rounded text-3xl text-primary/30">verified_user</span>
         </div>
-        <h3 className="text-xs font-black text-white uppercase tracking-[0.2em] mb-2">Operational Excellence</h3>
-        <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">Your queue is currently empty</p>
+        <h3 className="text-xs font-black text-app-text uppercase tracking-[0.2em] mb-2">{t('owner.no_bookings')}</h3>
+        <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">{t('social.everyone_in')}</p>
       </div>
     );
   }
@@ -365,7 +368,7 @@ const PendingBookingsList = ({ complexId, onUpdate }: { complexId: string; onUpd
         const pitch = Array.isArray(booking.pitches) ? booking.pitches[0] : booking.pitches;
         const startTime = new Date(booking.start_time);
         const endTime = new Date(booking.end_time);
-        
+
         // Get status badge color
         const getStatusBadge = () => {
           if (booking.status === 'approved') {
@@ -381,10 +384,10 @@ const PendingBookingsList = ({ complexId, onUpdate }: { complexId: string; onUpd
         };
 
         const getStatusText = () => {
-          if (booking.status === 'approved') return 'CONFIRMED';
-          if (booking.status === 'pending') return 'PENDING';
+          if (booking.status === 'approved') return t('owner.status.confirmed');
+          if (booking.status === 'pending') return t('owner.status.pending');
           if (booking.status === 'cancel_request') return 'CANC';
-          if (booking.status === 'rejected') return 'CANCELLED';
+          if (booking.status === 'rejected') return t('owner.status.rejected');
           return booking.status.toUpperCase();
         };
 
@@ -402,25 +405,25 @@ const PendingBookingsList = ({ complexId, onUpdate }: { complexId: string; onUpd
         };
 
         return (
-          <div key={booking.id} className="bg-slate-900/60 rounded-3xl p-5 border border-app-border group hover:bg-slate-900 transition-all">
+          <div key={booking.id} className="bg-app-surface rounded-3xl p-5 border border-app-border group hover:bg-app-surface transition-all">
             <div className="flex items-center gap-4">
               {/* Sport Icon */}
-              <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center flex-shrink-0">
+              <div className="w-16 h-16 bg-app-bg rounded-2xl flex items-center justify-center flex-shrink-0">
                 <span className={`material-symbols-rounded text-3xl text-primary`}>{getSportIcon()}</span>
               </div>
 
               {/* Booking Info */}
               <div className="flex-1 min-w-0">
-                <h4 className="font-black text-[15px] text-white uppercase tracking-tight mb-1 truncate">
+                <h4 className="font-black text-[15px] text-app-text uppercase tracking-tight mb-1 truncate">
                   {pitch?.name || 'Main Pitch'}
                 </h4>
                 <p className="text-[12px] text-slate-300 font-bold mb-1">
-                  {startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - {endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                  {startTime.toLocaleTimeString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - {endTime.toLocaleTimeString(i18n.language === 'fr' ? 'fr-FR' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
                 </p>
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
                   <span className="material-symbols-rounded text-sm">person</span>
                   <span className="w-1 h-1 bg-slate-500 rounded-full"></span>
-                  <span>{user?.name || 'Player'}</span>
+                  <span>{user?.name || t('profile.player_tag')}</span>
                 </div>
               </div>
 
@@ -438,7 +441,7 @@ const PendingBookingsList = ({ complexId, onUpdate }: { complexId: string; onUpd
                         handleApprove(booking.id);
                       }
                     }}
-                    className="w-8 h-8 bg-app-surface-2 rounded-full flex items-center justify-center hover:bg-app-surface-2 transition-colors"
+                    className="w-8 h-8 bg-app-surface rounded-full flex items-center justify-center hover:bg-app-surface transition-colors"
                   >
                     <span className="material-symbols-rounded text-lg text-slate-400">more_vert</span>
                   </button>

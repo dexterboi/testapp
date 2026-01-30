@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Zap, Star, MapPin, Share2, Heart, Wifi, Car, ShowerHead, CreditCard, Trophy } from 'lucide-react';
 import { getPitch } from '@/services/dataService';
 import { getAvailableSlots, createBookingRequest } from '@/services/bookingService';
@@ -13,6 +14,7 @@ import { ADD_ONS } from '@/constants';
 const PitchDetailsPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [pitch, setPitch] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -81,7 +83,7 @@ const PitchDetailsPage = () => {
 
             supabase.from('user_profiles').select('phone').eq('id', authUser.id).single().then(({ data: profile }) => {
                 if (!profile?.phone) {
-                    alert('⚠️ Phone Number Required\n\nPlease add your phone number in your profile before making a booking.');
+                    alert(`${t('pitch.phone_required')}\n\n${t('pitch.phone_required_sub')}`);
                     navigate('/profile');
                     return;
                 }
@@ -110,7 +112,7 @@ const PitchDetailsPage = () => {
             setShowSuccessModal(true);
         } catch (error) {
             setIsBooking(false);
-            alert(error instanceof Error ? error.message : 'Failed to create booking.');
+            alert(error instanceof Error ? error.message : t('pitch.booking_failed'));
         }
     };
 
@@ -136,8 +138,8 @@ const PitchDetailsPage = () => {
         <div className="min-h-screen bg-app-bg flex items-center justify-center p-6 text-center">
             <div className="bg-app-surface backdrop-blur-xl p-8 rounded-[3rem] shadow-sm border border-app-border">
                 <span className="material-symbols-rounded text-5xl text-app-text-muted mb-4">error</span>
-                <p className="font-extrabold text-xl text-app-text mb-1">Pitch not found</p>
-                <button onClick={() => navigate(-1)} className="mt-4 text-primary font-black uppercase text-[10px] tracking-widest">Go Back</button>
+                <p className="font-extrabold text-xl text-app-text mb-1">{t('pitch.not_found')}</p>
+                <button onClick={() => navigate(-1)} className="mt-4 text-primary font-black uppercase text-[10px] tracking-widest">{t('pitch.go_back')}</button>
             </div>
         </div>
     );
@@ -187,7 +189,7 @@ const PitchDetailsPage = () => {
                     <div className="absolute bottom-10 left-6 z-20">
                         <div className="px-3 py-1.5 bg-primary rounded-full text-black text-xs font-bold flex items-center gap-1 shadow-lg shadow-primary/20">
                             <Star size={14} fill="currentColor" />
-                            4.9 (120+ Reviews)
+                            4.9 (120+ {t('common.reviews')})
                         </div>
                     </div>
                 </div>
@@ -204,7 +206,7 @@ const PitchDetailsPage = () => {
                             </div>
                         </div>
                         <div className="text-right">
-                            <div className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mb-1">Per Hour</div>
+                            <div className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mb-1">{t('pitch.per_hour')}</div>
                             <div className="text-xl font-bold text-primary">{pitch.price_per_hour || 45}.00 TND</div>
                         </div>
                     </div>
@@ -224,21 +226,21 @@ const PitchDetailsPage = () => {
                         )}
                         <div className="flex items-center gap-2 px-4 py-2 bg-app-surface backdrop-blur-md rounded-full whitespace-nowrap shadow-sm border border-app-border">
                             <Wifi className="text-primary" size={18} />
-                            <span className="text-sm font-medium">Free WiFi</span>
+                            <span className="text-sm font-medium">{t('common.free_wifi')}</span>
                         </div>
                         <div className="flex items-center gap-2 px-4 py-2 bg-app-surface backdrop-blur-md rounded-full whitespace-nowrap shadow-sm border border-app-border">
                             <Car className="text-primary" size={18} />
-                            <span className="text-sm font-medium">Parking</span>
+                            <span className="text-sm font-medium">{t('common.parking')}</span>
                         </div>
                         <div className="flex items-center gap-2 px-4 py-2 bg-app-surface backdrop-blur-md rounded-full whitespace-nowrap shadow-sm border border-app-border">
                             <ShowerHead className="text-primary" size={18} />
-                            <span className="text-sm font-medium">Showers</span>
+                            <span className="text-sm font-medium">{t('common.showers')}</span>
                         </div>
                     </div>
 
                     {/* About Section */}
                     <div className="mb-8">
-                        <h2 className="text-lg font-bold mb-3 text-app-text">About Venue</h2>
+                        <h2 className="text-lg font-bold mb-3 text-app-text">{t('pitch.about_venue')}</h2>
                         <p className="text-app-text-muted text-sm leading-relaxed">
                             Experience {pitch.name} at {(Array.isArray(pitch.complexes) ? pitch.complexes[0] : pitch.complexes)?.name}.
                             Featuring high-quality {pitch.surface || 'Field'} surface, {pitch.size || 'standard'} size, and premium facilities.
@@ -249,9 +251,9 @@ const PitchDetailsPage = () => {
                     {/* Date Selector */}
                     <div className="mb-8">
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-lg font-bold">Select Date</h2>
+                            <h2 className="text-lg font-bold">{t('pitch.select_date')}</h2>
                             <span className="text-primary text-sm font-bold">
-                                {new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                {new Date(selectedDate).toLocaleDateString(t('common.locale', { defaultValue: 'en-US' }), { month: 'long', year: 'numeric' })}
                             </span>
                         </div>
                         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 px-0.5">
@@ -270,7 +272,7 @@ const PitchDetailsPage = () => {
                                             }`}
                                     >
                                         <span className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${isSelected ? 'text-black' : 'text-app-text-muted'}`}>
-                                            {date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
+                                            {date.toLocaleDateString(t('common.locale', { defaultValue: 'en-US' }), { weekday: 'short' }).toUpperCase()}
                                         </span>
                                         <span className={`text-lg font-extrabold ${isSelected ? 'text-black' : 'text-app-text'}`}>
                                             {date.getDate()}
@@ -281,7 +283,7 @@ const PitchDetailsPage = () => {
                         </div>
                         {/* Custom Date Input for flexibility */}
                         <div className="mt-4 flex items-center justify-between px-1">
-                            <label className="text-xs font-bold text-app-text-muted uppercase tracking-widest">Or Pick Other:</label>
+                            <label className="text-xs font-bold text-app-text-muted uppercase tracking-widest">{t('pitch.or_pick_other')}</label>
                             <input
                                 type="date"
                                 value={selectedDate}
@@ -294,21 +296,21 @@ const PitchDetailsPage = () => {
 
                     {/* Time Selector */}
                     <div className="mb-8 pb-4">
-                        <h2 className="text-lg font-bold mb-4">Select Time Slot</h2>
+                        <h2 className="text-lg font-bold mb-4">{t('pitch.select_time')}</h2>
                         {loadingSlots ? (
                             <div className="bg-app-surface backdrop-blur-md p-12 rounded-[2rem] flex flex-col items-center justify-center border border-app-border">
                                 <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-3"></div>
-                                <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">Checking slots...</p>
+                                <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">{t('pitch.checking_slots')}</p>
                             </div>
                         ) : availableSlots.length === 0 ? (
                             <div className="bg-app-surface backdrop-blur-md p-12 rounded-[2rem] text-center border border-app-border">
                                 <span className="material-symbols-rounded text-4xl text-app-text-muted mb-2">event_busy</span>
-                                <p className="text-xs font-black text-app-text-muted uppercase tracking-widest">No slots today</p>
+                                <p className="text-xs font-black text-app-text-muted uppercase tracking-widest">{t('pitch.no_slots')}</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-3 gap-3">
                                 {availableSlots.map((slot, idx) => {
-                                    const startTime = new Date(slot.start).toLocaleTimeString('en-US', {
+                                    const startTime = new Date(slot.start).toLocaleTimeString(t('common.locale', { defaultValue: 'en-US' }), {
                                         hour: '2-digit', minute: '2-digit', hour12: true
                                     });
                                     const isSelected = selectedSlot?.start === slot.start;
@@ -340,11 +342,11 @@ const PitchDetailsPage = () => {
                         {selectedSlot && (
                             <div className="flex justify-between items-center px-2">
                                 <div>
-                                    <p className="text-[10px] font-black uppercase text-app-text-muted tracking-widest">Selected Slot</p>
+                                    <p className="text-[10px] font-black uppercase text-app-text-muted tracking-widest">{t('pitch.selected_slot')}</p>
                                     <p className="text-sm font-bold text-app-text">{new Date(selectedSlot.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[10px] font-black uppercase text-app-text-muted tracking-widest">Total Price</p>
+                                    <p className="text-[10px] font-black uppercase text-app-text-muted tracking-widest">{t('pitch.total_price')}</p>
                                     <p className="text-sm font-extrabold text-primary">{calculateTotal()} TND</p>
                                 </div>
                             </div>
@@ -357,10 +359,10 @@ const PitchDetailsPage = () => {
                             {isBooking ? (
                                 <>
                                     <div className="animate-spin h-5 w-5 border-2 border-black border-t-transparent rounded-full" />
-                                    <span>Processing...</span>
+                                    <span>{t('pitch.processing')}</span>
                                 </>
                             ) : (
-                                "Book Now"
+                                t('pitch.book_now')
                             )}
                         </button>
                     </div>
@@ -369,25 +371,25 @@ const PitchDetailsPage = () => {
 
             <ConfirmationModal
                 isOpen={showConfirmModal}
-                title="Review Booking"
-                message="Review your session details before confirming:"
+                title={t('pitch.review_booking')}
+                message={t('pitch.review_sub')}
                 details={[
-                    { label: 'Pitch', value: pitch.name },
-                    { label: 'Date', value: new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) },
-                    { label: 'Time', value: selectedSlot ? `${new Date(selectedSlot.start).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}` : '' },
-                    { label: 'Amount', value: `${calculateTotal()} TND (Cash)` }
+                    { label: t('pitch.label_pitch'), value: pitch.name },
+                    { label: t('pitch.label_date'), value: new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) },
+                    { label: t('pitch.label_time'), value: selectedSlot ? `${new Date(selectedSlot.start).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}` : '' },
+                    { label: t('pitch.label_amount'), value: `${calculateTotal()} TND (Cash)` }
                 ]}
-                confirmText="Confirm"
-                cancelText="Edit"
+                confirmText={t('common.confirm')}
+                cancelText={t('pitch.edit')}
                 onConfirm={handleConfirmBooking}
                 onCancel={() => setShowConfirmModal(false)}
             />
 
             <SuccessModal
                 isOpen={showSuccessModal}
-                title="Booking Sent!"
-                message={`Your request has been sent. Bring ${calculateTotal()} TND in cash on arrival once approved.`}
-                buttonText="Back to Grounds"
+                title={t('pitch.booking_sent')}
+                message={t('pitch.booking_sent_sub', { amount: calculateTotal() })}
+                buttonText={t('pitch.back_to_grounds')}
                 onClose={handleSuccessClose}
             />
 
