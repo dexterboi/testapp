@@ -1,6 +1,17 @@
 {
-    "version": "1.1.7",
-    "latest_version": "1.1.7",
+    "version": "1.1.9",
+    "latest_version": "1.1.9",
+    "build": 119,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "release_notes": "Security hardening: Consolidated all API keys into environment variables and removed hardcoded secrets (Supabase, Firebase, ImageKit)."
+    "notes": "Bug Fixes: Resolved dark theme issues on web/light-mode (Spaces & Profile). Fixed modal styling.",
+    "ios": {
+        "version": "1.1.9",
+        "build": 119,
+        "release_notes": "Bug Fixes: Resolved dark theme issues."
+    },
+    "android": {
+        "version": "1.1.9",
+        "build": 119,
+        "release_notes": "Bug Fixes: Resolved dark theme issues."
+    }
 }
