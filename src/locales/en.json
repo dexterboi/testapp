@@ -315,7 +315,12 @@
             "edit_pitch": "Edit Pitch",
             "create_pitch": "Create Pitch",
             "save_changes": "Save Changes",
-            "manage_bookings": "Manage"
+            "manage_bookings": "Manage",
+            "tabs": {
+                "pitches": "Pitches",
+                "complex": "Complex",
+                "images": "Images"
+            }
         },
         "update": {
             "available": "Update Available!",

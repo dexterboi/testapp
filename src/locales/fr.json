@@ -319,7 +319,12 @@
             "edit_pitch": "Modifier le terrain",
             "create_pitch": "Créer le terrain",
             "save_changes": "Enregistrer",
-            "manage_bookings": "Gérer"
+            "manage_bookings": "Gérer",
+            "tabs": {
+                "pitches": "Terrain",
+                "complex": "Complexe",
+                "images": "Images"
+            }
         },
         "update": {
             "available": "Mise à jour disponible !",
