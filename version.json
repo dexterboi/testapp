@@ -1,6 +1,6 @@
 {
-    "version": "1.1.5",
-    "latest_version": "1.1.5",
+    "version": "1.1.6",
+    "latest_version": "1.1.6",
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "release_notes": "Added owner settings menu translations (Terrain, Complexe, Images)."
+    "release_notes": "Fixed phone number container theme colors in User Profile."
 }

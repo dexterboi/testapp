@@ -336,7 +336,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                     {/* Phone Number Section */}
                     <div className="w-full mb-6">
                         {!isEditingPhone ? (
-                            <div className="flex items-center justify-center gap-3 bg-slate-950/50 border border-app-border py-4 px-6 rounded-[2rem] shadow-inner group hover:border-primary/30 transition-all">
+                            <div className="flex items-center justify-center gap-3 bg-app-surface-2 border border-app-border py-4 px-6 rounded-[2rem] shadow-inner group hover:border-primary/30 transition-all">
                                 <span className={`material-symbols-rounded text-xl ${user.phone ? 'text-primary' : 'text-app-text-muted'}`}>phone_iphone</span>
                                 <span className={`text-[11px] font-black uppercase tracking-widest ${user.phone ? 'text-app-text-muted' : 'text-app-text-muted opacity-60'}`}>
                                     {user?.phone || t('profile.no_phone')}
@@ -355,7 +355,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                                     value={phoneNumber}
                                     onChange={(e) => setPhoneNumber(e.target.value)}
                                     placeholder="+216 -- --- ---"
-                                    className="flex-1 h-14 px-6 bg-slate-900 border-2 border-app-border rounded-3xl text-sm font-black text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-slate-600"
+                                    className="flex-1 h-14 px-6 bg-app-surface-2 border-2 border-app-border rounded-3xl text-sm font-black text-app-text focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-app-text-muted/40"
                                     disabled={isSavingPhone}
                                 />
                                 <button
