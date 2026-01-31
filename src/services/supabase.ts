@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { Preferences } from '@capacitor/preferences';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -7,7 +8,29 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env file or build configuration.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Custom storage adapter for Capacitor
+const SupabaseStorageAdapter = {
+  getItem: async (key: string) => {
+    const { value } = await Preferences.get({ key });
+    return value;
+  },
+  setItem: async (key: string, value: string) => {
+    await Preferences.set({ key, value });
+  },
+  removeItem: async (key: string) => {
+    await Preferences.remove({ key });
+  },
+};
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: SupabaseStorageAdapter,
+    flowType: 'pkce',
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false, // Handle deep links manually if needed
+  },
+});
 
 // Helper to get file URLs from Supabase Storage
 export const getFileUrl = (bucket: string, path: string) => {
