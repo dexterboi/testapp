@@ -1,17 +1,17 @@
 {
-    "version": "2.2.5",
-    "latest_version": "2.2.5",
-    "build": 225,
+    "version": "2.2.6",
+    "latest_version": "2.2.6",
+    "build": 226,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "Debug: Enhanced Auth Logging & Fixes",
+    "notes": "Fix: Reverted Auth to Legacy Flow (v1.0.8 Logic)",
     "ios": {
-        "version": "2.2.5",
-        "build": 225,
-        "release_notes": "Debug: Auth Fix"
+        "version": "2.2.6",
+        "build": 226,
+        "release_notes": "Fix: Auth Flow"
     },
     "android": {
-        "version": "2.2.5",
-        "build": 225,
-        "release_notes": "Debug: Auth Fix"
+        "version": "2.2.6",
+        "build": 226,
+        "release_notes": "Fix: Auth Flow"
     }
 }

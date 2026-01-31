@@ -116,12 +116,8 @@ export const Auth: React.FC<AuthProps> = ({ onSuccess }) => {
                 options: {
                     skipBrowserRedirect: isNative,
                     redirectTo: isNative
-                        ? 'com.pitchperfect.app://login-callback'
-                        : window.location.origin,
-                    queryParams: {
-                        access_type: 'offline',
-                        prompt: 'consent',
-                    }
+                        ? 'com.pitchperfect.app://oauth-callback'
+                        : window.location.origin
                 }
             });
 
