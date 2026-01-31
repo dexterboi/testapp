@@ -1,0 +1,1291 @@
+<style>
+    /* Premium Custom Cursor */
+    .cursor-dot,
+    .cursor-outline {
+        pointer-events: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        z-index: 9999;
+        transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, background-color 0.3s ease-in-out, border-color 0.3s ease-in-out;
+    }
+
+    .cursor-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #D9FF66;
+    }
+
+    .cursor-outline {
+        width: 40px;
+        height: 40px;
+        border: 2px solid rgba(217, 255, 102, 0.5);
+        box-shadow: 0 0 15px rgba(217, 255, 102, 0.2);
+    }
+
+    /* Hover states */
+    .cursor-hover .cursor-dot {
+        transform: translate(-50%, -50%) scale(1.5);
+        background-color: #D9FF66;
+    }
+
+    .cursor-hover .cursor-outline {
+        transform: translate(-50%, -50%) scale(1.5);
+        border-color: #D9FF66;
+        background-color: rgba(217, 255, 102, 0.1);
+        box-shadow: 0 0 25px rgba(217, 255, 102, 0.4);
+    }
+
+    .cursor-hidden {
+        opacity: 0;
+    }
+
+    /* Semantic Design Tokens */
+    :root {
+        --app-bg: #f8fafc;
+        --app-surface: #ffffff;
+        --app-text: #0f172a;
+        --app-text-muted: #64748b;
+        --app-border: #e2e8f0;
+        --app-input: #ffffff;
+    }
+
+    .dark {
+        --app-bg: #020617;
+        --app-surface: #0f172a;
+        --app-text: #ffffff;
+        --app-text-muted: #94a3b8;
+        --app-border: rgba(255, 255, 255, 0.05);
+        --app-input: rgba(255, 255, 255, 0.05);
+    }
+</style>
+<!DOCTYPE html>
+<html class="dark" lang="fr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <title>Larena | Améliorez Votre Jeu</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800&family=Material+Icons+Outlined&display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#D9FF66",
+                        "app-bg": "var(--app-bg)",
+                        "app-surface": "var(--app-surface)",
+                        "app-text": "var(--app-text)",
+                        "app-text-muted": "var(--app-text-muted)",
+                        "app-border": "var(--app-border)",
+                        "app-input": "var(--app-input)",
+                        "background-light": "#F9FAFB",
+                        "background-dark": "#05080F",
+                        "card-dark": "#0D111D",
+                    },
+                    fontFamily: {
+                        display: ["Outfit", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "1rem",
+                        '2xl': "1.5rem",
+                        '3xl': "2rem",
+                    },
+                },
+            },
+        };
+    </script>
+
+    <style>
+        .neon-glow {
+            box-shadow: 0 0 20px rgba(217, 255, 102, 0.2);
+        }
+
+        /* Card and button hover enhancements */
+        .card-hover {
+            transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-hover:hover {
+            box-shadow: 0 8px 32px 0 rgba(217, 255, 102, 0.10), 0 1.5px 8px 0 rgba(0, 0, 0, 0.10);
+            transform: translateY(-6px) scale(1.025);
+        }
+
+        .btn-hover {
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .btn-hover:hover {
+            box-shadow: 0 4px 16px 0 rgba(217, 255, 102, 0.15);
+            transform: scale(1.04);
+        }
+
+        /* Navbar/footer drop shadow */
+        .nav-shadow {
+            box-shadow: 0 2px 16px 0 rgba(5, 8, 15, 0.08);
+        }
+
+        .footer-shadow {
+            box-shadow: 0 -2px 16px 0 rgba(5, 8, 15, 0.08);
+        }
+
+        /* Accessibility: focus ring */
+        .focus-ring:focus {
+            outline: 2px solid #D9FF66;
+            outline-offset: 2px;
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px rgba(217, 255, 102, 0.4);
+        }
+
+        .gradient-overlay {
+            background: linear-gradient(180deg, rgba(5, 8, 15, 0) 0%, rgba(5, 8, 15, 0.9) 100%);
+        }
+
+        /* Fade-up animation for section reveal */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: none;
+        }
+
+        /* Magic UI: Shimmer Button */
+        .shimmer-button {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 1);
+        }
+
+        .shimmer-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(217, 255, 102, 0.4), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        /* Magic UI: Magic Card (Spotlight Effect) */
+        .magic-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .magic-card::before {
+            content: '';
+            position: absolute;
+            top: var(--mouse-y, 50%);
+            left: var(--mouse-x, 50%);
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(217, 255, 102, 0.15) 0%, transparent 70%);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .magic-card:hover::before {
+            opacity: 1;
+        }
+
+        /* Magic UI: Border Beam */
+        .border-beam {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .border-beam::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #D9FF66, transparent);
+            animation: border-beam 3s infinite;
+        }
+
+        @keyframes border-beam {
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        /* Magic UI: Animated Gradient Text */
+        .animated-gradient-text {
+            background: linear-gradient(90deg, #D9FF66, #B8E63E, #D9FF66);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 3s linear infinite;
+        }
+
+        @keyframes gradient-shift {
+            0% {
+                background-position: 0% center;
+            }
+
+            100% {
+                background-position: 200% center;
+            }
+        }
+
+        /* Magic UI: Particles Background */
+        .particles-bg {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #D9FF66;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 20s infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            25% {
+                transform: translate(100px, -100px) rotate(90deg);
+            }
+
+            50% {
+                transform: translate(-50px, -200px) rotate(180deg);
+            }
+
+            75% {
+                transform: translate(-100px, -50px) rotate(270deg);
+            }
+        }
+
+        /* Magic UI: Number Ticker */
+        .number-ticker {
+            display: inline-block;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Magic UI: Typing Animation */
+        .typing-animation {
+            overflow: hidden;
+            border-right: 2px solid #D9FF66;
+            white-space: nowrap;
+            animation: typing 3s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from {
+                width: 0;
+            }
+
+            to {
+                width: 100%;
+            }
+        }
+
+        @keyframes blink-caret {
+
+            from,
+            to {
+                border-color: transparent;
+            }
+
+            50% {
+                border-color: #D9FF66;
+            }
+        }
+
+        /* Magic UI: Animated Shiny Text */
+        .animated-shiny-text {
+            position: relative;
+            display: inline-block;
+            background: linear-gradient(90deg, #D9FF66 0%, #ffffff 50%, #D9FF66 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shine 3s linear infinite;
+        }
+
+        @keyframes shine {
+            to {
+                background-position: 200% center;
+            }
+        }
+
+        /* Magic UI: Text Reveal on Scroll */
+        .text-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+
+        .text-reveal.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Magic UI: Word Rotate */
+        .word-rotate {
+            display: inline-block;
+            position: relative;
+            height: 1.4em;
+            overflow: hidden;
+            vertical-align: middle;
+            margin: 0 0.3em;
+            min-width: 90px;
+        }
+
+        .word-rotate-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            animation: word-rotate 8s infinite;
+        }
+
+        .word-rotate-wrapper span {
+            display: block;
+            line-height: 1.4em;
+            height: 1.4em;
+            white-space: nowrap;
+        }
+
+        @keyframes word-rotate {
+
+            0%,
+            20% {
+                transform: translateY(0);
+            }
+
+            25%,
+            45% {
+                transform: translateY(-1.4em);
+            }
+
+            50%,
+            70% {
+                transform: translateY(-2.8em);
+            }
+
+            75%,
+            95% {
+                transform: translateY(-4.2em);
+            }
+
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        /* Magic UI: Sparkles Text */
+        .sparkles-text {
+            position: relative;
+            display: inline-block;
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #D9FF66;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: sparkle 2s ease-out forwards;
+        }
+
+        @keyframes sparkle {
+            0% {
+                opacity: 1;
+                transform: scale(0) translate(0, 0);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1) translate(var(--tx, 0), var(--ty, 0));
+            }
+
+            100% {
+                opacity: 0;
+                transform: scale(0) translate(var(--tx, 0), var(--ty, 0));
+            }
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            cursor: none;
+        }
+
+        a,
+        button,
+        [role="button"],
+        .card-hover {
+            cursor: none;
+        }
+
+        h1,
+        h2,
+        h3 {
+            font-family: 'Outfit', sans-serif;
+            line-height: 1.2;
+            overflow: visible;
+        }
+
+        /* Fix text clipping for large headings */
+        h1 {
+            line-height: 1.1;
+            padding-bottom: 0.1em;
+        }
+
+        h2 {
+            line-height: 1.15;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div class="cursor-outline" id="cursorOutline"></div>
+    <nav
+        class="fixed top-0 left-0 right-0 z-50 bg-background-light/90 dark:bg-background-dark/95 backdrop-blur-xl border-b border-slate-200/50 dark:border-white/5 nav-shadow">
+        <div class="max-w-screen-xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-4 group">
+                <div
+                    class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:rotate-6 transition-transform">
+                    <img src="assets/logo.png" alt="Larena" class="h-6 w-6 object-contain brightness-0" />
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-xl font-display font-black tracking-tighter uppercase leading-none">Larena</span>
+                    <span
+                        class="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none mt-1">PitchPerfect</span>
+                </div>
+            </div>
+            <div class="hidden md:flex items-center gap-10">
+                <a class="text-sm font-bold text-slate-500 hover:text-primary transition-all tracking-wide uppercase hover:-translate-y-0.5"
+                    href="#features">Fonctionnalités</a>
+                <a class="text-sm font-bold text-slate-500 hover:text-primary transition-all tracking-wide uppercase hover:-translate-y-0.5"
+                    href="academies.html">Académies</a>
+                <a class="text-sm font-bold text-slate-500 hover:text-primary transition-all tracking-wide uppercase hover:-translate-y-0.5"
+                    href="#owners">Propriétaires</a>
+                <a class="text-sm font-bold text-slate-500 hover:text-primary transition-all tracking-wide uppercase hover:-translate-y-0.5"
+                    href="#about">À Propos</a>
+            </div>
+            <div class="flex items-center gap-6">
+                <a href="login.html"
+                    class="hidden sm:block text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Connexion</a>
+                <button
+                    class="bg-primary text-background-dark px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 hover:shadow-xl hover:shadow-primary/20 transition-all active:scale-95">
+                    Télécharger
+                </button>
+            </div>
+        </div>
+    </nav>
+    <main class="pt-16">
+        <section class="relative overflow-hidden pt-12 pb-24 px-6 fade-up">
+            <div class="mesh-bg" style="position:absolute;inset:0;z-index:0;pointer-events:none;">
+                <svg width="100%" height="100%" viewBox="0 0 1440 600" fill="none" xmlns="http://www.w3.org/2000/svg"
+                    style="width:100%;height:100%;">
+                    <defs>
+                        <linearGradient id="meshGradient" x1="0" y1="0" x2="1440" y2="600"
+                            gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#D9FF66" stop-opacity="0.08" />
+                            <stop offset="1" stop-color="#05080F" stop-opacity="0.12" />
+                        </linearGradient>
+                    </defs>
+                    <rect width="1440" height="600" fill="url(#meshGradient)" />
+                    <g opacity="0.18">
+                        <circle cx="300" cy="200" r="120" fill="#D9FF66" />
+                        <circle cx="1200" cy="400" r="180" fill="#D9FF66" />
+                    </g>
+                </svg>
+            </div>
+            <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+                <div class="z-10">
+                    <div
+                        class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest mb-6">
+                        <span class="relative flex h-2 w-2">
+                            <span
+                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                        </span>
+                        Nouveau : Ligue de Padel en Direct
+                    </div>
+                    <h1 class="text-5xl md:text-7xl font-extrabold leading-tight mb-6 overflow-visible">
+                        <span class="text-reveal block">Améliorez</span>
+                        <span class="animated-shiny-text italic text-reveal block" style="animation-delay: 0.3s;">Votre
+                            Jeu</span>
+                    </h1>
+                    <p class="text-lg text-slate-500 dark:text-slate-400 mb-10 max-w-lg text-reveal leading-relaxed"
+                        style="animation-delay: 0.6s;">
+                        La destination ultime pour découvrir, réserver et jouer. Du
+                        <span class="word-rotate font-semibold text-primary">
+                            <span class="word-rotate-wrapper">
+                                <span>football</span>
+                                <span>padel</span>
+                                <span>basketball</span>
+                                <span>tennis</span>
+                            </span>
+                        </span>, gérez votre vie sportive dans une seule application fluide.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button id="downloadBtn"
+                            class="shimmer-button px-8 py-4 bg-primary text-background-dark font-bold rounded-2xl flex items-center justify-center gap-3 hover:shadow-lg hover:shadow-primary/20 transition-all relative z-10">
+                            <span class="material-icons-outlined relative z-10">android</span>
+                            <span class="relative z-10">Télécharger Maintenant</span>
+                        </button>
+                        <a href="login.html"
+                            class="px-8 py-4 border border-slate-300 dark:border-slate-700 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-3 border-beam">
+                            <span class="material-icons-outlined">handshake</span>
+                            Portail Propriétaire
+                        </a>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div id="heroSlideshow"
+                        class="relative rounded-3xl overflow-hidden aspect-[4/5] md:aspect-square group bg-slate-900 border border-slate-800">
+                        <!-- Slides -->
+                        <div class="absolute inset-0 transition-opacity duration-1000 opacity-100 z-0" id="slide-0">
+                            <img alt="Célébration de football" class="w-full h-full object-cover"
+                                src="assets/an_image_of_a_player_in_6v6_pitch_celebrating_a_goal_with_his_freinds_wearing_a_lime_green_footbal__9fbhr32qnlkv1jmywzaa_1.jpeg" />
+                            <div class="absolute inset-0 gradient-overlay"></div>
+                        </div>
+                        <div class="absolute inset-0 transition-opacity duration-1000 opacity-0 z-0" id="slide-1">
+                            <img alt="Service de padel en action" class="w-full h-full object-cover"
+                                src="assets/a_player_in_action_of_playing_a_padel_serve_cinematic_shot_lime_green_padel_outfit_padel_court_floo_vu3m2gkjc05l6n0hly75_0.jpeg" />
+                            <div class="absolute inset-0 gradient-overlay"></div>
+                        </div>
+                        <div class="absolute inset-0 transition-opacity duration-1000 opacity-0 z-0" id="slide-2">
+                            <img alt="Promotion de l'application" class="w-full h-full object-cover"
+                                src="assets/a_close_up_top_down_view_shot_on_a_android_mobile_screen_of_a_man_showing_the_attached_app_interfac_v5kt9y4zdh5hvvp0hfba_0.jpeg" />
+                            <div class="absolute inset-0 gradient-overlay"></div>
+                        </div>
+
+                        <div class="absolute bottom-8 left-8 right-8 z-10">
+                            <div class="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl flex items-center gap-4 transition-all duration-300 transform"
+                                id="heroCard">
+                                <div class="bg-primary p-2 rounded-xl" id="hero-trending-icon-container">
+                                    <span class="material-icons-outlined text-background-dark"
+                                        id="hero-trending-icon">sports_soccer</span>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-primary uppercase tracking-wider"
+                                        id="hero-trending-label">Most Popular</p>
+                                    <h3 class="text-xl font-bold text-white" id="hero-trending-title">Football</h3>
+                                </div>
+                                <div class="ml-auto flex -space-x-3">
+                                    <div
+                                        class="w-10 h-10 rounded-full border-2 border-slate-900 overflow-hidden bg-slate-300">
+                                        <img alt="user" src="https://i.pravatar.cc/100?u=1" />
+                                    </div>
+                                    <div
+                                        class="w-10 h-10 rounded-full border-2 border-slate-900 overflow-hidden bg-slate-400">
+                                        <img alt="user" src="https://i.pravatar.cc/100?u=2" />
+                                    </div>
+                                    <div
+                                        class="w-10 h-10 rounded-full border-2 border-slate-900 flex items-center justify-center bg-primary text-background-dark text-xs font-bold">
+                                        42+</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="absolute -top-6 -right-6 w-32 h-32 bg-primary/20 rounded-full blur-3xl"></div>
+                    <div class="absolute -bottom-10 -left-10 w-48 h-48 bg-primary/10 rounded-full blur-3xl"></div>
+                </div>
+            </div>
+        </section>
+        <section id="features" class="relative py-32 px-6 bg-slate-50 dark:bg-card-dark/30 fade-up">
+            <div class="particles-bg" id="particlesContainer"></div>
+            <div class="max-w-7xl mx-auto relative z-10">
+                <div class="mb-16 text-center max-w-2xl mx-auto">
+                    <h2
+                        class="text-3xl md:text-5xl font-bold mb-4 italic uppercase text-reveal overflow-visible leading-tight">
+                        Conçu pour la <span class="animated-shiny-text tracking-widest">Performance</span></h2>
+                    <p class="text-slate-500 dark:text-slate-400 text-reveal leading-relaxed"
+                        style="animation-delay: 0.2s;">Tout ce dont vous avez besoin pour jouer plus, trouver des
+                        équipiers, et gérer vos terrains avec facilité.</p>
+                </div>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div
+                        class="magic-card group p-8 rounded-3xl bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all duration-300 card-hover">
+                        <div
+                            class="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary transition-colors">
+                            <span
+                                class="material-icons-outlined text-slate-700 dark:text-slate-300 group-hover:text-background-dark">groups</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3 text-reveal">Lobbies &amp; Espaces</h3>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed text-reveal"
+                            style="animation-delay: 0.1s;">Rejoignez des matchs existants ou
+                            créez le vôtre. Ne ratez plus jamais un match faute de joueurs.</p>
+                    </div>
+                    <div
+                        class="magic-card group p-8 rounded-3xl bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all duration-300 card-hover">
+                        <div
+                            class="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary transition-colors text-glow">
+                            <span
+                                class="material-icons-outlined text-slate-700 dark:text-slate-300 group-hover:text-background-dark">event_available</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3 text-reveal" style="animation-delay: 0.2s;">Réservation en
+                            Temps Réel
+                        </h3>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed text-reveal"
+                            style="animation-delay: 0.3s;">Réservez votre terrain préféré
+                            en 3 clics. Disponibilité en direct et confirmation instantanée garantie.</p>
+                    </div>
+                    <div
+                        class="magic-card group p-8 rounded-3xl bg-white dark:bg-card-dark border border-slate-200 dark:border-slate-800 hover:border-primary/50 transition-all duration-300 card-hover">
+                        <div
+                            class="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary transition-colors">
+                            <span
+                                class="material-icons-outlined text-slate-700 dark:text-slate-300 group-hover:text-background-dark">analytics</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-3 text-reveal" style="animation-delay: 0.4s;">Gestion de Club
+                        </h3>
+                        <p class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed text-reveal"
+                            style="animation-delay: 0.5s;">Outils avancés pour les propriétaires
+                            pour gérer les réservations, les paiements et la fidélisation.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Kids Academy Discovery Section -->
+        <section id="academy" class="relative py-24 px-6 overflow-hidden fade-up">
+            <div class="max-w-7xl mx-auto">
+                <div
+                    class="bg-gradient-to-br from-primary/20 via-primary/5 to-transparent rounded-[3rem] border border-primary/20 p-8 md:p-16 relative overflow-hidden group">
+                    <div
+                        class="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[100px] -mr-48 -mt-48 group-hover:scale-110 transition-transform duration-1000">
+                    </div>
+
+                    <div class="grid lg:grid-cols-2 gap-12 items-center relative z-10">
+                        <div>
+                            <div
+                                class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest mb-6">
+                                <span class="material-icons-outlined text-sm">school</span>
+                                Entraînement Professionnel
+                            </div>
+                            <h2 class="text-4xl md:text-6xl font-black mb-6 leading-tight uppercase">
+                                Académie <br /> <span class="italic text-primary">Élite pour Enfants</span>
+                            </h2>
+                            <p class="text-slate-500 dark:text-slate-400 text-lg mb-10 max-w-xl leading-relaxed">
+                                Un coaching professionnel pour les futures stars de 5 à 16 ans. Notre programme complet
+                                se concentre sur le développement des compétences, la forme physique et l'intelligence
+                                tactique.
+                            </p>
+
+                            <div class="flex flex-col sm:flex-row gap-6 mb-10">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                                        <span class="material-icons-outlined">verified_user</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-black uppercase tracking-tighter">Coachs Certifiés</p>
+                                        <p class="text-xs text-slate-500">Licenciés FIFA B/A</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                                        <span class="material-icons-outlined">psychology</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-black uppercase tracking-tighter">Suivi des Progrès</p>
+                                        <p class="text-xs text-slate-500">Approche ludique</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap gap-4">
+                                <a href="academies.html"
+                                    class="shimmer-button px-10 py-5 bg-primary text-background-dark font-black rounded-2xl hover:shadow-2xl hover:shadow-primary/30 transition-all flex items-center gap-3 active:scale-95">
+                                    Explorer les Académies
+                                    <span class="material-icons-outlined">arrow_forward</span>
+                                </a>
+                                <a href="login.html?type=student"
+                                    class="px-10 py-5 border border-primary/20 text-primary font-black rounded-2xl hover:bg-primary/5 transition-all flex items-center gap-3 active:scale-95">
+                                    Portail Élève
+                                    <span class="material-icons-outlined">login</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="relative">
+                            <div
+                                class="aspect-video md:aspect-[4/3] rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl relative group">
+                                <img src="assets/academy_hero_section.png" alt="Academy Training"
+                                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                <div
+                                    class="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-60">
+                                </div>
+
+                                <!-- Floating Stats Card -->
+                                <div
+                                    class="absolute bottom-6 left-6 right-6 bg-background-dark/80 backdrop-blur-xl border border-white/10 p-6 rounded-3xl transform translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-4">
+                                            <div class="flex -space-x-3">
+                                                <img src="https://i.pravatar.cc/100?u=12"
+                                                    class="w-10 h-10 rounded-full border-2 border-background-dark" />
+                                                <img src="https://i.pravatar.cc/100?u=13"
+                                                    class="w-10 h-10 rounded-full border-2 border-background-dark" />
+                                                <div
+                                                    class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-[10px] font-black text-background-dark border-2 border-background-dark">
+                                                    150+</div>
+                                            </div>
+                                            <p class="text-[10px] font-black uppercase tracking-widest text-white">
+                                                Élèves Actifs Aujourd'hui</p>
+                                        </div>
+                                        <div
+                                            class="px-3 py-1 bg-primary text-background-dark rounded-full text-[10px] font-black uppercase tracking-widest">
+                                            En Direct
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Decorative Elements -->
+                            <div class="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl -z-10">
+                            </div>
+                            <div
+                                class="absolute -bottom-10 -left-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl -z-10">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="owners" class="py-32 px-6 fade-up">
+            <div class="max-w-7xl mx-auto bg-slate-900 rounded-[3rem] overflow-hidden relative">
+                <div class="absolute inset-0 opacity-10">
+                    <div
+                        class="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary via-transparent to-transparent">
+                    </div>
+                </div>
+                <div class="relative z-10 grid lg:grid-cols-2 gap-12 p-8 md:p-16 items-center">
+                    <div>
+                        <span class="text-primary font-bold uppercase tracking-widest text-sm mb-4 block">Pour
+                            Propriétaires</span>
+                        <h2
+                            class="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight text-reveal overflow-visible">
+                            Développez votre Installation
+                            <br /> <span class="animated-shiny-text tracking-widest uppercase">Sportive avec Nous</span>
+                        </h2>
+                        <p class="text-slate-400 mb-8 text-lg text-reveal" style="animation-delay: 0.2s;">Notre tableau
+                            de bord complet vous aide à éliminer les doubles réservations, à augmenter l'occupation de
+                            vos terrains de 40% et à gérer les paiements automatiquement.</p>
+                        <ul class="space-y-4 mb-10">
+                            <li class="flex items-center gap-3 text-slate-200">
+                                <span class="material-icons-outlined text-primary">check_circle</span>
+                                Planification automatisée &amp; réservations 24/7
+                            </li>
+                            <li class="flex items-center gap-3 text-slate-200">
+                                <span class="material-icons-outlined text-primary">check_circle</span>
+                                Analytics avancés et rapports de revenus
+                            </li>
+                            <li class="flex items-center gap-3 text-slate-200">
+                                <span class="material-icons-outlined text-primary">check_circle</span>
+                                Gestion de la fidélité client simplifiée
+                            </li>
+                        </ul>
+                        <a href="login.html"
+                            class="shimmer-button inline-block bg-primary text-background-dark px-10 py-4 rounded-2xl font-bold btn-hover focus-ring hover:shadow-xl hover:shadow-primary/20 transition-all relative z-10">
+                            <span class="relative z-10">Portail Propriétaire</span>
+                        </a>
+                    </div>
+                    <div class="relative group">
+                        <div
+                            class="bg-slate-800 rounded-3xl p-4 border border-slate-700 transform rotate-2 group-hover:rotate-0 transition-transform duration-500 shadow-2xl">
+                            <div class="bg-background-dark rounded-2xl p-6 h-full border border-slate-800">
+                                <div class="flex items-center justify-between mb-8">
+                                    <div class="w-20 h-3 bg-slate-800 rounded"></div>
+                                    <div class="flex gap-2">
+                                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 mb-6">
+                                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                                        <p class="text-xs text-slate-500 mb-1">Gains Hebdomadaires</p>
+                                        <p class="text-xl font-bold text-primary">4 280,00 TND</p>
+                                    </div>
+                                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                                        <p class="text-xs text-slate-500 mb-1">Occupation</p>
+                                        <p class="text-xl font-bold text-white">92%</p>
+                                    </div>
+                                </div>
+                                <div class="space-y-4">
+                                    <div
+                                        class="h-12 bg-slate-900/50 rounded-xl border border-slate-800 flex items-center px-4 justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                                <span
+                                                    class="material-icons-outlined text-primary text-xs">sports_soccer</span>
+                                            </div>
+                                            <div class="w-24 h-2 bg-slate-800 rounded"></div>
+                                        </div>
+                                        <div class="w-12 h-2 bg-primary/30 rounded"></div>
+                                    </div>
+                                    <div
+                                        class="h-12 bg-slate-900/50 rounded-xl border border-slate-800 flex items-center px-4 justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                                <span
+                                                    class="material-icons-outlined text-primary text-xs">sports_tennis</span>
+                                            </div>
+                                            <div class="w-24 h-2 bg-slate-800 rounded"></div>
+                                        </div>
+                                        <div class="w-12 h-2 bg-primary/30 rounded"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="py-20 border-y border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark fade-up">
+            <div class="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div class="text-center">
+                    <p class="text-3xl font-extrabold animated-gradient-text mb-1" id="stat-complexes">...</p>
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Complexes Disponibles</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-3xl font-extrabold animated-gradient-text mb-1" id="stat-players">...</p>
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Joueurs Actifs</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-3xl font-extrabold animated-gradient-text mb-1" id="stat-matches">...</p>
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Matchs Mensuels</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-3xl font-extrabold animated-gradient-text mb-1" id="stat-rating">4.9/5</p>
+                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Note Utilisateurs</p>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer
+        class="bg-white dark:bg-background-dark border-t border-slate-200 dark:border-slate-800 pt-20 pb-10 px-6 fade-up">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-12 mb-20">
+                <div class="col-span-2 space-y-6">
+                    <div class="flex items-center gap-4 group">
+                        <div
+                            class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+                            <img src="assets/logo.png" alt="Larena" class="h-6 w-6 object-contain brightness-0" />
+                        </div>
+                        <div class="flex flex-col">
+                            <span
+                                class="text-xl font-display font-black tracking-tighter uppercase leading-none text-white">Larena</span>
+                            <span
+                                class="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none mt-1">PitchPerfect</span>
+                        </div>
+                    </div>
+                    <p class="text-slate-500 dark:text-slate-400 max-w-sm mb-8">
+                        L'expérience ultime de réservation sportive. Connectez-vous avec des joueurs et découvrez des
+                        terrains dans votre ville.
+                    </p>
+                    <div class="flex gap-4">
+                        <a class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-primary transition-colors hover:text-background-dark"
+                            href="#">
+                            <span class="material-icons-outlined text-lg">facebook</span>
+                        </a>
+                        <a class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-primary transition-colors hover:text-background-dark"
+                            href="#">
+                            <span class="material-icons-outlined text-lg">alternate_email</span>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-6">Produit</h4>
+                    <ul class="space-y-4 text-slate-500 dark:text-slate-400 text-sm">
+                        <li><a class="hover:text-primary transition-colors" href="#features">Trouver un Terrain</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="#features">Réserver un Match</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="#features">Créer un Lobby</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="#">App Store</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-6">Business</h4>
+                    <ul class="space-y-4 text-slate-500 dark:text-slate-400 text-sm">
+                        <li><a class="hover:text-primary transition-colors" href="login.html">Portail Propriétaire</a>
+                        </li>
+                        <li><a class="hover:text-primary transition-colors" href="login.html">Connexion Dashboard</a>
+                        </li>
+                        <li><a class="hover:text-primary transition-colors" href="#owners">Tarification</a></li>
+                        <li><a class="hover:text-primary transition-colors" href="#owners">Entreprise</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div
+                class="pt-10 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
+                <p class="text-xs text-slate-500 dark:text-slate-400">© 2026 Larena CRM. Tous droits réservés.</p>
+                <div class="flex gap-8 text-xs text-slate-500 dark:text-slate-400">
+                    <a class="hover:text-primary" href="#">Conditions d'Utilisation</a>
+                    <a class="hover:text-primary" href="#">Politique de Confidentialité</a>
+                </div>
+            </div>
+    </footer>
+    <!-- QR Code Modal -->
+    <div id="qrModal"
+        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+        <div
+            class="bg-card-dark border border-slate-800 p-8 rounded-[3rem] max-w-sm w-full text-center relative neon-glow">
+            <button onclick="document.getElementById('qrModal').classList.add('hidden')"
+                class="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors">
+                <span class="material-icons-outlined">close</span>
+            </button>
+
+            <div class="mb-6 inline-flex p-4 bg-primary/10 rounded-3xl border border-primary/20">
+                <span class="material-icons-outlined text-primary text-4xl">android</span>
+            </div>
+
+            <h3 class="text-2xl font-bold mb-2">Scan to Download</h3>
+            <p class="text-slate-400 text-sm mb-8">Scan this QR code with your phone to download the Larena APK
+                directly.</p>
+
+            <div class="bg-white p-4 rounded-3xl mb-8 inline-block shadow-2xl shadow-primary/10">
+                <img id="qrCodeImg"
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://pitchperfect.app/download/latest.apk"
+                    alt="Download QR Code" class="w-48 h-48" />
+            </div>
+
+            <div class="space-y-4">
+                <p id="qrVersionLabel" class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Version
+                    1.0.6 (Latest)</p>
+                <div class="flex items-center justify-center gap-2 text-xs text-primary font-bold">
+                    <span class="material-icons-outlined text-sm">security</span> Verified & Secure
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+
+    <!-- Premium Cursor Script -->
+    <script>
+        const dot = document.getElementById('cursorDot');
+        const outline = document.getElementById('cursorOutline');
+        const interactiveElements = 'a, button, .card-hover, #downloadBtn';
+
+        let mouseX = 0, mouseY = 0;
+        let dotX = 0, dotY = 0;
+        let outlineX = 0, outlineY = 0;
+
+        const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            // Show cursor on first movement
+            dot.classList.remove('cursor-hidden');
+            outline.classList.remove('cursor-hidden');
+        });
+
+        document.addEventListener('mouseleave', () => {
+            dot.classList.add('cursor-hidden');
+            outline.classList.add('cursor-hidden');
+        });
+
+        const animate = () => {
+            // Immediate move for dot
+            dotX = mouseX;
+            dotY = mouseY;
+
+            // Lagged move for outline (lerp)
+            outlineX = lerp(outlineX, mouseX, 0.15);
+            outlineY = lerp(outlineY, mouseY, 0.15);
+
+            dot.style.left = `${dotX}px`;
+            dot.style.top = `${dotY}px`;
+
+            outline.style.left = `${outlineX}px`;
+            outline.style.top = `${outlineY}px`;
+
+            requestAnimationFrame(animate);
+        };
+
+        // Initialize position to avoid jump
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            dotX = mouseX; dotY = mouseY;
+            outlineX = mouseX; outlineY = mouseY;
+        }, { once: true });
+
+        animate();
+
+        // Hover effects
+        document.querySelectorAll(interactiveElements).forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                document.body.classList.add('cursor-hover');
+            });
+            el.addEventListener('mouseleave', () => {
+                document.body.classList.remove('cursor-hover');
+            });
+        });
+
+        // Click effect
+        document.addEventListener('mousedown', () => {
+            dot.style.transform = 'translate(-50%, -50%) scale(0.5)';
+            outline.style.transform = 'translate(-50%, -50%) scale(1.2)';
+        });
+        document.addEventListener('mouseup', () => {
+            dot.style.transform = 'translate(-50%, -50%) scale(1)';
+            outline.style.transform = 'translate(-50%, -50%) scale(1)';
+        });
+    </script>
+    <script>
+        // Section reveal animation using IntersectionObserver
+        document.addEventListener('DOMContentLoaded', function () {
+            const fadeSections = document.querySelectorAll('.fade-up');
+            if ('IntersectionObserver' in window) {
+                const observer = new IntersectionObserver((entries, obs) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            obs.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.15 });
+                fadeSections.forEach(section => observer.observe(section));
+            } else {
+                // Fallback for old browsers
+                fadeSections.forEach(section => section.classList.add('visible'));
+            }
+        });
+        document.addEventListener('DOMContentLoaded', async () => {
+            // --- 1. QR Modal Logic ---
+            const downloadBtn = document.getElementById('downloadBtn');
+            const qrModal = document.getElementById('qrModal');
+            const qrCodeImg = document.getElementById('qrCodeImg');
+
+            if (downloadBtn && qrModal && qrCodeImg) {
+                const appConfig = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG : {
+                    DOWNLOAD_URL: 'https://github.com/dexterboi/testapp/raw/main/app-debug.apk'
+                };
+                const downloadUrl = appConfig.DOWNLOAD_URL;
+                qrCodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(downloadUrl)}`;
+
+                // Update version label from GitHub version.json with cache-buster
+                fetch(`https://raw.githubusercontent.com/dexterboi/testapp/main/version.json?t=${Date.now()}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const versionLabel = document.getElementById('qrVersionLabel');
+                        if (versionLabel && data.latest_version) {
+                            versionLabel.innerText = `Version ${data.latest_version} (Latest)`;
+                        }
+                    })
+                    .catch(e => console.error('Error fetching version:', e));
+
+                downloadBtn.addEventListener('click', () => {
+                    qrModal.classList.remove('hidden');
+                });
+            }
+
+            // --- 2. Supabase Stats Logic ---
+            const SUPABASE_URL = 'https://dgpdlwklqvbmdtalyiis.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRncGRsd2tscXZibWR0YWx5aWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzEzMTYsImV4cCI6MjA4NDIwNzMxNn0.REgLPzPG7Xq2I5Ocp7vD8IS2MLuqfbNNioOrS0RNGSA';
+            const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            async function fetchStats() {
+                try {
+                    const { count: complexesCount } = await client.from('complexes').select('*', { count: 'exact', head: true });
+                    const { count: playersCount } = await client.from('user_profiles').select('*', { count: 'exact', head: true }).eq('role', 'player');
+                    const { count: matchesCount } = await client.from('bookings').select('*', { count: 'exact', head: true }).eq('status', 'approved');
+
+                    animateValue('stat-complexes', complexesCount || 0);
+                    animateValue('stat-players', playersCount || 0, playersCount > 1000 ? 'k+' : '');
+                    animateValue('stat-matches', matchesCount || 0, matchesCount > 1000 ? '+' : '');
+                } catch (err) {
+                    console.error('Error loading stats:', err);
+                }
+            }
+
+            function animateValue(id, value, suffix = '') {
+                const obj = document.getElementById(id);
+                if (!obj) return;
+                obj.classList.add('number-ticker');
+                const end = parseInt(value);
+                if (isNaN(end)) return;
+
+                const duration = 2000;
+                const startTime = performance.now();
+
+                function update(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const current = Math.floor(progress * end);
+                    obj.innerHTML = current.toLocaleString() + suffix;
+                    if (progress < 1) requestAnimationFrame(update);
+                }
+                requestAnimationFrame(update);
+            }
+
+            // Magic Card: Spotlight effect on mouse move
+            document.querySelectorAll('.magic-card').forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = ((e.clientX - rect.left) / rect.width) * 100;
+                    const y = ((e.clientY - rect.top) / rect.height) * 100;
+                    card.style.setProperty('--mouse-x', `${x}%`);
+                    card.style.setProperty('--mouse-y', `${y}%`);
+                });
+            });
+
+            // Particles background
+            function createParticles() {
+                const container = document.getElementById('particlesContainer');
+                if (!container) return;
+
+                for (let i = 0; i < 20; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.top = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 20 + 's';
+                    particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                    container.appendChild(particle);
+                }
+            }
+            createParticles();
+
+            // Text Reveal on Scroll
+            function initTextReveal() {
+                const textElements = document.querySelectorAll('.text-reveal');
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('revealed');
+                            observer.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+                textElements.forEach(el => observer.observe(el));
+            }
+            initTextReveal();
+
+            // Sparkles Text Effect
+            function addSparklesToText() {
+                const sparklesElements = document.querySelectorAll('.animated-shiny-text, .animated-gradient-text');
+                sparklesElements.forEach(element => {
+                    element.addEventListener('mouseenter', function () {
+                        for (let i = 0; i < 8; i++) {
+                            const sparkle = document.createElement('div');
+                            sparkle.className = 'sparkle';
+                            const rect = element.getBoundingClientRect();
+                            const x = Math.random() * rect.width;
+                            const y = Math.random() * rect.height;
+                            sparkle.style.left = x + 'px';
+                            sparkle.style.top = y + 'px';
+                            sparkle.style.setProperty('--tx', (Math.random() * 40 - 20) + 'px');
+                            sparkle.style.setProperty('--ty', (Math.random() * 40 - 20) + 'px');
+                            sparkle.style.animationDelay = (Math.random() * 0.5) + 's';
+                            element.style.position = 'relative';
+                            element.appendChild(sparkle);
+
+                            setTimeout(() => sparkle.remove(), 2000);
+                        }
+                    });
+                });
+            }
+            addSparklesToText();
+
+            // --- 3. Hero Slideshow Logic ---
+            const HERO_SLIDES = [
+                { title: 'Football', label: 'Most Popular', icon: 'sports_soccer' },
+                { title: 'Padel Tennis', label: 'Trending Sport', icon: 'sports_tennis' },
+                { title: 'Larena Mobile', label: 'Get the App', icon: 'smartphone' }
+            ];
+
+            let currentSlide = 0;
+            const heroIcon = document.getElementById('hero-trending-icon');
+            const heroLabel = document.getElementById('hero-trending-label');
+            const heroTitle = document.getElementById('hero-trending-title');
+            const heroCard = document.getElementById('heroCard');
+
+            function rotateSlides() {
+                const currentEl = document.getElementById(`slide-${currentSlide}`);
+                if (currentEl) currentEl.classList.replace('opacity-100', 'opacity-0');
+
+                currentSlide = (currentSlide + 1) % HERO_SLIDES.length;
+
+                const nextEl = document.getElementById(`slide-${currentSlide}`);
+                if (nextEl) nextEl.classList.replace('opacity-0', 'opacity-100');
+
+                if (heroCard) {
+                    heroCard.classList.add('scale-x-95', 'opacity-0');
+                    setTimeout(() => {
+                        const next = HERO_SLIDES[currentSlide];
+                        if (heroIcon) heroIcon.innerText = next.icon;
+                        if (heroLabel) heroLabel.innerText = next.label;
+                        if (heroTitle) heroTitle.innerText = next.title;
+                        heroCard.classList.remove('scale-x-95', 'opacity-0');
+                    }, 300);
+                }
+            }
+
+            if (document.getElementById('slide-0')) {
+                setInterval(rotateSlides, 5000);
+            }
+
+            fetchStats();
+        });
+    </script>
+</body>
+
+</html>

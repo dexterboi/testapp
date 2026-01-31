@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html class="dark" lang="fr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Dashboard Coach - Larena</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800&family=Material+Icons+Outlined&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@800&display=swap');
+
+        :root {
+            --primary: #D9FF66;
+            --background: #05080F;
+            --card: #0D111D;
+            --sidebar: #080B14;
+        }
+
+        .font-display {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+        }
+
+        .glass-morphism {
+            background: rgba(13, 17, 29, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .sidebar-item.active {
+            background: var(--primary);
+            color: var(--background);
+            box-shadow: 0 10px 30px -10px rgba(217, 255, 102, 0.3);
+        }
+
+        .magic-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(800px circle at var(--mouse-x) var(--mouse-y), rgba(217, 255, 102, 0.06), transparent 40%);
+            z-index: 0;
+            pointer-events: none;
+            border-radius: inherit;
+        }
+
+        /* Hide scrollbar */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="text-slate-200">
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 h-screen w-72 bg-sidebar border-r border-white/5 flex flex-col z-50">
+        <div class="p-8">
+            <div class="flex items-center gap-3 group">
+                <div
+                    class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center group-hover:rotate-6 transition-transform">
+                    <img src="assets/logo.png" class="h-6 w-6 brightness-0" alt="Logo">
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-xl font-display font-black text-white leading-none">LARENA</span>
+                    <span class="text-[8px] font-black text-primary uppercase tracking-[0.3em] mt-1">PitchPerfect</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 py-4 space-y-2">
+            <button onclick="switchTab('overview')" id="overviewTabBtn"
+                class="sidebar-item active w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all">
+                <span class="material-symbols-outlined">dashboard</span>
+                Vue d'ensemble
+            </button>
+            <button onclick="switchTab('schedule')" id="scheduleTabBtn"
+                class="sidebar-item w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold text-slate-500 hover:text-white hover:bg-white/5 transition-all">
+                <span class="material-symbols-outlined">calendar_today</span>
+                Mon Planning
+            </button>
+            <button onclick="switchTab('students')" id="studentsTabBtn"
+                class="sidebar-item w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold text-slate-500 hover:text-white hover:bg-white/5 transition-all">
+                <span class="material-symbols-outlined">group</span>
+                Mes Élèves
+            </button>
+        </nav>
+
+        <!-- User Profile -->
+        <div class="p-6 mt-auto border-t border-white/5">
+            <div class="flex items-center gap-4 p-4 rounded-2xl bg-white/5">
+                <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black"
+                    id="userInitial">
+                    C
+                </div>
+                <div class="flex-1 overflow-hidden">
+                    <p class="text-sm font-bold text-white truncate" id="userName">Coach Name</p>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Coach
+                        Principal</p>
+                </div>
+                <button onclick="logout()" class="text-slate-500 hover:text-red-400">
+                    <span class="material-symbols-outlined text-xl">logout</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="pl-72 min-h-screen">
+        <!-- Header -->
+        <header class="sticky top-0 z-40 glass-morphism border-b border-white/5 px-10 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-display font-black text-white" id="headerTitle">Bienvenue, Coach</h2>
+                    <p class="text-sm text-slate-500 font-medium mt-1">Voici vos prochaines sessions et interactions.
+                    </p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="academyNameDisplay"
+                        class="px-4 py-2 bg-primary/10 text-primary rounded-xl text-xs font-black uppercase tracking-widest border border-primary/20">
+                        Chargement...
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-10 max-w-7xl mx-auto space-y-10">
+            <!-- Overview View -->
+            <div id="overviewView" class="space-y-8">
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-card p-8 rounded-[2rem] border border-white/5 flex items-center gap-6">
+                        <div class="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary text-3xl">event_available</span>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Sessions
+                                Aujourd'hui</p>
+                            <p class="text-3xl font-display font-black text-white" id="todaySessionsCount">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-card p-8 rounded-[2rem] border border-white/5 flex items-center gap-6">
+                        <div class="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-blue-500 text-3xl">school</span>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Total Élèves
+                            </p>
+                            <p class="text-3xl font-display font-black text-white" id="totalStudentsCount">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-card p-8 rounded-[2rem] border border-white/5 flex items-center gap-6">
+                        <div class="w-14 h-14 bg-purple-500/10 rounded-2xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-purple-500 text-3xl">verified</span>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Badges
+                                Assignés</p>
+                            <p class="text-3xl font-display font-black text-white" id="badgesCount">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next Sessions -->
+                <div class="space-y-6">
+                    <h3 class="text-xl font-display font-bold flex items-center gap-2 text-white">
+                        <span class="w-2 h-8 bg-primary rounded-full"></span>
+                        Prochaines Sessions
+                    </h3>
+                    <div id="nextSessionsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Sessions will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedule View -->
+            <div id="scheduleView" class="hidden space-y-6">
+                <h3 class="text-xl font-display font-bold flex items-center gap-2 text-white">
+                    <span class="w-2 h-8 bg-primary rounded-full"></span>
+                    Mon Emploi du Temps
+                </h3>
+                <div class="bg-card p-8 rounded-[2rem] border border-white/5 overflow-hidden">
+                    <div id="fullScheduleGrid" class="space-y-6">
+                        <!-- Grouped sessions by day -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Students View -->
+            <div id="studentsView" class="hidden space-y-8">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-display font-bold flex items-center gap-2 text-white">
+                        <span class="w-2 h-8 bg-primary rounded-full"></span>
+                        Liste des Élèves
+                    </h3>
+                    <div class="relative w-72">
+                        <span
+                            class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">search</span>
+                        <input type="text" id="studentSearch" placeholder="Rechercher un élève..."
+                            class="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:border-primary">
+                    </div>
+                </div>
+                <div id="studentsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Student cards will be injected here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Student Interaction Modal -->
+    <div id="interactionModal"
+        class="hidden fixed inset-0 bg-background-dark/80 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+        <div class="bg-card-dark w-full max-w-2xl rounded-[2.5rem] border border-white/10 shadow-2xl p-8 space-y-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-display font-bold text-white tracking-tight" id="modalStudentName">Nom de
+                        l'élève</h3>
+                    <p class="text-xs text-slate-500 mt-1 uppercase font-black tracking-widest">Évaluation & Feedback
+                    </p>
+                </div>
+                <button onclick="closeModal('interactionModal')"
+                    class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:text-white">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <form id="interactionForm" class="space-y-8">
+                <input type="hidden" id="modalStudentId">
+                <div class="space-y-4">
+                    <label class="block text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">Attribuer un
+                        Badge</label>
+                    <div class="grid grid-cols-4 gap-4" id="badgeSelection">
+                        <label class="relative group cursor-pointer">
+                            <input type="radio" name="badge" value="Expert Technique" class="sr-only peer">
+                            <div
+                                class="p-4 bg-white/5 border-2 border-transparent rounded-2xl flex flex-col items-center gap-2 transition-all peer-checked:border-primary peer-checked:bg-primary/10">
+                                <span class="material-symbols-outlined text-3xl text-primary">sports_soccer</span>
+                                <span
+                                    class="text-[9px] font-black uppercase text-center text-slate-400 peer-checked:text-primary">Technique</span>
+                            </div>
+                        </label>
+                        <label class="relative group cursor-pointer">
+                            <input type="radio" name="badge" value="Leader d'Équipe" class="sr-only peer">
+                            <div
+                                class="p-4 bg-white/5 border-2 border-transparent rounded-2xl flex flex-col items-center gap-2 transition-all peer-checked:border-primary peer-checked:bg-primary/10">
+                                <span class="material-symbols-outlined text-3xl text-blue-500">groups</span>
+                                <span
+                                    class="text-[9px] font-black uppercase text-center text-slate-400 peer-checked:text-blue-500">Leader</span>
+                            </div>
+                        </label>
+                        <label class="relative group cursor-pointer">
+                            <input type="radio" name="badge" value="Esprit Sportif" class="sr-only peer">
+                            <div
+                                class="p-4 bg-white/5 border-2 border-transparent rounded-2xl flex flex-col items-center gap-2 transition-all peer-checked:border-primary peer-checked:bg-primary/10">
+                                <span class="material-symbols-outlined text-3xl text-orange-500">handshake</span>
+                                <span
+                                    class="text-[9px] font-black uppercase text-center text-slate-400 peer-checked:text-orange-500">Fair-play</span>
+                            </div>
+                        </label>
+                        <label class="relative group cursor-pointer">
+                            <input type="radio" name="badge" value="Guerrier" class="sr-only peer">
+                            <div
+                                class="p-4 bg-white/5 border-2 border-transparent rounded-2xl flex flex-col items-center gap-2 transition-all peer-checked:border-primary peer-checked:bg-primary/10">
+                                <span class="material-symbols-outlined text-3xl text-red-500">bolt</span>
+                                <span
+                                    class="text-[9px] font-black uppercase text-center text-slate-400 peer-checked:text-red-500">Énergie</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <label class="block text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">Feedback &
+                        Conseils</label>
+                    <textarea id="coachFeedback" rows="4" required
+                        placeholder="Bravo pour tes progrès aujourd'hui ! Continue à travailler ton positionnement..."
+                        class="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm text-white focus:border-primary transition-all resize-none"></textarea>
+                </div>
+
+                <div class="flex gap-4">
+                    <button type="submit"
+                        class="flex-1 bg-primary text-background-dark py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-102 transition-all">Enregistrer
+                        l'évaluation</button>
+                    <button type="button" onclick="closeModal('interactionModal')"
+                        class="px-8 py-4 bg-white/5 text-slate-300 rounded-2xl font-bold hover:bg-white/10 transition-all">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="coach-dashboard.js"></script>
+</body>
+
+</html>

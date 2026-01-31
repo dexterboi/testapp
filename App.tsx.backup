@@ -1,0 +1,3913 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { HashRouter, Routes, Route, Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+import {
+  MapPin, Search, User, Home, MessageSquare,
+  Filter, Star, Zap, ShowerHead, Car, Coffee, Wifi,
+  ChevronLeft, Plus, Users, CreditCard, QrCode, Sparkles,
+  MoreVertical, ShieldCheck, Trophy, ArrowRight, Map, Phone, Mail, X, CheckCircle2,
+  UserPlus, Check, Smile, Send, CheckCheck, LayoutGrid, Bell, Save
+} from 'lucide-react';
+import { MOCK_PITCHES, MOCK_USER, AMENITIES, ADD_ONS } from './constants';
+import { Pitch, Booking, Message, SurfaceType, Complex } from './types';
+import { searchPitchesAI, chatWithSupport, getPriceAnalysis } from './services/geminiService';
+import { supabase, getFileUrl } from './services/supabase';
+import { Auth } from './components/Auth';
+import { UserProfile } from './components/UserProfile';
+import {
+  getPitches, getPitch, getComplexes, getComplex, getPitchesByComplex,
+  createBooking, getUserBookings, getUserLocation, calculateDistance,
+  getReviews, submitReview, searchUsers, getFriendships,
+  sendFriendRequest, updateFriendshipStatus, removeFriendship,
+  getMessages, sendMessage
+} from './services/dataService';
+import { getAvailableSlots, createBookingRequest, getComplexBookings, updateBookingStatus, cancelBooking, requestCancellation } from './services/bookingService';
+import { OwnerDashboard } from './components/OwnerDashboard';
+import { ImageUpload } from './components/ImageUpload';
+import { ImageViewer } from './components/ImageViewer';
+import { ConfirmationModal, SuccessModal } from './components/ConfirmationModal';
+import { getRealPlaceholderImage } from './services/assetService';
+import { EmailConfirmationPage } from './components/EmailConfirmation';
+import SpacesPage from './components/SpacesPage';
+import LobbyDetailPage from './components/Spaces/LobbyDetailPage';
+import TeamDetailPage from './components/Spaces/TeamDetailPage';
+import NotificationCenter from './components/NotificationCenter';
+import MapView from './components/Spaces/MapView';
+import TabBar from './components/TabBar';
+import CrewPage from './components/CrewPage';
+import ChatPage from './components/ChatPage';
+import { initializePushNotifications } from './services/pushNotificationService';
+
+const SplashScreen = ({ show, debugMsg }: { show: boolean, debugMsg?: string }) => {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    if (!show) {
+      const timer = setTimeout(() => setIsVisible(false), 500); // Wait for fade-out
+      return () => clearTimeout(timer);
+    }
+  }, [show]);
+
+  if (!isVisible) return null;
+
+  return (
+    <div
+      className={`fixed inset-0 z-[9999] bg-slate-950 flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out ${show ? 'opacity-100' : 'opacity-0'
+        }`}
+    >
+      <div className="relative flex flex-col items-center">
+        {/* Animated Arena Logo */}
+        <div className="w-32 h-32 flex items-center justify-center mb-8 animate-bounce">
+          <img src="/assets/logo-v2.png" alt="Arena Logo" className="w-full h-full object-contain" />
+        </div>
+
+        {/* Brand Text */}
+        <div className="flex flex-col items-center">
+          <div
+            className="flex items-center text-primary font-black text-5xl tracking-tighter animate-pulse uppercase"
+            style={{ fontFamily: "'Sakana', 'Plus Jakarta Sans', sans-serif" }}
+          >
+            Larena
+          </div>
+          <div className="mt-2 text-white/90 font-bold text-[10px] uppercase tracking-[0.5em]">
+            Tunisian Football Bookings
+          </div>
+        </div>
+
+        {/* Subtle Tagline */}
+        <div className="mt-8 text-white/80 font-bold text-xs uppercase tracking-[0.3em] opacity-0 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500 fill-mode-forwards text-center px-6">
+          {debugMsg || 'Your Game. Your Pitch.'}
+        </div>
+      </div>
+
+      {/* Loading bar at the bottom */}
+      <div className="absolute bottom-12 left-12 right-12 h-1 bg-white/30 rounded-full overflow-hidden">
+        <div className="h-full bg-primary w-full origin-left animate-[loading_2.5s_ease-in-out_infinite]" />
+      </div>
+
+      <style>{`
+        @keyframes loading {
+          0% { transform: scaleX(0); }
+          50% { transform: scaleX(0.7); }
+          100% { transform: scaleX(1); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// Helper to ensure we have an array of image strings
+const ensureArray = (images: any, fallback?: string): string[] => {
+  // If it's already an array, clean and return it
+  if (Array.isArray(images)) {
+    return images
+      .map(img => {
+        if (typeof img === 'string') {
+          // Clean URLs - remove trailing brackets and trim
+          return img.replace(/\]+$/, '').trim();
+        }
+        return img;
+      })
+      .filter((img): img is string => 
+        typeof img === 'string' && img.length > 0
+      );
+  }
+  
+  // If it's a JSON string, parse it
+  if (typeof images === 'string' && images.trim()) {
+    // Try to parse as JSON first (in case database stored it as JSON string)
+    try {
+      const parsed = JSON.parse(images);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map(img => typeof img === 'string' ? img.replace(/\]+$/, '').trim() : img)
+          .filter((img): img is string => typeof img === 'string' && img.length > 0);
+      }
+    } catch (e) {
+      // Not JSON, continue with string parsing
+    }
+    
+    // Handle string that might contain URLs
+    const cleanStr = images.replace(/[{}"']/g, '').trim();
+    if (cleanStr.includes('http')) {
+      const links = cleanStr.split(/[\s,]+/)
+        .filter(l => l.startsWith('http'))
+        .map(l => l.replace(/\]+$/, '').trim());
+      if (links.length) return links;
+    }
+    const cleaned = cleanStr.replace(/\]+$/, '').trim();
+    return cleaned ? [cleaned] : (fallback ? [fallback] : []);
+  }
+  
+  return fallback ? [fallback] : [];
+};
+
+// --- Helper Functions ---
+
+// Helper to get image URL (handles both full URLs and filenames)
+const getImageUrl = (image: string | null | undefined, bucket: string, recordId: string): string => {
+  if (!image) return '';
+
+  if (image.startsWith('http')) {
+    let url = image;
+    // Fast Google Drive Fix
+    if (url.includes('drive.google.com')) {
+      const match = url.match(/\/d\/(.+?)\//);
+      if (match) url = `https://drive.google.com/uc?id=${match[1]}&export=download`;
+    }
+    // Performance: Use smaller thumbnails for Unsplash
+    if (url.includes('unsplash.com')) {
+      url = url.split('&')[0].split('?')[0] + '?auto=format&fit=crop&q=60&w=400';
+    }
+    return url;
+  }
+
+  return getFileUrl(bucket, `${recordId}/${image}`);
+};
+
+// Helper to safely access Supabase relations (handles both arrays and objects)
+const getRelation = (data: any, relationName: string): any => {
+  if (!data || !data[relationName]) return null;
+  // Supabase returns relations as arrays, so get first element
+  return Array.isArray(data[relationName]) ? data[relationName][0] : data[relationName];
+};
+
+// --- Components ---
+
+const IconMap: Record<string, any> = {
+  Zap, ShowerHead, Car, Coffee, Wifi
+};
+
+// Component to scroll to top on route change
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
+
+
+const FilterModal = ({ isOpen, onClose, filters, setFilters, onApply }: any) => {
+  if (!isOpen) return null;
+
+  const surfaces = ["Grass", "3G", "4G", "Synthetic", "Indoor"];
+  const amenities = ["Parking", "Cafe", "Changing Rooms", "Showers", "Lighting", "Wi-Fi"];
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col animate-in slide-in-from-bottom duration-300">
+      {/* Sticky Header */}
+      <div className="flex justify-between items-center p-6 border-b border-white/5 bg-slate-900 sticky top-0 z-10">
+        <h2 className="text-xl font-black text-white">Filters</h2>
+        <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+          <X size={20} className="text-slate-400" />
+        </button>
+      </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-6 py-10 space-y-10 scroll-smooth pb-32">
+        <div className="space-y-10">
+          {/* Distance Filter */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Max Distance</label>
+              <span className="text-primary font-black text-lg">{filters.maxDistance} km</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="100"
+              step="1"
+              value={filters.maxDistance}
+              onChange={(e) => setFilters({ ...filters, maxDistance: parseInt(e.target.value) })}
+              className="w-full h-3 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
+            />
+            <p className="text-[10px] text-slate-500 mt-2 font-medium italic">Showing complexes within {filters.maxDistance}km of your location.</p>
+          </div>
+
+          {/* Price Range */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Max Price (per hour)</label>
+              <span className="text-primary font-black text-lg">{filters.maxPrice} TND</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="200"
+              step="10"
+              value={filters.maxPrice}
+              onChange={(e) => setFilters({ ...filters, maxPrice: parseInt(e.target.value) })}
+              className="w-full h-3 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
+            />
+          </div>
+
+          {/* Star Rating */}
+          <div>
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4">Minimum Rating</label>
+            <div className="flex gap-2">
+              {[0, 3, 4, 4.5].map((rating) => (
+                <button
+                  key={rating}
+                  onClick={() => setFilters({ ...filters, minRating: rating })}
+                  className={`flex-1 py-3.5 rounded-2xl text-xs font-bold transition-all border ${filters.minRating === rating
+                    ? 'bg-primary text-slate-900 border-primary shadow-xl shadow-primary/20'
+                    : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/20'
+                    }`}
+                >
+                  {rating === 0 ? "Any" : `${rating}+ ⭐`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Surface Type */}
+          <div>
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4">Surface Type</label>
+            <div className="flex flex-wrap gap-2">
+              {surfaces.map((surface) => (
+                <button
+                  key={surface}
+                  onClick={() => {
+                    const newSurfaces = filters.surfaces.includes(surface)
+                      ? filters.surfaces.filter((s: string) => s !== surface)
+                      : [...filters.surfaces, surface];
+                    setFilters({ ...filters, surfaces: newSurfaces });
+                  }}
+                  className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all border ${filters.surfaces.includes(surface)
+                    ? 'bg-primary text-slate-900 border-primary shadow-lg'
+                    : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/20'
+                    }`}
+                >
+                  {surface}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Amenities */}
+          <div>
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest block mb-4">Amenities</label>
+            <div className="grid grid-cols-2 gap-3">
+              {amenities.map((amenity) => (
+                <label key={amenity} className={`flex items-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer ${filters.amenities.includes(amenity) ? 'bg-primary/10 border-primary/20' : 'bg-white/5 border-transparent hover:bg-white/10'}`}>
+                  <input
+                    type="checkbox"
+                    checked={filters.amenities.includes(amenity)}
+                    onChange={() => {
+                      const newAmenities = filters.amenities.includes(amenity)
+                        ? filters.amenities.filter((a: string) => a !== amenity)
+                        : [...filters.amenities, amenity];
+                      setFilters({ ...filters, amenities: newAmenities });
+                    }}
+                    className="w-5 h-5 rounded text-primary focus:ring-primary accent-primary border-slate-700 bg-slate-800"
+                  />
+                  <span className={`text-[11px] font-bold ${filters.amenities.includes(amenity) ? 'text-primary' : 'text-slate-300'}`}>{amenity}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sticky Bottom Actions */}
+      <div className="fixed bottom-0 left-0 right-0 px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,20px))] bg-slate-900/95 backdrop-blur-md border-t border-white/5 flex gap-3 z-20">
+        <button
+          onClick={() => {
+            const defaults = { maxPrice: 200, minRating: 0, maxDistance: 100, surfaces: [], amenities: [] };
+            setFilters(defaults);
+            onApply(defaults);
+          }}
+          className="flex-1 py-4.5 rounded-2xl text-[11px] font-black text-slate-400 border border-white/10 hover:bg-white/5 transition-all uppercase tracking-widest"
+        >
+          Reset
+        </button>
+        <button
+          onClick={() => onApply()}
+          className="flex-[2] py-4.5 rounded-2xl text-[11px] font-black text-slate-900 bg-primary shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest"
+        >
+          Apply Filters
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// --- Pages ---
+
+const HomePage = ({ user, pendingCount }: { user: any, pendingCount: number }) => {
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [complexes, setComplexes] = useState<any[]>([]);
+  const [allComplexes, setAllComplexes] = useState<any[]>([]); // Store all complexes for filtering
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    maxPrice: 200,
+    minRating: 0,
+    maxDistance: 100, // Increased default to show more complexes
+    surfaces: [] as string[],
+    amenities: [] as string[]
+  });
+  const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+  const [selectedSport, setSelectedSport] = useState<string | null>(null);
+  const [totalNotifications, setTotalNotifications] = useState(0);
+
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedTime, setSelectedTime] = useState('18:00');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    initializeData();
+    if (user?.id) {
+      fetchNotificationCount();
+      
+      // Push notifications are initialized immediately on login in App.tsx auth handler
+      // This ensures permission is requested as soon as user authenticates
+      
+      // Set up real-time subscription for notifications
+      const channel = supabase
+        .channel('notifications')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `friend_id=eq.${user.id}` }, () => {
+          console.log('📬 Friend request notification change detected');
+          fetchNotificationCount();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'lobby_members', filter: `user_id=eq.${user.id}` }, () => {
+          console.log('📬 Lobby invite notification change detected');
+          fetchNotificationCount();
+        })
+        // Listen for lobby access requests (when user is host)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lobby_members', filter: `status=eq.requested` }, async (payload) => {
+          console.log('📬 Lobby access request notification change detected', payload);
+          // Check if this is for a lobby where user is host
+          if (payload.new?.lobby_id) {
+            const { data: lobby } = await supabase
+              .from('lobbies')
+              .select('host_id')
+              .eq('id', payload.new.lobby_id)
+              .single();
+            
+            if (lobby?.host_id === user.id) {
+              console.log('📬 Lobby access request is for your lobby, refreshing count');
+              fetchNotificationCount();
+            }
+          }
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'complexes' }, () => {
+          console.log('📬 New complex notification change detected');
+          fetchNotificationCount();
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pitches' }, () => {
+          console.log('📬 New pitch notification change detected');
+          fetchNotificationCount();
+        })
+        .subscribe();
+
+      // Listen for notification actions to refresh count
+      const handleNotificationAction = () => {
+        fetchNotificationCount();
+      };
+      window.addEventListener('notificationAction', handleNotificationAction);
+
+      return () => {
+        supabase.removeChannel(channel);
+        window.removeEventListener('notificationAction', handleNotificationAction);
+      };
+    }
+  }, [user?.id]);
+
+  const fetchNotificationCount = async () => {
+    if (!user?.id) return;
+    try {
+      // Get seen notification IDs from localStorage
+      const seenNotificationsKey = `seen_notifications_${user.id}`;
+      const seenNotifications: string[] = JSON.parse(localStorage.getItem(seenNotificationsKey) || '[]');
+
+      // Friend requests (actionable) - only count unseen
+      const { data: friendRequests } = await supabase
+        .from('friendships')
+        .select('id')
+        .eq('friend_id', user.id)
+        .eq('status', 'pending');
+      
+      const unseenFriendRequests = (friendRequests || []).filter(fr => !seenNotifications.includes(`friend_${fr.id}`)).length;
+
+      // Lobby invites (actionable) - only count unseen
+      let unseenLobbyInvites = 0;
+      try {
+        const { data: lobbyInvites, error: lobbyError } = await supabase
+          .from('lobby_members')
+          .select('lobby_id, user_id')
+          .eq('user_id', user.id)
+          .eq('status', 'invited');
+        
+        if (lobbyError) {
+          console.warn('Error fetching lobby invites for notifications:', lobbyError);
+          // Continue with 0 count if query fails (RLS policy issue)
+        } else {
+          unseenLobbyInvites = (lobbyInvites || []).filter(li => {
+            const notificationId = `lobby_${li.lobby_id}_${li.user_id}`;
+            return !seenNotifications.includes(notificationId);
+          }).length;
+        }
+      } catch (error) {
+        console.warn('Error processing lobby invites:', error);
+        // Continue with 0 count
+      }
+
+      // Lobby access requests (for hosts) - only count unseen
+      let unseenLobbyRequests = 0;
+      try {
+        // First get all lobbies where user is host
+        const { data: userLobbies, error: lobbiesError } = await supabase
+          .from('lobbies')
+          .select('id')
+          .eq('host_id', user.id);
+        
+        if (lobbiesError) {
+          console.warn('Error fetching user lobbies for notifications:', lobbiesError);
+        } else if (userLobbies && userLobbies.length > 0) {
+          const lobbyIds = userLobbies.map(l => l.id);
+          const { data: lobbyRequests, error: requestsError } = await supabase
+            .from('lobby_members')
+            .select('lobby_id, user_id, request_message')
+            .eq('status', 'requested')
+            .in('lobby_id', lobbyIds);
+          
+          if (requestsError) {
+            console.warn('Error fetching lobby requests for notifications:', requestsError);
+          } else {
+            unseenLobbyRequests = (lobbyRequests || []).filter(lr => {
+              const notificationId = `lobby_request_${lr.lobby_id}_${lr.user_id}`;
+              return !seenNotifications.includes(notificationId);
+            }).length;
+          }
+        }
+      } catch (error) {
+        console.warn('Error processing lobby requests:', error);
+      }
+
+      // New complexes (created in last 7 days) - only count unseen
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const { data: newComplexes } = await supabase
+        .from('complexes')
+        .select('id, created_at')
+        .gte('created_at', sevenDaysAgo.toISOString());
+      
+      const unseenComplexes = (newComplexes || []).filter(c => !seenNotifications.includes(`venue_${c.id}`)).length;
+
+      // New pitches (created in last 7 days) - only count unseen
+      const { data: newPitches } = await supabase
+        .from('pitches')
+        .select('id, created_at')
+        .gte('created_at', sevenDaysAgo.toISOString());
+      
+      const unseenPitches = (newPitches || []).filter(p => !seenNotifications.includes(`pitch_${p.id}`)).length;
+
+      // Count only unseen notifications
+      const actionableCount = unseenFriendRequests + unseenLobbyInvites + unseenLobbyRequests;
+      const newContentCount = Math.min(unseenComplexes + unseenPitches, 5);
+      const total = actionableCount + newContentCount;
+      setTotalNotifications(total);
+    } catch (error) {
+      console.error('Error fetching notification count:', error);
+    }
+  };
+
+  // Re-sort complexes when user location becomes available
+  useEffect(() => {
+    if (userLocation && complexes.length > 0) {
+      console.log('📍 User location updated, re-sorting', complexes.length, 'complexes by distance');
+      sortComplexesByDistance(complexes);
+    }
+  }, [userLocation, complexes.length]);
+
+  // Real-time search filtering
+  useEffect(() => {
+    if (allComplexes.length === 0) return;
+
+    const filterComplexes = async () => {
+      let filtered = [...allComplexes];
+
+      // Apply sport type filter
+      if (selectedSport) {
+        const { data: pitchesData } = await supabase
+          .from('pitches')
+          .select('complex_id, sport_type')
+          .eq('sport_type', selectedSport);
+        
+        const complexIdsWithSport = new Set(pitchesData?.map((p: any) => p.complex_id) || []);
+        filtered = filtered.filter((c: any) => complexIdsWithSport.has(c.id));
+      }
+
+      // Apply search query filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        filtered = filtered.filter((c: any) =>
+          c.name?.toLowerCase().includes(q) ||
+          c.address?.toLowerCase().includes(q) ||
+          (c.amenities || []).some((a: string) => a.toLowerCase().includes(q))
+        );
+      }
+
+      // Apply other filters
+      filtered = filtered.filter((c: any) => {
+        const price = c.min_price || 0;
+        if (price > filters.maxPrice) return false;
+        if (filters.minRating > 0 && (c.avg_rating || 0) < filters.minRating) return false;
+        return true;
+      });
+
+      // Surface filter
+      if (filters.surfaces.length > 0) {
+        filtered = filtered.filter((c: any) => {
+          const available = (c.available_surfaces || []).map((s: string) => s.toLowerCase());
+          return filters.surfaces.some((s: string) => available.includes(s.toLowerCase()));
+        });
+      }
+
+      // Amenities filter
+      if (filters.amenities.length > 0) {
+        filtered = filtered.filter((c: any) => {
+          const complexAmenities = (c.amenities || []).map((a: string) => a.toLowerCase());
+          return filters.amenities.every((a: string) => complexAmenities.includes(a.toLowerCase()));
+        });
+      }
+
+      // Distance filter - only apply if user explicitly set a distance filter (not the default)
+      // Don't apply distance filter by default - show all complexes
+      if (userLocation && filters.maxDistance < 100) {
+        // Only apply distance filter if user has explicitly set it to less than 100km
+        filtered = filtered.filter((c: any) => {
+          if (c.location_lat && c.location_lng) {
+            const dist = calculateDistance(
+              userLocation.lat,
+              userLocation.lng,
+              c.location_lat,
+              c.location_lng
+            );
+            return dist <= filters.maxDistance;
+          }
+          // If complex has no location data, include it (don't filter out)
+          return true;
+        });
+      }
+      // If maxDistance is 100 or more (default), don't filter by distance - show all complexes
+
+      // Sort by distance if user location is available
+      if (userLocation) {
+        sortComplexesByDistance(filtered);
+      } else {
+        setComplexes(filtered);
+      }
+    };
+
+    filterComplexes();
+  }, [searchQuery, filters, allComplexes, userLocation, selectedSport]);
+
+  const initializeData = async () => {
+    setLoading(true);
+
+    // Try to get user location first (but don't wait too long)
+    const locationPromise = loadUserLocation();
+    const dataPromise = fetchData();
+
+    // Wait for both to complete
+    await Promise.all([locationPromise, dataPromise]);
+
+    setLoading(false);
+  };
+
+  const loadUserLocation = async () => {
+    try {
+      console.log('🔍 Requesting location (Racing Strategy)...');
+      const location = await getUserLocation();
+      console.log('✅ Location settled:', location);
+      setUserLocation(location);
+      setLocationError(null);
+    } catch (error: any) {
+      console.warn('⚠️ Location fallback active:', error?.message || error);
+      // getUserLocation now handles its own fallback to Tunis, so this is just a safety catch
+    }
+  };
+
+  const sortComplexesByDistance = (data: any[]) => {
+    if (!userLocation) {
+      setComplexes(data);
+      return;
+    }
+
+    // Calculate distances and sort by distance
+    const complexesWithDistance = data.map((complex: any) => {
+      if (complex.location_lat && complex.location_lng) {
+        const distance = calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          complex.location_lat,
+          complex.location_lng
+        );
+        console.log(`📍 Distance to ${complex.name}:`, distance.toFixed(2), 'km');
+        return { ...complex, distance };
+      }
+      return complex;
+    });
+
+    // Sort by distance if available
+    const sorted = complexesWithDistance.sort((a: any, b: any) => {
+      if (a.distance !== undefined && b.distance !== undefined) {
+        return a.distance - b.distance;
+      }
+      // Put items without distance at the end
+      if (a.distance === undefined) return 1;
+      if (b.distance === undefined) return -1;
+      return 0;
+    });
+
+    console.log('✅ Complexes sorted by distance. Nearest:', sorted[0]?.name, sorted[0]?.distance?.toFixed(2), 'km');
+    setComplexes(sorted);
+  };
+
+  const fetchData = async () => {
+    console.log('🏟️ Fetching complexes...');
+    const data = await getComplexes();
+    console.log('📊 Complexes received:', data.length, data);
+
+    // Store all complexes for filtering
+    setAllComplexes(data);
+
+    // Sort by distance if user location is already available
+    if (userLocation) {
+      sortComplexesByDistance(data);
+    } else {
+      setComplexes(data);
+    }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    applyFilters();
+  };
+
+  const applyFilters = async (filterOverride?: any) => {
+    setLoading(true);
+    const activeFilters = filterOverride || filters;
+    
+    // Use stored complexes if available, otherwise fetch
+    let complexesToFilter = allComplexes.length > 0 ? allComplexes : await getComplexes();
+    if (allComplexes.length === 0) {
+      setAllComplexes(complexesToFilter);
+    }
+    let allComplexesFiltered = [...complexesToFilter];
+
+    // 1. Search Query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      allComplexesFiltered = allComplexesFiltered.filter((c: any) =>
+        c.name?.toLowerCase().includes(q) ||
+        c.address?.toLowerCase().includes(q) ||
+        (c.amenities || []).some((a: string) => a.toLowerCase().includes(q))
+      );
+    }
+
+    // 2. Price Filter (Use real min_price from DB)
+    allComplexesFiltered = allComplexesFiltered.filter((c: any) => {
+      const price = c.min_price || 0;
+      return price <= activeFilters.maxPrice;
+    });
+
+    // 3. Rating Filter
+    if (activeFilters.minRating > 0) {
+      allComplexesFiltered = allComplexesFiltered.filter((c: any) => (c.avg_rating || 0) >= activeFilters.minRating);
+    }
+
+    // 4. Surface Filter
+    if (activeFilters.surfaces.length > 0) {
+      allComplexesFiltered = allComplexesFiltered.filter((c: any) => {
+        const available = (c.available_surfaces || []).map((s: string) => s.toLowerCase());
+        return activeFilters.surfaces.some((s: string) => available.includes(s.toLowerCase()));
+      });
+    }
+
+    // 5. Amenities Filter
+    if (activeFilters.amenities.length > 0) {
+      allComplexesFiltered = allComplexesFiltered.filter((c: any) => {
+        const complexAmenities = (c.amenities || []).map((a: string) => a.toLowerCase());
+        return activeFilters.amenities.every((a: string) => complexAmenities.includes(a.toLowerCase()));
+      });
+    }
+
+    // 6. Distance Filter - only apply if user explicitly set it (not default 100km)
+    if (userLocation && activeFilters.maxDistance < 100) {
+      allComplexesFiltered = allComplexesFiltered.filter((c: any) => {
+        if (c.location_lat && c.location_lng) {
+          const dist = calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            c.location_lat,
+            c.location_lng
+          );
+          return dist <= activeFilters.maxDistance;
+        }
+        return true; // Keep if no location data (or could filter out)
+      });
+    }
+    // If maxDistance is 100 or more (default), don't filter by distance - show all complexes
+
+    // Count active filters (only count if user explicitly set them, not defaults)
+    let count = 0;
+    if (activeFilters.maxPrice < 200) count++;
+    if (activeFilters.minRating > 0) count++;
+    if (activeFilters.maxDistance < 100 && userLocation) count++; // Only count if distance filter is active
+    if (activeFilters.surfaces.length > 0) count++;
+    if (activeFilters.amenities.length > 0) count++;
+
+    console.log(`🔍 [FILTER] After filters: ${allComplexesFiltered.length} matches. Filters:`, activeFilters);
+    setActiveFiltersCount(count);
+
+    if (userLocation) {
+      sortComplexesByDistance(allComplexesFiltered);
+    } else {
+      setComplexes(allComplexesFiltered);
+    }
+    setLoading(false);
+    setIsFilterOpen(false);
+  };
+
+  // Extract sports types for the horizontal scroller
+  const sportsTypes = ['Football', 'Padel', 'Tennis', 'Basketball'].filter(s =>
+    s === 'Football' || s === 'Padel' // User specifically asked for these for now
+  );
+
+  return (
+    <div className="pb-[calc(8rem+env(safe-area-inset-bottom))] bg-slate-950 min-h-screen font-sans">
+      <FilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        filters={filters}
+        setFilters={setFilters}
+        onApply={applyFilters}
+      />
+
+      <NotificationCenter
+        isOpen={isNotificationsOpen}
+        onClose={() => {
+          setIsNotificationsOpen(false);
+          fetchNotificationCount(); // Refresh count when closing
+        }}
+        userId={user?.id}
+        pendingCount={pendingCount}
+      />
+
+      {/* Premium Header */}
+      <header className="px-6 pt-[calc(3rem+env(safe-area-inset-top))] pb-8 sticky top-0 z-40 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-1 opacity-60">
+              <span className="material-symbols-rounded text-sm text-primary">location_on</span>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{userLocation ? 'Tunis, TN' : 'Locating...'}</p>
+            </div>
+            <h1 className="text-3xl font-black tracking-tighter text-white leading-none">
+              Explore <br /> <span className="text-primary italic">Venues</span>
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Notification Bell */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsNotificationsOpen(true);
+              }}
+              className="relative w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all active:scale-95 group"
+            >
+              <span className="material-symbols-rounded text-slate-300 group-hover:text-primary transition-colors">notifications</span>
+              {totalNotifications > 0 && (
+                <div className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-rose-500 rounded-full border-2 border-slate-900 flex items-center justify-center px-1.5 animate-pulse">
+                  <span className="text-[10px] font-black text-white">{totalNotifications > 99 ? '99+' : totalNotifications}</span>
+                </div>
+              )}
+            </button>
+
+            {/* Profile Avatar */}
+            <div className="relative group cursor-pointer" onClick={() => navigate('/profile')}>
+              <div className="w-16 h-16 rounded-[2rem] overflow-hidden border-2 border-white shadow-2xl ring-4 ring-primary/5 group-hover:rotate-6 group-hover:scale-105 transition-all duration-500">
+                <img
+                  src={user?.avatar ? (user.avatar.startsWith('http') || user.avatar.startsWith('data:') ? user.avatar : getFileUrl('avatars', user.avatar)) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || 'default'}`}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=C1F45F&color=000`;
+                  }}
+                />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-slate-900 rounded-full flex items-center justify-center border-2 border-white shadow-lg shadow-black/20">
+                <span className="material-symbols-rounded text-primary text-[14px]">bolt</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Bar & Filter */}
+        <div className="relative group mt-2">
+          <span className="material-symbols-rounded absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-all duration-300">search</span>
+          <input
+            type="text"
+            placeholder="Search venue or sport..."
+            className="w-full h-14 pl-12 pr-14 rounded-[1.5rem] bg-white/5 border border-white/5 shadow-inner text-sm font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary/30 text-white transition-all placeholder:text-slate-600"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-primary rounded-[1rem] text-slate-900 shadow-xl shadow-primary/10 active:scale-90 hover:bg-primary-light transition-all"
+          >
+            <span className="material-symbols-rounded text-lg">tune</span>
+            {activeFiltersCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-slate-900">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </header>
+
+      <main className="animate-in fade-in duration-700">
+        {/* View Toggle */}
+        {/* View Toggle */}
+        <div className="px-6 mt-2 mb-6">
+          <div className="flex bg-white/5 rounded-2xl p-1 shadow-inner border border-white/5">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex-1 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${viewMode === 'list' ? 'bg-primary text-slate-900 shadow-lg shadow-primary/10' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <LayoutGrid size={16} /> List
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`flex-1 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${viewMode === 'map' ? 'bg-primary text-slate-900 shadow-lg shadow-primary/10' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              <Map size={16} /> Map
+            </button>
+          </div>
+        </div>
+
+        {viewMode === 'list' ? (
+          <>
+            {/* Popular Sports Scroller */}
+            <section className="mt-4">
+              <div className="flex justify-between items-end px-6 mb-4">
+                <h2 className="text-lg font-bold text-white">Popular Sports</h2>
+                <button className="text-primary text-sm font-semibold hover:opacity-80 transition-opacity">View All</button>
+              </div>
+              <div className="flex overflow-x-auto gap-4 px-6 no-scrollbar pb-2">
+                {sportsTypes.map((sport) => (
+                  <div 
+                    key={sport} 
+                    onClick={() => setSelectedSport(selectedSport === sport ? null : sport)}
+                    className={`flex-none w-44 relative group cursor-pointer active:scale-95 transition-all ${selectedSport === sport ? 'ring-4 ring-primary rounded-[2rem]' : ''}`}
+                  >
+                    <div className="aspect-[3/4] rounded-[2rem] overflow-hidden relative shadow-lg">
+                      <img
+                        alt={sport}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        src={sport === 'Football'
+                          ? 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000'
+                          : 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&q=80&w=1000' // Using an indoor/padel-like image from assetService
+                        }
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent"></div>
+                      <div className="absolute bottom-5 left-5">
+                        <span className={`text-black text-[10px] font-bold px-2 py-1 rounded-full uppercase mb-2 inline-block ${sport === 'Football' ? 'bg-primary' : 'bg-blue-400 text-white'}`}>
+                          {sport === 'Football' ? 'Popular' : 'Trending'}
+                        </span>
+                        <h3 className="text-white font-bold text-lg leading-tight">{sport}</h3>
+                      </div>
+                      {selectedSport === sport && (
+                        <div className="absolute top-3 right-3 bg-primary text-slate-900 w-8 h-8 rounded-full flex items-center justify-center shadow-lg">
+                          <span className="material-symbols-rounded text-lg">check</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Nearby Venues */}
+            <section className="mt-6 px-6 pb-10">
+              <div className="flex justify-between items-center mb-6 px-1">
+                <div>
+                  <h2 className="text-2xl font-black text-white tracking-tighter uppercase">Nearby <span className="text-primary italic">Venues</span></h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Recommended for you</p>
+                </div>
+                <button onClick={() => setViewMode('map')} className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-slate-400 hover:text-primary transition-all shadow-lg active:scale-90">
+                  <span className="material-symbols-rounded">map</span>
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-32 bg-white/5 rounded-[2.5rem] animate-pulse border border-white/5 shadow-sm"></div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {complexes.map(complex => {
+                    const images = ensureArray(complex.images, complex.image);
+                    const mainImage = images[0]
+                      ? (images[0].startsWith('http') ? images[0] : getFileUrl('complex-images', `${complex.id}/${images[0]}`))
+                      : getRealPlaceholderImage(complex.id, 'complex');
+
+                    return (
+                      <div
+                        key={complex.id}
+                        onClick={() => navigate(`/complex/${complex.id}`)}
+                        className="bg-slate-900/50 backdrop-blur-md p-5 rounded-[2.5rem] border border-white/5 shadow-lg transition-all active:scale-[0.98] cursor-pointer hover:bg-slate-900 group relative overflow-hidden"
+                      >
+                        <div className="flex gap-5 items-center">
+                          <div className="w-24 h-24 rounded-[2rem] overflow-hidden bg-slate-800 shrink-0 border border-white/5 p-0.5">
+                            <img
+                              alt={complex.name}
+                              className="w-full h-full object-cover rounded-[1.8rem] group-hover:scale-110 transition-transform duration-700 opacity-90 group-hover:opacity-100"
+                              src={mainImage}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start mb-1">
+                              <h4 className="font-black text-lg leading-tight text-white truncate group-hover:text-primary transition-colors">{complex.name}</h4>
+                              <div className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full border border-primary/20">
+                                <span className="material-symbols-rounded text-[14px] fill-1">star</span>
+                                <span className="text-[10px] font-black">{complex.avg_rating || '4.8'}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="material-symbols-rounded text-slate-500 text-sm">location_on</span>
+                              <span className="text-[11px] font-bold text-slate-400 truncate">{complex.address?.split(',').slice(0, 1) || 'Tunis'}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex gap-1.5">
+                                {ensureArray(complex.sports || ['Football']).slice(0, 2).map((sport, idx) => (
+                                  <span key={idx} className="text-[8px] font-black bg-white/5 text-slate-300 px-2.5 py-1 rounded-lg uppercase tracking-widest border border-white/5">
+                                    {sport}
+                                  </span>
+                                ))}
+                              </div>
+                              {complex.distance !== undefined && (
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{complex.distance.toFixed(1)} km</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </>
+        ) : (
+          <div className="h-[calc(100vh-280px)] mx-8 rounded-3xl overflow-hidden border border-slate-100 shadow-2xl relative animate-in zoom-in-95 duration-500">
+            <MapView
+              onBack={() => setViewMode('list')}
+              showBackButton={false}
+              complexes={complexes}
+              userLocation={userLocation}
+            />
+          </div>
+        )}
+
+        {/* Location Error Banner */}
+        {locationError && (
+          <div className="mx-8 mt-4 p-4 bg-amber-50 rounded-3xl border border-amber-100 flex items-center gap-4 animate-in slide-in-from-top-4 duration-300">
+            <div className="bg-amber-100 p-2.5 rounded-2xl text-amber-600">
+              <span className="material-symbols-rounded">location_off</span>
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-black text-amber-900 uppercase tracking-tight">Location off</p>
+              <p className="text-[10px] text-amber-700 leading-tight">Enable GPS for precise distance.</p>
+            </div>
+            <button onClick={loadUserLocation} className="bg-amber-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-amber-500/20 active:scale-95 transition-transform">Retry</button>
+          </div>
+        )}
+      </main>
+
+      {/* Footer Safe Area Spacer */}
+      <div className="h-10"></div>
+    </div>
+  );
+};
+
+
+const ComplexDetailPage = ({ user }: { user: any }) => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [complex, setComplex] = useState<any>(null);
+  const [pitches, setPitches] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewingImages, setViewingImages] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
+  const [showReviewForm, setShowReviewForm] = useState(false);
+
+  useEffect(() => {
+    if (id) {
+      fetchComplexData();
+      fetchReviews();
+    }
+  }, [id]);
+
+  const fetchComplexData = async () => {
+    setLoading(true);
+    const complexData = await getComplex(id!);
+    const pitchesData = await getPitchesByComplex(id!);
+    setComplex(complexData);
+    setPitches(pitchesData);
+    setLoading(false);
+  };
+
+  const fetchReviews = async () => {
+    const reviewsData = await getReviews(id!);
+    setReviews(reviewsData);
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!complex || !user) return;
+
+    setSubmittingReview(true);
+    const result = await submitReview({
+      complex_id: complex.id,
+      user_id: user.id,
+      rating: newReview.rating,
+      comment: newReview.comment
+    });
+
+    if (result.success) {
+      setNewReview({ rating: 5, comment: '' });
+      setShowReviewForm(false);
+      fetchReviews();
+      fetchComplexData(); // Update average rating
+    } else {
+      alert("Error submitting review. Please try again.");
+    }
+    setSubmittingReview(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background-light flex items-center justify-center">
+        <div className="relative">
+          <div className="animate-ping absolute inset-0 bg-primary/20 rounded-full"></div>
+          <div className="bg-primary/10 p-6 rounded-full border border-primary/20 relative">
+            <span className="material-symbols-rounded text-3xl text-primary animate-pulse">stadium</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!complex) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+        <div className="text-center group">
+          <div className="bg-slate-900/50 backdrop-blur-xl p-8 rounded-[3rem] shadow-sm border border-white/5 mb-6 group-hover:shadow-xl transition-all duration-500">
+            <span className="material-symbols-rounded text-5xl text-slate-300 mb-4">search_off</span>
+            <p className="text-white font-extrabold text-xl mb-1 tracking-tight">Complex not found</p>
+            <p className="text-slate-500 text-sm mb-6">This venue might have been moved or removed.</p>
+            <button onClick={() => navigate('/')} className="w-full bg-primary text-slate-900 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 active:scale-95 transition-all">
+              Discover Venues
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const imagesArray = ensureArray(complex.images, complex.image);
+
+  return (
+    <div className="bg-slate-950 min-h-screen pb-[calc(9rem+env(safe-area-inset-bottom))] font-sans">
+      {/* Premium Header Image - Banner */}
+      <div className="relative h-[450px] overflow-hidden">
+        {imagesArray.length > 0 ? (
+          <img
+            src={getImageUrl(imagesArray[0], 'complex-images', complex.id)}
+            alt={complex.name}
+            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-[2s] ease-out"
+            onClick={() => {
+              setCurrentImageIndex(0);
+              setViewingImages(true);
+            }}
+            onError={(e) => {
+              console.error('Failed to load banner image:', imagesArray[0]);
+              e.currentTarget.src = getRealPlaceholderImage(complex.id, 'complex');
+            }}
+          />
+        ) : (
+          <img
+            src={getRealPlaceholderImage(complex.id, 'complex')}
+            alt={complex.name}
+            className="w-full h-full object-cover"
+          />
+        )}
+        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
+
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute top-[calc(3rem+env(safe-area-inset-top))] left-6 w-12 h-12 bg-white/10 backdrop-blur-xl flex items-center justify-center rounded-2xl text-white border border-white/10 shadow-2xl active:scale-90 transition-all z-30"
+        >
+          <span className="material-symbols-rounded">arrow_back_ios_new</span>
+        </button>
+
+        <div className="absolute bottom-16 left-8 right-8 z-30">
+          <div className="flex flex-wrap gap-2 mb-3">
+            <span className="bg-primary/20 backdrop-blur-md text-primary-dark font-black text-[9px] px-3 py-1 rounded-full uppercase tracking-widest border border-primary/20">
+              Top Rated
+            </span>
+            <span className="bg-white/10 backdrop-blur-md text-white font-black text-[9px] px-3 py-1 rounded-full uppercase tracking-widest border border-white/10">
+              Verified
+            </span>
+          </div>
+          <h1 className="text-4xl font-black text-white tracking-tighter mb-2 leading-none">{complex.name}</h1>
+          <div className="flex items-center text-slate-400 text-xs font-bold gap-2">
+            <span className="material-symbols-rounded text-sm text-primary">location_on</span>
+            <span className="truncate">{complex.address?.split(',').slice(0, 2).join(',') || 'Tunis, Tunisia'}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-8 -mt-8 relative z-30 space-y-6">
+        {/* Quick Stats Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-slate-900/50 backdrop-blur-md p-5 rounded-[2.5rem] shadow-sm border border-white/5">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                <span className="material-symbols-rounded text-primary text-lg">star</span>
+              </div>
+              <span className="text-xl font-black text-white leading-none">{complex.avg_rating || '0.0'}</span>
+            </div>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-11">Rating ({reviews.length})</p>
+          </div>
+          <div className="bg-slate-900/50 backdrop-blur-md p-5 rounded-[2.5rem] shadow-sm border border-white/5">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <span className="material-symbols-rounded text-blue-500 text-lg">near_me</span>
+              </div>
+              <span className="text-xl font-black text-white leading-none">1.2 km</span>
+            </div>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-11">Nearby</p>
+          </div>
+        </div>
+
+        {/* Complex Description */}
+        <div className="bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-primary/20 transition-all duration-700"></div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-3">About Venue</p>
+          <p className="text-sm font-medium leading-relaxed opacity-90">
+            {complex.description || "Premium sports destination featuring professional-grade pitches, modern amenities, and a vibrant community of athletes in Tunis."}
+          </p>
+          <div className="mt-6 flex items-center gap-2">
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">Available Today</span>
+          </div>
+        </div>
+
+        {/* Contact & Facilities */}
+        <div className="space-y-4">
+          {/* Facilities Pill Row */}
+          {complex.facilities && complex.facilities.length > 0 && (
+            <div className="bg-slate-900/50 backdrop-blur-xl p-6 rounded-[2.5rem] shadow-sm border border-white/5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Top Facilities</p>
+              <div className="flex flex-wrap gap-2">
+                {complex.facilities.map((facility: string, index: number) => (
+                  <div
+                    key={index}
+                    className="px-4 py-2 bg-white/5 rounded-xl text-[10px] font-black text-slate-300 border border-white/5 flex items-center gap-2 hover:bg-primary hover:text-slate-900 transition-all cursor-default"
+                  >
+                    <span className="material-symbols-rounded text-xs">check_circle</span>
+                    {facility}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Contact Actions */}
+          <div className="grid grid-cols-2 gap-4">
+            {complex.phone && (
+              <a href={`tel:${complex.phone}`} className="bg-slate-900/50 backdrop-blur-xl p-4 rounded-3xl flex items-center justify-center gap-3 border border-white/5 shadow-sm hover:border-primary transition-all group">
+                <span className="material-symbols-rounded text-slate-400 group-hover:text-primary transition-colors">call</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Call Now</span>
+              </a>
+            )}
+            <button
+              onClick={() => setShowReviewForm(true)}
+              className="bg-slate-900/50 backdrop-blur-xl p-4 rounded-3xl flex items-center justify-center gap-3 border border-white/5 shadow-sm hover:border-primary transition-all group"
+            >
+              <span className="material-symbols-rounded text-slate-400 group-hover:text-primary transition-colors">edit_note</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Write Review</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Image Gallery Section - Similar to Pitch Page */}
+        {imagesArray.length > 1 && (
+          <div className="space-y-4 mb-8">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-black text-white tracking-tight">Photo Gallery</h3>
+              <button
+                onClick={() => {
+                  setCurrentImageIndex(0);
+                  setViewingImages(true);
+                }}
+                className="text-primary text-[10px] font-black uppercase tracking-widest hover:text-primary/80 transition-colors"
+              >
+                View All ({imagesArray.length})
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {imagesArray.slice(1, 7).map((image: string, index: number) => (
+                <div 
+                  key={`gallery-${index}`} 
+                  className="aspect-square rounded-2xl overflow-hidden border border-white/5 shadow-lg cursor-pointer group relative" 
+                  onClick={() => { 
+                    setCurrentImageIndex(index + 1); 
+                    setViewingImages(true); 
+                  }}
+                >
+                  <img
+                    src={getImageUrl(image, 'complex-images', complex.id)}
+                    alt={`Gallery ${index + 2}`}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      console.error('Failed to load gallery image:', image);
+                      e.currentTarget.src = getRealPlaceholderImage(complex.id, 'complex');
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </div>
+              ))}
+              {imagesArray.length > 7 && (
+                <div
+                  className="aspect-square rounded-2xl bg-primary/20 border-2 border-primary/30 flex flex-col items-center justify-center cursor-pointer shadow-lg shadow-primary/20 active:scale-95 transition-all group hover:bg-primary/30"
+                  onClick={() => { 
+                    setCurrentImageIndex(6); 
+                    setViewingImages(true); 
+                  }}
+                >
+                  <span className="text-primary font-black text-2xl mb-1 group-hover:scale-110 transition-transform">+{imagesArray.length - 7}</span>
+                  <span className="text-primary/80 text-[9px] font-black uppercase tracking-widest">More</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Premium Pitches List */}
+        <section className="pt-4">
+          <div className="flex justify-between items-end mb-6">
+            <h2 className="text-xl font-black text-white tracking-tight">Available Pitches</h2>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{pitches.length} Total</p>
+          </div>
+
+          <div className="space-y-4">
+            {pitches.length === 0 ? (
+              <div className="bg-slate-900/50 backdrop-blur-xl p-12 rounded-[3.5rem] border border-white/5 text-center shadow-inner">
+                <span className="material-symbols-rounded text-4xl text-slate-500 mb-2">sports_soccer</span>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No pitches listed yet</p>
+              </div>
+            ) : (
+              pitches.map(pitch => (
+                <div
+                  key={pitch.id}
+                  onClick={() => navigate(`/pitch/${pitch.id}`)}
+                  className="bg-slate-900/50 backdrop-blur-md p-5 rounded-[3rem] shadow-sm border border-white/5 hover:bg-slate-900 active:scale-[0.98] transition-all cursor-pointer group"
+                >
+                  <div className="flex gap-5">
+                    <div className="relative w-28 h-28 rounded-[2rem] overflow-hidden shrink-0 shadow-lg group-hover:shadow-primary/10 transition-all border border-white/5">
+                      <img
+                        src={(() => {
+                          const images = ensureArray(pitch.images, pitch.image);
+                          const firstImage = images[0];
+                          return firstImage
+                            ? (firstImage.startsWith('http') ? firstImage : getFileUrl('pitch-images', `${pitch.id}/${firstImage}`))
+                            : getRealPlaceholderImage(pitch.id, pitch.surface === 'Indoor' ? 'indoor' : 'pitch');
+                        })()}
+                        alt={pitch.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    </div>
+
+                    <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="bg-white/5 px-2 py-0.5 rounded text-[8px] font-black text-slate-400 uppercase tracking-wider">{pitch.surface || 'Outdoor'}</span>
+                          <span className="bg-primary/10 px-2 py-0.5 rounded text-[8px] font-black text-primary uppercase tracking-wider">{pitch.size || '5v5'}</span>
+                        </div>
+                        <h3 className="font-bold text-lg text-white leading-tight truncate">{pitch.name}</h3>
+                      </div>
+
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Price / Hour</p>
+                          <span className="text-xl font-black text-white tabular-nums">
+                            {pitch.price_per_hour || 60} <span className="text-[10px] text-slate-500">TND</span>
+                          </span>
+                        </div>
+                        <div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/20 group-hover:scale-110 group-hover:-rotate-12 transition-all">
+                          <span className="material-symbols-rounded text-slate-900 text-lg">arrow_forward</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        {/* Community Feedback */}
+        <section className="pt-4 pb-12">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-xl font-black text-white tracking-tight">Player Feedback</h2>
+            <div className="flex -space-x-3 group cursor-pointer" onClick={() => setShowReviewForm(true)}>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="w-8 h-8 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center shrink-0">
+                  <span className="material-symbols-rounded text-xs text-slate-500">person</span>
+                </div>
+              ))}
+              <div className="w-8 h-8 rounded-full border-2 border-slate-900 bg-primary flex items-center justify-center text-[10px] font-black text-slate-900">+</div>
+            </div>
+          </div>
+
+          {reviews.length === 0 ? (
+            <div className="bg-slate-900/50 backdrop-blur-xl p-10 rounded-[3.5rem] text-center border border-white/5">
+              <span className="material-symbols-rounded text-4xl text-slate-500 mb-2">reviews</span>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">No reviews yet</p>
+              <button onClick={() => setShowReviewForm(true)} className="text-primary font-black text-[10px] uppercase tracking-widest py-2 border-b-2 border-primary active:opacity-50 transition-all">Write First Review</button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {reviews.map((review: any) => (
+                <div key={review.id} className="bg-slate-900/80 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white/5 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-white/10 shadow-inner">
+                        <img
+                          src={review.user_profiles?.avatar ? (review.user_profiles.avatar.startsWith('http') || review.user_profiles.avatar.startsWith('data:') ? review.user_profiles.avatar : getFileUrl('avatars', review.user_profiles.avatar)) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${review.user_id}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-white leading-none mb-1.5">{review.user_profiles?.name || 'Player'}</p>
+                        <div className="flex gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                            <span key={i} className={`material-symbols-rounded text-[10px] ${i < review.rating ? "text-primary fill-1" : "text-slate-700"}`}>star</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{new Date(review.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                  </div>
+                  <p className="text-slate-300 text-sm font-medium leading-relaxed pl-1 space-y-2">
+                    {review.comment}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* Review Modal */}
+      {showReviewForm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-6 animate-in fade-in duration-300">
+          <div className="bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 shadow-2xl border border-white/5 animate-in zoom-in-95 duration-500 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+
+            <h2 className="text-2xl font-black text-white tracking-tight mb-2">Rate Venue</h2>
+            <p className="text-slate-400 text-sm font-medium mb-10 leading-relaxed">Share your experience at <span className="text-primary font-bold">{complex.name}</span> with other players.</p>
+
+            <form onSubmit={handleReviewSubmit} className="relative z-10">
+              <div className="flex justify-center gap-3 mb-10">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setNewReview({ ...newReview, rating: star })}
+                    className="transition-all active:scale-90"
+                  >
+                    <span className={`material-symbols-rounded text-5xl ${star <= newReview.rating ? "text-primary fill-1" : "text-slate-800"}`}>star</span>
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={newReview.comment}
+                onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                placeholder="How was the pitch? The service? ..."
+                className="w-full bg-slate-800/50 border border-white/5 rounded-[2rem] p-6 text-sm font-medium focus:ring-2 focus:ring-primary focus:bg-slate-800 transition-all mb-8 min-h-[140px] resize-none text-white placeholder:text-slate-600"
+                required
+              />
+
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setShowReviewForm(false)}
+                  className="flex-1 py-4.5 rounded-2xl text-[10px] font-black text-slate-500 uppercase tracking-widest hover:bg-white/5 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReview}
+                  className="flex-[2] py-4.5 rounded-2xl text-[10px] font-black text-slate-900 bg-primary shadow-xl shadow-primary/20 active:scale-95 transition-all uppercase tracking-[0.2em] flex items-center justify-center"
+                >
+                  {submittingReview ? (
+                    <div className="animate-spin h-5 w-5 border-2 border-slate-900 border-t-transparent rounded-full" />
+                  ) : "Post Review"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {imagesArray.length > 0 && (
+        <ImageViewer
+          isOpen={viewingImages}
+          images={imagesArray.map(img => getImageUrl(img, 'complex-images', complex.id))}
+          currentIndex={currentImageIndex}
+          collectionName="complexes"
+          recordId={complex.id}
+          onClose={() => setViewingImages(false)}
+          onNext={() => {
+            if (currentImageIndex < imagesArray.length - 1) {
+              setCurrentImageIndex(currentImageIndex + 1);
+            }
+          }}
+          onPrevious={() => {
+            if (currentImageIndex > 0) {
+              setCurrentImageIndex(currentImageIndex - 1);
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+const PitchDetailsPage = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [pitch, setPitch] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedSlot, setSelectedSlot] = useState<any | null>(null);
+  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
+  const [viewingImages, setViewingImages] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (id) {
+      fetchPitch();
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (pitch && selectedDate) {
+      fetchAvailableSlots();
+    }
+  }, [pitch, selectedDate]);
+
+  const fetchPitch = async () => {
+    setLoading(true);
+    const data = await getPitch(id!);
+    setPitch(data);
+    setLoading(false);
+  };
+
+  const fetchAvailableSlots = async () => {
+    if (!pitch?.id || !selectedDate) return;
+    setLoadingSlots(true);
+    try {
+      const date = new Date(selectedDate + 'T00:00:00');
+      const slots = await getAvailableSlots(pitch.id, date);
+      setAvailableSlots(slots);
+    } catch (error) {
+      console.error('Error fetching slots:', error);
+      setAvailableSlots([]);
+    }
+    setLoadingSlots(false);
+  };
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-950">
+      <div className="relative">
+        <div className="animate-ping absolute inset-0 bg-primary/20 rounded-full"></div>
+        <div className="bg-primary/10 p-6 rounded-full border border-primary/20 relative">
+          <span className="material-symbols-rounded text-3xl text-primary animate-pulse">sports_soccer</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (!pitch) return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-center">
+      <div className="bg-slate-900/50 backdrop-blur-xl p-8 rounded-[3rem] shadow-sm border border-white/5">
+        <span className="material-symbols-rounded text-5xl text-slate-500 mb-4">error</span>
+        <p className="font-extrabold text-xl text-white mb-1">Pitch not found</p>
+        <button onClick={() => navigate(-1)} className="mt-4 text-primary font-black uppercase text-[10px] tracking-widest">Go Back</button>
+      </div>
+    </div>
+  );
+
+  const toggleAddOn = (id: string) => {
+    if (selectedAddOns.includes(id)) setSelectedAddOns(prev => prev.filter(x => x !== id));
+    else setSelectedAddOns(prev => [...prev, id]);
+  };
+
+  const calculateTotal = () => {
+    let total = selectedSlot?.price || pitch.price_per_hour || pitch.pricePerHour || 0;
+    selectedAddOns.forEach(id => {
+      const addon = ADD_ONS.find(a => a.id === id);
+      if (addon) total += addon.price;
+    });
+    return total;
+  };
+
+  const handleBookingClick = () => {
+    if (!selectedSlot) return;
+
+    supabase.auth.getUser().then(({ data: { user: authUser } }) => {
+      if (!authUser) return;
+
+      supabase.from('user_profiles').select('phone').eq('id', authUser.id).single().then(({ data: profile }) => {
+        if (!profile?.phone) {
+          alert('⚠️ Phone Number Required\n\nPlease add your phone number in your profile before making a booking.');
+          navigate('/profile');
+          return;
+        }
+        setShowConfirmModal(true);
+      });
+    });
+  };
+
+  const handleConfirmBooking = async () => {
+    setShowConfirmModal(false);
+    setIsBooking(true);
+
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) throw new Error('User not authenticated');
+
+      await createBookingRequest({
+        pitch: pitch.id,
+        user: authUser.id,
+        start_time: new Date(selectedSlot.start),
+        end_time: new Date(selectedSlot.end),
+        total_price: calculateTotal()
+      });
+
+      setIsBooking(false);
+      setShowSuccessModal(true);
+    } catch (error) {
+      setIsBooking(false);
+      alert(error instanceof Error ? error.message : 'Failed to create booking.');
+    }
+  };
+
+  const handleSuccessClose = () => {
+    setShowSuccessModal(false);
+    navigate('/');
+  };
+
+  const imagesArray = ensureArray(pitch.images, pitch.image);
+
+  return (
+    <div className="bg-slate-950 text-white antialiased min-h-screen pb-[calc(80px+env(safe-area-inset-bottom))] font-display">
+      <div className="max-w-[430px] mx-auto min-h-screen relative flex flex-col">
+        {/* Hero Section */}
+        <div className="relative h-[400px] w-full shrink-0">
+          {imagesArray.length > 0 ? (
+            <img
+              src={getImageUrl(imagesArray[0], 'pitch-images', pitch.id)}
+              alt={pitch.name}
+              className="w-full h-full object-cover cursor-pointer transition-transform duration-[2s]"
+              onClick={() => {
+                setCurrentImageIndex(0);
+                setViewingImages(true);
+              }}
+            />
+          ) : (
+            <img
+              src={getRealPlaceholderImage(pitch.id, pitch.surface === 'Indoor' ? 'indoor' : 'pitch')}
+              className="w-full h-full object-cover"
+              alt={pitch.name}
+            />
+          )}
+
+          {/* Top Floating Buttons */}
+          <div className="absolute top-12 left-6 right-6 flex justify-between items-center z-20">
+            <button
+              onClick={() => navigate(-1)}
+              className="w-10 h-10 rounded-full bg-slate-950/20 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-90 transition-all"
+            >
+              <span className="material-symbols-rounded text-2xl">chevron_left</span>
+            </button>
+            <div className="flex gap-2">
+              <button className="w-10 h-10 rounded-full bg-slate-950/20 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-90 transition-all">
+                <span className="material-symbols-rounded text-xl">share</span>
+              </button>
+              <button className="w-10 h-10 rounded-full bg-slate-950/20 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-90 transition-all">
+                <span className="material-symbols-rounded text-xl">favorite_border</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Rating Badge Overlay */}
+          <div className="absolute bottom-10 left-6 z-20">
+            <div className="px-3 py-1.5 bg-primary rounded-full text-black text-xs font-bold flex items-center gap-1 shadow-lg shadow-primary/20">
+              <span className="material-symbols-rounded text-sm fill-1">star</span>
+              4.9 (120+ Reviews)
+            </div>
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="px-6 pt-8 -mt-6 rounded-t-[32px] bg-slate-950 z-10 flex-grow">
+          {/* Title & Price Section */}
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-2xl font-extrabold tracking-tight mb-1 text-white">{pitch.name}</h1>
+              <div className="flex items-center text-slate-400 text-sm font-medium">
+                <span className="material-symbols-rounded text-primary text-base mr-1">location_on</span>
+                {(Array.isArray(pitch.complexes) ? pitch.complexes[0] : pitch.complexes)?.name || 'Premium Venue'}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Per Hour</div>
+              <div className="text-xl font-bold text-primary">{pitch.price_per_hour || 45}.00 TND</div>
+            </div>
+          </div>
+
+          {/* Amenities Chips */}
+          <div className="flex gap-2 mb-8 overflow-x-auto no-scrollbar pb-1">
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 backdrop-blur-md rounded-full whitespace-nowrap shadow-sm border border-white/5">
+              <span className="material-symbols-rounded text-primary text-lg">wifi</span>
+              <span className="text-sm font-medium">Free WiFi</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 backdrop-blur-md rounded-full whitespace-nowrap shadow-sm border border-white/5">
+              <span className="material-symbols-rounded text-primary text-lg">local_parking</span>
+              <span className="text-sm font-medium">Parking</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 backdrop-blur-md rounded-full whitespace-nowrap shadow-sm border border-white/5">
+              <span className="material-symbols-rounded text-primary text-lg">shower</span>
+              <span className="text-sm font-medium">Showers</span>
+            </div>
+          </div>
+
+          {/* About Section */}
+          <div className="mb-8">
+            <h2 className="text-lg font-bold mb-3">About Venue</h2>
+            <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+              Experience {pitch.name} at {(Array.isArray(pitch.complexes) ? pitch.complexes[0] : pitch.complexes)?.name}.
+              Featuring high-quality {pitch.surface || 'Field'} surface, {pitch.size || 'standard'} size, and premium facilities.
+              Perfect for both competitive play and leisure sessions with friends.
+            </p>
+          </div>
+
+          {/* Date Selector */}
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">Select Date</h2>
+              <span className="text-primary text-sm font-bold">
+                {new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 px-0.5">
+              {[0, 1, 2, 3, 4, 5, 6].map(idx => {
+                const date = new Date();
+                date.setDate(date.getDate() + idx);
+                const dateStr = date.toISOString().split('T')[0];
+                const isSelected = selectedDate === dateStr;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedDate(dateStr)}
+                    className={`flex flex-col items-center justify-center min-w-[64px] h-20 rounded-2xl transition-all duration-300 shadow-sm ${isSelected
+                      ? 'bg-primary text-black'
+                      : 'bg-slate-900/50 text-slate-500 border border-white/5'
+                      }`}
+                  >
+                    <span className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${isSelected ? 'text-black' : 'text-slate-400'}`}>
+                      {date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
+                    </span>
+                    <span className={`text-lg font-extrabold ${isSelected ? 'text-black' : 'dark:text-slate-200'}`}>
+                      {date.getDate()}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            {/* Custom Date Input for flexibility */}
+            <div className="mt-4 flex items-center justify-between px-1">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Or Pick Other:</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                className="text-xs font-black bg-slate-900/50 text-white border-none rounded-lg focus:ring-1 focus:ring-primary h-8"
+              />
+            </div>
+          </div>
+
+          {/* Time Selector */}
+          <div className="mb-8 pb-4">
+            <h2 className="text-lg font-bold mb-4">Select Time Slot</h2>
+            {loadingSlots ? (
+              <div className="bg-slate-900/50 backdrop-blur-md p-12 rounded-[2rem] flex flex-col items-center justify-center border border-white/5">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-3"></div>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Checking slots...</p>
+              </div>
+            ) : availableSlots.length === 0 ? (
+              <div className="bg-slate-900/50 backdrop-blur-md p-12 rounded-[2rem] text-center border border-white/5">
+                <span className="material-symbols-rounded text-4xl text-slate-700 mb-2">event_busy</span>
+                <p className="text-xs font-black text-slate-500 uppercase tracking-widest">No slots today</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                {availableSlots.map((slot, idx) => {
+                  const startTime = new Date(slot.start).toLocaleTimeString('en-US', {
+                    hour: '2-digit', minute: '2-digit', hour12: true
+                  });
+                  const isSelected = selectedSlot?.start === slot.start;
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => slot.available && setSelectedSlot(slot)}
+                      disabled={!slot.available}
+                      className={`py-3 px-2 rounded-xl text-[11px] font-bold transition-all border ${!slot.available
+                        ? 'bg-slate-900/20 border-white/5 text-slate-700 opacity-50 cursor-not-allowed'
+                        : isSelected
+                          ? 'bg-primary text-black border-primary scale-[1.02]'
+                          : 'bg-slate-900/50 border-white/5 text-slate-300 hover:border-primary'
+                        }`}
+                    >
+                      {startTime}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Button Section - Sticky at bottom */}
+        <div className="fixed bottom-0 left-0 right-0 p-6 bg-slate-950/80 backdrop-blur-xl border-t border-white/10 max-w-[430px] mx-auto z-50 rounded-t-[32px] shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.5)] pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+          <div className="flex flex-col gap-3">
+            {selectedSlot && (
+              <div className="flex justify-between items-center px-2">
+                <div>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Selected Slot</p>
+                  <p className="text-sm font-bold">{new Date(selectedSlot.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Price</p>
+                  <p className="text-sm font-extrabold text-primary">{calculateTotal()} TND</p>
+                </div>
+              </div>
+            )}
+            <button
+              disabled={!selectedSlot || isBooking}
+              onClick={handleBookingClick}
+              className="w-full bg-primary hover:bg-opacity-90 text-black py-4 rounded-2xl font-extrabold text-lg shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-30 flex items-center justify-center gap-2"
+            >
+              {isBooking ? (
+                <>
+                  <div className="animate-spin h-5 w-5 border-2 border-black border-t-transparent rounded-full" />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                "Book Now"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        title="Review Booking"
+        message="Review your session details before confirming:"
+        details={[
+          { label: 'Pitch', value: pitch.name },
+          { label: 'Date', value: new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) },
+          { label: 'Time', value: selectedSlot ? `${new Date(selectedSlot.start).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}` : '' },
+          { label: 'Amount', value: `${calculateTotal()} TND (Cash)` }
+        ]}
+        confirmText="Confirm"
+        cancelText="Edit"
+        onConfirm={handleConfirmBooking}
+        onCancel={() => setShowConfirmModal(false)}
+      />
+
+      <SuccessModal
+        isOpen={showSuccessModal}
+        title="Booking Sent!"
+        message={`Your request has been sent. Bring ${calculateTotal()} TND in cash on arrival once approved.`}
+        buttonText="Back to Grounds"
+        onClose={handleSuccessClose}
+      />
+
+      {imagesArray.length > 0 && (
+        <ImageViewer
+          isOpen={viewingImages}
+          images={imagesArray}
+          currentIndex={currentImageIndex}
+          collectionName="pitches"
+          recordId={pitch.id}
+          onClose={() => setViewingImages(false)}
+          onNext={() => {
+            if (currentImageIndex < imagesArray.length - 1) {
+              setCurrentImageIndex(currentImageIndex + 1);
+            }
+          }}
+          onPrevious={() => {
+            if (currentImageIndex > 0) {
+              setCurrentImageIndex(currentImageIndex - 1);
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+const BookingConfirmPage = () => {
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const [isPaid, setIsPaid] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  if (!state) return null;
+
+  const handlePay = async () => {
+    setLoading(true);
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) throw new Error('User not authenticated');
+
+      await createBookingRequest({
+        pitch: state.pitch.id,
+        user: authUser.id,
+        start_time: new Date(state.slot.start),
+        end_time: new Date(state.slot.end),
+        total_price: state.total
+      });
+
+      setIsPaid(true);
+    } catch (error) {
+      console.error('Booking failed:', error);
+      alert(error instanceof Error ? error.message : 'Booking failed. Please try again.');
+    }
+    setLoading(false);
+  };
+
+  if (isPaid) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-8 text-center overflow-auto pb-20">
+        <div className="bg-primary text-slate-950 p-5 rounded-full mb-6 animate-bounce shadow-2xl">
+          <Trophy size={48} />
+        </div>
+        <h1 className="text-4xl font-black mb-2 tracking-tight">PENDING APPROVAL!</h1>
+        <p className="opacity-60 mb-10 font-medium">The owner will review your request soon</p>
+
+        <div className="bg-slate-900/50 backdrop-blur-xl text-white p-8 rounded-[2.5rem] w-full max-w-sm shadow-2xl mb-10 border border-white/5 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-2 bg-primary/10"></div>
+          <div className="flex justify-center mb-6">
+            <div className="bg-white p-3 rounded-3xl">
+              <QrCode size={140} className="text-slate-900" />
+            </div>
+          </div>
+          <div className="bg-white/5 p-4 rounded-2xl mb-6 border border-white/5 text-white">
+            <p className="text-center font-black text-2xl tracking-[0.2em]">4829</p>
+            <p className="text-center text-[10px] font-black text-slate-500 mt-1 uppercase tracking-widest">Digital Access Code</p>
+          </div>
+
+          <div className="text-left text-sm space-y-4">
+            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+              <span className="text-slate-500 font-bold text-xs uppercase">Pitch</span>
+              <span className="font-black text-white">{state.pitch.name}</span>
+            </div>
+            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+              <span className="text-slate-500 font-bold text-xs uppercase">Schedule</span>
+              <span className="font-black text-white text-right">
+                {new Date(state.slot.start).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                <br />
+                {new Date(state.slot.start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - {new Date(state.slot.end).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-bold text-xs uppercase">Paid</span>
+              <span className="font-black text-primary text-xl">£{state.total}</span>
+            </div>
+          </div>
+        </div>
+
+        <button onClick={() => navigate('/')} className="w-full bg-white/5 text-primary py-4 rounded-[2rem] font-black shadow-xl active:scale-95 transition-all text-xs tracking-widest uppercase border border-white/5 hover:bg-white/10">
+          BACK TO DASHBOARD
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950 p-6 flex flex-col pb-safe">
+      <div className="flex items-center justify-between mb-8 pt-6">
+        <button onClick={() => navigate(-1)} className="bg-slate-900/50 backdrop-blur-md p-3 rounded-2xl shadow-sm border border-white/5 text-white"><ChevronLeft size={20} /></button>
+        <h1 className="text-xs font-black tracking-[0.2em] text-slate-500 uppercase">Checkout</h1>
+        <div className="w-10"></div>
+      </div>
+
+      <div className="bg-slate-900/50 backdrop-blur-md p-6 rounded-[2rem] shadow-sm border border-white/5 mb-6">
+        <h2 className="font-black text-white text-lg mb-6 tracking-tight">Booking Summary</h2>
+        <div className="flex gap-4 mb-6 p-3 bg-white/5 rounded-2xl border border-white/5">
+          <img
+            src={(() => {
+              const images = ensureArray(state.pitch.images, state.pitch.image);
+              const firstImage = images[0];
+              return firstImage ? getImageUrl(firstImage, 'pitch-images', state.pitch.id) : getRealPlaceholderImage(state.pitch.id, state.pitch.surface === 'Indoor' ? 'indoor' : 'pitch');
+            })()}
+            className="w-16 h-16 rounded-xl object-cover"
+          />
+          <div>
+            <p className="font-black text-white leading-tight mb-1">{state.pitch.name}</p>
+            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{state.date} • {state.time}</p>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div className="flex justify-between text-xs font-bold text-slate-400">
+            <span className="uppercase tracking-widest opacity-60">Pitch Fee</span>
+            <span className="text-white font-black">£{state.pitch.price_per_hour || state.pitch.pricePerHour || 0}</span>
+          </div>
+          <div className="flex justify-between text-xs font-bold text-slate-400">
+            <span className="uppercase tracking-widest opacity-60">Service Fee</span>
+            <span className="text-white font-black">£2.00</span>
+          </div>
+          <div className="border-t border-white/5 pt-4 mt-2 flex justify-between items-center">
+            <span className="text-xs font-black text-white uppercase tracking-widest">Total Amount</span>
+            <span className="text-2xl font-black text-primary tracking-tight">£{state.total + 2}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-slate-900/50 backdrop-blur-md p-6 rounded-[2rem] shadow-sm border border-white/5 mb-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-black text-white tracking-tight uppercase tracking-widest text-[10px]">PAYSPLIT™</h3>
+          <div className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase">ACTIVE</div>
+        </div>
+        <p className="text-[10px] text-slate-500 font-bold mb-6 leading-relaxed">Pay the full amount now, or split with your team members automatically. Points will be awarded to all payers.</p>
+        <div className="flex gap-3">
+          <button className="flex-1 py-3 border-2 border-white/5 rounded-2xl text-[10px] font-black text-slate-500 tracking-widest uppercase hover:border-primary/20 transition-all">SPLIT (1/10)</button>
+          <button className="flex-1 py-3 border-2 border-primary bg-primary/5 text-primary rounded-2xl text-[10px] font-black tracking-widest uppercase shadow-md shadow-primary/5">PAY ALL</button>
+        </div>
+      </div>
+
+      <button
+        disabled={loading}
+        onClick={handlePay}
+        className="w-full bg-primary text-slate-900 py-5 rounded-[2rem] font-black shadow-2xl hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-3 mt-8 disabled:opacity-50"
+      >
+        {loading ? (
+          <div className="animate-spin h-5 w-5 border-2 border-slate-900 border-t-transparent rounded-full"></div>
+        ) : (
+          <>
+            <CreditCard size={20} className="text-slate-900/40" />
+            <span className="text-xs tracking-[0.25em] uppercase">Pay with Apple Pay</span>
+          </>
+        )}
+      </button>
+    </div>
+  );
+};
+
+// ==========================================
+// 1. USER BOOKINGS PAGE (PLAYER HISTORY)
+// ==========================================
+const UserBookingsPage = () => {
+  const navigate = useNavigate();
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [filter, setFilter] = useState('upcoming');
+  const [loading, setLoading] = useState(true);
+  const [cancellingBooking, setCancellingBooking] = useState<any>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // Fix for Mobile/Safari date parsing (SQL -> ISO)
+  const safeDate = (dateInput: any): Date => {
+    if (!dateInput) return new Date();
+    if (dateInput instanceof Date) return dateInput;
+    // Replace space with T for ISO 8601 compliance
+    return new Date(dateInput.replace(' ', 'T'));
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const fetchBookings = async () => {
+    setLoading(true);
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) {
+      setLoading(false);
+      return;
+    }
+    const data = await getUserBookings(authUser.id);
+    setBookings(data || []);
+    setLoading(false);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancellingBooking) return;
+    setIsCancelling(true);
+    try {
+      await requestCancellation(cancellingBooking.id);
+      setCancellingBooking(null);
+      setIsCancelling(false);
+      setShowSuccessModal(true);
+      fetchBookings();
+    } catch (error) {
+      setIsCancelling(false);
+      setErrorMessage('Failed to send cancel request.');
+      setShowErrorModal(true);
+    }
+  };
+
+  const getFilteredBookings = () => {
+    const now = new Date();
+    switch (filter) {
+      case 'upcoming':
+        return bookings.filter(b => {
+          const endTime = safeDate(b.end_time || b.start_time);
+          return endTime >= now && (['pending', 'approved', 'cancel_request'].includes(b.status) || (!b.status && b.access_code));
+        });
+      case 'past':
+        return bookings.filter(b => safeDate(b.end_time || b.start_time) < now);
+      case 'cancelled':
+        return bookings.filter(b => b.status === 'cancelled' || b.status === 'rejected');
+      default:
+        return bookings;
+    }
+  };
+
+  const filteredBookings = getFilteredBookings();
+
+  const getStatusBadge = (booking: any) => {
+    const isPast = safeDate(booking.start_time) < new Date();
+    if (isPast && booking.status === 'approved') {
+      return <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black uppercase tracking-widest">Completed</span>;
+    }
+    switch (booking.status) {
+      case 'pending': return <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-amber-100 italic">Pending</span>;
+      case 'approved': return <span className="px-3 py-1 bg-primary/10 text-primary-dark rounded-lg text-[10px] font-black uppercase tracking-widest border border-primary/20 shadow-sm shadow-primary/5">Confirmed</span>;
+      case 'cancel_request': return <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-orange-100 italic">Cancelling...</span>;
+      default: return <span className="px-3 py-1 bg-slate-50 text-slate-400 rounded-lg text-[10px] font-black uppercase tracking-widest">{booking.status?.toUpperCase() || 'UNKNOWN'}</span>;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 pb-[calc(8rem+env(safe-area-inset-bottom))]">
+      <header className="px-6 pt-[calc(3rem+env(safe-area-inset-top))] pb-6 sticky top-0 z-40 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] mb-1 opacity-60">Activity Hub</p>
+            <h1 className="text-3xl font-black tracking-tighter text-white leading-none">My <span className="text-primary italic">Matches</span></h1>
+          </div>
+          <div className="w-12 h-12 bg-white/5 rounded-[1.2rem] flex items-center justify-center border border-white/10 text-primary">
+            <span className="material-symbols-rounded text-2xl">confirmation_number</span>
+          </div>
+        </div>
+
+        <div className="flex gap-2 p-1 bg-white/5 rounded-[1.2rem] border border-white/5 overflow-x-auto no-scrollbar">
+          {[
+            { key: 'upcoming', label: 'Active', icon: 'bolt' },
+            { key: 'past', label: 'History', icon: 'history' },
+            { key: 'cancelled', label: 'Others', icon: 'close' }
+          ].map(({ key, label, icon }) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-2.5 rounded-[0.8rem] transition-all duration-300 ${filter === key
+                ? 'bg-primary text-slate-900 shadow-lg shadow-primary/20'
+                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                }`}
+            >
+              <span className={`material-symbols-rounded text-sm ${filter === key ? 'text-slate-900' : ''}`}>{icon}</span>
+              <span className="text-[10px] font-black uppercase tracking-wider">{label}</span>
+            </button>
+          ))}
+        </div>
+      </header>
+
+      <div className="px-6 mt-4 space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        {loading ? (
+          <div className="bg-white/5 p-16 rounded-[2.5rem] flex flex-col items-center justify-center border border-white/5">
+            <div className="animate-spin h-10 w-10 border-2 border-primary border-t-transparent rounded-full mb-4"></div>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] animate-pulse">Loading...</p>
+          </div>
+        ) : filteredBookings.length === 0 ? (
+          <div className="bg-white/5 p-12 rounded-[2.5rem] text-center border border-white/5">
+            <span className="material-symbols-rounded text-4xl text-slate-700 mb-4">sports_soccer</span>
+            <p className="text-white font-black text-lg tracking-tight uppercase mb-4">No Matches Found</p>
+            <button onClick={() => navigate('/')} className="bg-white/5 hover:bg-white/10 text-primary px-6 py-3 rounded-full font-black text-[10px] uppercase tracking-widest transition-colors">Find a Pitch</button>
+          </div>
+        ) : (
+          filteredBookings.map(booking => {
+            const pitch = getRelation(booking, 'pitches');
+            const complex = pitch ? getRelation(pitch, 'complexes') : null;
+            const startTime = safeDate(booking.start_time);
+            const hoursUntil = (startTime.getTime() - new Date().getTime()) / (1000 * 60 * 60);
+            const canCancel = !(safeDate(booking.start_time) < new Date()) &&
+              (booking.status === 'pending' || booking.status === 'approved') &&
+              hoursUntil >= 24;
+
+            return (
+              <div key={booking.id} className="bg-slate-900/50 backdrop-blur-md p-5 rounded-[2rem] border border-white/5 relative overflow-hidden group">
+                {/* Glow Effect */}
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-[40px] group-hover:bg-primary/10 transition-all duration-700"></div>
+
+                <div className="relative z-10">
+                  {/* Top Row: Date & Status */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-white/5 p-2.5 rounded-xl border border-white/5 text-primary">
+                        <span className="material-symbols-rounded text-lg">calendar_today</span>
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-black text-white uppercase leading-none mb-0.5">
+                          {startTime.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                          {startTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })}
+                        </p>
+                      </div>
+                    </div>
+                    {getStatusBadge(booking)}
+                  </div>
+
+                  {/* Middle Row: Venue Info */}
+                  <div className="mb-4 pl-1">
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 truncate">{complex?.name || 'Venue'}</p>
+                    <h3 className="font-black text-xl text-white tracking-tight truncate group-hover:text-primary transition-colors">{pitch?.name || 'Pro Pitch'}</h3>
+                  </div>
+
+                  {/* Bottom Row: Price & Actions */}
+                  <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-black text-white tracking-tight">{booking.total_price}</span>
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-0.5">TND</span>
+                    </div>
+
+                    <div className="flex gap-2 items-center">
+                      {booking.status === 'approved' && (
+                        <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20">
+                          <Zap size={12} className="text-primary" />
+                          <span className="text-[10px] font-black text-primary tracking-widest font-mono">{booking.access_code}</span>
+                        </div>
+                      )}
+
+                      {canCancel && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setCancellingBooking(booking); }}
+                          className="w-8 h-8 flex items-center justify-center rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-all"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {cancellingBooking && (
+        <ConfirmationModal
+          isOpen={true}
+          title="Cancel Match?"
+          message="Are you sure you want to request a cancellation? This action cannot be undone."
+          confirmText={isCancelling ? 'Processing...' : 'Confirm Cancel'}
+          onConfirm={handleConfirmCancel}
+          onCancel={() => setCancellingBooking(null)}
+          type="warning"
+        />
+      )}
+      <SuccessModal isOpen={showSuccessModal} title="Request Sent" message="Cancellation request submitted to the venue owner." onClose={() => setShowSuccessModal(false)} />
+      <SuccessModal isOpen={showErrorModal} title="Error" message={errorMessage} onClose={() => setShowErrorModal(false)} />
+    </div>
+  );
+};
+
+// ==========================================
+// 2. OWNER BOOKINGS PAGE (MANAGER CENTER)
+// ==========================================
+const OwnerBookingsPage = () => {
+  const { complexId } = useParams();
+  const navigate = useNavigate();
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [filter, setFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [cancellingBooking, setCancellingBooking] = useState<any>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    if (complexId) fetchBookings();
+  }, [complexId, filter]);
+
+  const fetchBookings = async () => {
+    setLoading(true);
+    const status = filter === 'all' ? undefined : filter;
+    const data = await getComplexBookings(complexId!, status);
+    setBookings(data || []);
+    setLoading(false);
+  };
+
+  const handleAction = async (id: string, status: string, isCancel = false) => {
+    try {
+      if (isCancel) await cancelBooking(id);
+      else await updateBookingStatus(id, status as any);
+      fetchBookings();
+    } catch (e) {
+      setErrorMessage('Action failed. Please try again.');
+      setShowErrorModal(true);
+    }
+  };
+
+  // Generate date options for the next 7 days
+  const getDateOptions = () => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      dates.push(date);
+    }
+    return dates;
+  };
+
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const dateOptions = getDateOptions();
+  const today = new Date();
+  const isToday = (date: Date) => {
+    return date.toDateString() === today.toDateString();
+  };
+
+  const getRelation = (booking: any, relation: string) => {
+    const rel = booking[relation];
+    return Array.isArray(rel) ? rel[0] : rel;
+  };
+
+  const getStatusBadge = (status: string) => {
+    if (status === 'approved') {
+      return 'bg-primary text-slate-950';
+    } else if (status === 'pending') {
+      return 'bg-orange-500 text-white';
+    } else if (status === 'cancel_request' || status === 'rejected') {
+      return 'bg-red-500 text-white';
+    }
+    return 'bg-slate-500 text-white';
+  };
+
+  const getStatusText = (status: string) => {
+    if (status === 'approved') return 'CONFIRMED';
+    if (status === 'pending') return 'PENDING';
+    if (status === 'cancel_request') return 'CANC';
+    if (status === 'rejected') return 'CANCELLED';
+    return status.toUpperCase();
+  };
+
+  const getSportIcon = (pitchName: string) => {
+    const name = (pitchName || '').toLowerCase();
+    if (name.includes('football') || name.includes('soccer')) {
+      return 'sports_soccer';
+    } else if (name.includes('padel') || name.includes('tennis')) {
+      return 'sports_tennis';
+    } else if (name.includes('basketball')) {
+      return 'sports_basketball';
+    }
+    return 'sports_soccer';
+  };
+
+  // Filter bookings by search query and selected date
+  const filteredBookings = bookings.filter(booking => {
+    // Filter by date if one is selected
+    if (selectedDate) {
+      const bookingDate = new Date(booking.start_time);
+      const selectedDateStr = selectedDate.toDateString();
+      const bookingDateStr = bookingDate.toDateString();
+      if (bookingDateStr !== selectedDateStr) {
+        return false;
+      }
+    }
+    // If no date selected, show all bookings (no date filter)
+
+    // Filter by search query
+    if (searchQuery) {
+      const pitch = getRelation(booking, 'pitches');
+      const user = getRelation(booking, 'user_profiles');
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        (pitch?.name || '').toLowerCase().includes(searchLower) ||
+        (user?.name || '').toLowerCase().includes(searchLower)
+      );
+    }
+
+    return true;
+  });
+
+  return (
+    <div className="min-h-screen bg-slate-950 pb-24 font-sans">
+      {/* Header */}
+      <div className="bg-slate-950 px-6 pt-[calc(3rem+env(safe-area-inset-top))] pb-6 border-b border-white/5 sticky top-0 z-50 backdrop-blur-xl bg-slate-950/80">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/owner')} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-white flex items-center justify-center transition-all active:scale-90">
+              <ChevronLeft size={20} />
+            </button>
+            <div>
+              <h1 className="text-2xl font-black tracking-tighter text-white leading-none">
+                Manage <span className="text-primary">Bookings</span>
+              </h1>
+            </div>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
+            <User size={20} className="text-slate-400" />
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mb-4">
+          <div className="relative">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search customer or pitch..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-900/60 border border-white/5 rounded-2xl pl-12 pr-4 py-3.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-primary/30 transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Date Selector */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar mb-4 pb-2">
+          {dateOptions.map((date, index) => {
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+            const dayNum = date.getDate();
+            // Check if this date has any bookings
+            const hasBookings = bookings.some(booking => {
+              const bookingDate = new Date(booking.start_time);
+              return bookingDate.toDateString() === date.toDateString();
+            });
+            const isSelected = selectedDate 
+              ? date.toDateString() === selectedDate.toDateString() 
+              : false;
+            
+            return (
+              <button
+                key={index}
+                onClick={() => {
+                  // Toggle: if clicking the same date, deselect it (show all)
+                  if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
+                    setSelectedDate(null);
+                  } else {
+                    setSelectedDate(date);
+                  }
+                }}
+                className={`flex-shrink-0 px-4 py-2.5 rounded-full text-[11px] font-black uppercase tracking-tight transition-all relative ${
+                  isSelected
+                    ? 'bg-primary text-slate-950 shadow-lg shadow-primary/20'
+                    : 'bg-slate-900/60 text-white border border-white/5'
+                } ${!hasBookings ? 'opacity-50' : ''}`}
+              >
+                {dayName} {dayNum}
+                {hasBookings && !isSelected && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Status Filters */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          {['all', 'approved', 'pending', 'cancel_request'].map(s => (
+            <button
+              key={s}
+              onClick={() => setFilter(s)}
+              className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                filter === s
+                  ? 'bg-slate-900/60 text-white border border-white/5'
+                  : 'bg-transparent text-slate-400 hover:text-white'
+              }`}
+            >
+              {s === 'cancel_request' ? 'CANC' : s.replace('_', ' ').toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Bookings List */}
+      <div className="px-6 pt-6 space-y-3">
+        {loading ? (
+          <div className="bg-slate-900/50 p-24 rounded-3xl flex flex-col items-center justify-center border border-white/5">
+            <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full mb-6"></div>
+            <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest">Loading bookings...</p>
+          </div>
+        ) : filteredBookings.length === 0 ? (
+          <div className="bg-slate-900/30 p-20 rounded-3xl text-center border border-white/5">
+            <p className="text-slate-300 font-black uppercase tracking-widest text-[10px]">No bookings found</p>
+          </div>
+        ) : (
+          filteredBookings.map(booking => {
+            const pitch = getRelation(booking, 'pitches');
+            const user = getRelation(booking, 'user_profiles');
+            const startTime = new Date(booking.start_time);
+            const endTime = new Date(booking.end_time);
+
+            return (
+              <div key={booking.id} className="bg-slate-900/60 rounded-3xl p-5 border border-white/5 group hover:bg-slate-900 transition-all">
+                <div className="flex items-center gap-4">
+                  {/* Sport Icon */}
+                  <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <span className={`material-symbols-rounded text-3xl text-primary`}>{getSportIcon(pitch?.name || '')}</span>
+                  </div>
+
+                  {/* Booking Info */}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-black text-[15px] text-white uppercase tracking-tight mb-1 truncate">
+                      {pitch?.name || 'Main Pitch'}
+                    </h4>
+                    <p className="text-[12px] text-slate-300 font-bold mb-1">
+                      {startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - {endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                      <span className="material-symbols-rounded text-sm">person</span>
+                      <span className="w-1 h-1 bg-slate-500 rounded-full"></span>
+                      <span>{user?.name || 'Player'}</span>
+                    </div>
+                  </div>
+
+                  {/* Status Badge and Menu */}
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${getStatusBadge(booking.status)}`}>
+                      {getStatusText(booking.status)}
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (booking.status === 'pending') {
+                          handleAction(booking.id, 'approved');
+                        } else if (booking.status === 'cancel_request') {
+                          handleAction(booking.id, 'cancelled', true);
+                        }
+                      }}
+                      className="w-8 h-8 bg-white/5 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
+                    >
+                      <span className="material-symbols-rounded text-lg text-slate-400">more_vert</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+      <SuccessModal isOpen={showErrorModal} title="Error" message={errorMessage} onClose={() => setShowErrorModal(false)} />
+    </div>
+  );
+};
+
+const OwnerPitchesPage = () => {
+  const { complexId } = useParams();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'pitches' | 'complex' | 'images'>('pitches');
+  const [pitches, setPitches] = useState<any[]>([]);
+  const [complex, setComplex] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [editingPitch, setEditingPitch] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [settings, setSettings] = useState({
+    description: '',
+    phone: '',
+    email: '',
+    facilities: [] as string[]
+  });
+
+  const availableFacilities = [
+    'Parking', 'Changing Rooms', 'Showers', 'Cafe', 'WiFi',
+    'First Aid', 'Equipment Rental', 'Coaching', 'Floodlights',
+    'Spectator Seating', 'Disability Access', 'Security'
+  ];
+
+  useEffect(() => {
+    if (complexId) {
+      fetchData();
+    }
+  }, [complexId]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [pitchesData, complexData] = await Promise.all([
+        getPitchesByComplex(complexId!),
+        getComplex(complexId!)
+      ]);
+      setPitches(pitchesData);
+      setComplex(complexData);
+      setSettings({
+        description: complexData.description || '',
+        phone: complexData.phone || '',
+        email: complexData.email || '',
+        facilities: complexData.facilities || []
+      });
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+    setLoading(false);
+  };
+
+  const fetchPitches = async () => {
+    const data = await getPitchesByComplex(complexId!);
+    setPitches(data);
+  };
+
+  const handleSaveSettings = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('complexes')
+        .update(settings)
+        .eq('id', complexId!);
+
+      if (error) throw error;
+      setSaving(false);
+      setShowSuccessModal(true);
+      fetchData();
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      setSaving(false);
+      setErrorMessage('Failed to save settings. Please try again.');
+      setShowErrorModal(true);
+    }
+  };
+
+  const toggleFacility = (facility: string) => {
+    setSettings(prev => ({
+      ...prev,
+      facilities: prev.facilities.includes(facility)
+        ? prev.facilities.filter(f => f !== facility)
+        : [...prev.facilities, facility]
+    }));
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 px-8 text-center">
+        <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full mb-6"></div>
+        <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Establishing Link...</p>
+      </div>
+    );
+  }
+
+  if (!complex) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <p className="text-slate-500 uppercase font-black tracking-widest text-xs italic">Signal Lost - Venue Not Found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950 pb-32 font-sans">
+      {/* Header */}
+      <div className="bg-slate-950 px-6 pt-[calc(3rem+env(safe-area-inset-top))] pb-6 border-b border-white/5 sticky top-0 z-50 backdrop-blur-xl bg-slate-950/80">
+        <div className="flex items-center gap-4 mb-6">
+          <button onClick={() => navigate('/owner')} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-white flex items-center justify-center transition-all active:scale-90">
+            <ChevronLeft size={20} />
+          </button>
+          <h1 className="text-2xl font-black tracking-tighter text-white leading-none">
+            Edit Pitch <span className="text-primary">Details</span>
+          </h1>
+        </div>
+
+        {/* Tab Selector */}
+        <div className="flex bg-white/5 rounded-2xl p-1 border border-white/5">
+          {(['pitches', 'complex', 'images'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-primary text-slate-900 shadow-lg shadow-primary/10' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-6 pt-6">
+        {activeTab === 'pitches' && (
+          <div className="space-y-6">
+            {/* Section Header */}
+            <div className="mb-2">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">YOUR INVENTORY</p>
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-black text-white leading-none">
+                  Active Pitches <span className="text-primary">{pitches.length}</span>
+                </h2>
+                <button
+                  className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center hover:bg-primary/20 transition-all active:scale-90"
+                  onClick={() => setEditingPitch({ name: '', size: '11 a side', surface: 'Grass', price_per_hour: 0, complex_id: complexId })}
+                >
+                  <span className="material-symbols-rounded text-xl">delete</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Pitch Cards */}
+            {pitches.map((pitch) => {
+              const getPitchIcon = () => {
+                const name = (pitch.name || pitch.Name || '').toLowerCase();
+                if (name.includes('football') || name.includes('soccer')) {
+                  return 'sports_soccer';
+                } else if (name.includes('padel') || name.includes('tennis')) {
+                  return 'sports_tennis';
+                } else if (name.includes('basketball')) {
+                  return 'sports_basketball';
+                }
+                return 'sports_soccer';
+              };
+
+              const getPitchType = () => {
+                const name = (pitch.name || pitch.Name || '').toLowerCase();
+                if (name.includes('indoor')) return 'INDOOR';
+                return 'OUTDOOR';
+              };
+
+              return (
+                <div key={pitch.id} className="bg-slate-900/60 rounded-3xl p-5 border border-white/5 group hover:bg-slate-900 transition-all">
+                  <div className="flex items-center gap-4">
+                    {/* Pitch Image/Icon */}
+                    <div className="w-20 h-20 bg-slate-800 rounded-2xl flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent"></div>
+                      <span className={`material-symbols-rounded text-4xl text-primary relative z-10`}>{getPitchIcon()}</span>
+                    </div>
+
+                    {/* Pitch Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-black text-[16px] text-white uppercase tracking-tight mb-2 truncate">
+                        {pitch.name || pitch.Name}
+                      </h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                          getPitchType() === 'OUTDOOR' 
+                            ? 'bg-primary text-slate-950' 
+                            : 'bg-blue-500 text-white'
+                        }`}>
+                          {getPitchType()}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-bold">
+                          {pitch.size || pitch.Size} • {pitch.surface}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Edit Button */}
+                    <button
+                      onClick={() => setEditingPitch(pitch)}
+                      className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all border border-white/5"
+                    >
+                      <span className="material-symbols-rounded text-xl text-primary">edit</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Add New Pitch Card */}
+            <div className="bg-slate-900/40 rounded-3xl p-8 border-2 border-dashed border-white/10 text-center">
+              <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Plus size={24} className="text-slate-400" />
+              </div>
+              <p className="text-[12px] text-slate-400 font-bold leading-relaxed mb-6">
+                Expand your venue by adding new facilities or courts to your listing.
+              </p>
+              <button
+                onClick={() => setEditingPitch({ name: '', size: '11 a side', surface: 'Grass', price_per_hour: 0, complex_id: complexId })}
+                className="w-full bg-primary text-slate-950 font-black py-4 rounded-2xl text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Plus size={20} />
+                ADD NEW PITCH
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'complex' && (
+          <div className="space-y-10 animate-in fade-in duration-500">
+            {/* Description Section */}
+            <div>
+              <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest px-2 mb-4 block">About Venue</label>
+              <textarea
+                value={settings.description}
+                onChange={(e) => setSettings({ ...settings, description: e.target.value })}
+                className="w-full bg-slate-900/50 border border-white/5 rounded-[2.5rem] p-6 text-sm font-bold text-white focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-slate-700 min-h-[150px] shadow-inner"
+                placeholder="Share your venue's story..."
+              />
+            </div>
+
+            {/* Contact Grid */}
+            <div className="grid grid-cols-1 gap-6">
+              <div>
+                <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest px-2 mb-4 block">Direct Contact</label>
+                <div className="relative group">
+                  <Phone size={16} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" />
+                  <input
+                    type="tel"
+                    value={settings.phone}
+                    onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+                    className="w-full bg-slate-900/50 border border-white/5 rounded-[1.8rem] pl-14 pr-6 py-4 text-sm font-black text-white focus:ring-2 focus:ring-primary/20 transition-all"
+                    placeholder="Phone Number"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Amenities Section */}
+            <div>
+              <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest px-2 mb-6 block">Venue Tech & Comfort</label>
+              <div className="grid grid-cols-2 gap-3">
+                {availableFacilities.map((facility) => (
+                  <button
+                    key={facility}
+                    onClick={() => toggleFacility(facility)}
+                    className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${settings.facilities.includes(facility) ? 'bg-primary/10 border-primary/20 text-primary shadow-lg shadow-primary/5' : 'bg-slate-900/50 border-white/5 text-slate-500 hover:text-slate-300'}`}
+                  >
+                    <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${settings.facilities.includes(facility) ? 'bg-primary border-primary text-slate-900' : 'bg-slate-950 border-white/10'}`}>
+                      {settings.facilities.includes(facility) && <Check size={12} strokeWidth={4} />}
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-tight">{facility}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Global Actions */}
+            <div className="pt-6 fixed bottom-24 left-8 right-8 z-[60]">
+              <button
+                onClick={handleSaveSettings}
+                disabled={saving}
+                className="w-full bg-primary text-slate-900 font-black py-5 rounded-[2rem] text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50 transition-all"
+              >
+                {saving ? <div className="animate-spin h-5 w-5 border-2 border-slate-900 border-t-transparent rounded-full"></div> : <Save size={20} />}
+                {saving ? 'Syncing...' : 'Deploy Updates'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'images' && (
+          <div className="animate-in fade-in duration-500 space-y-6">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">VENUE GALLERY</p>
+              <h2 className="text-2xl font-black text-white leading-none mb-6">
+                Complex Images
+              </h2>
+              {complex && (
+                <ImageUpload
+                  collection="complexes"
+                  recordId={complex.id}
+                  fieldName="images"
+                  currentImages={ensureArray(complex.images, complex.image)}
+                  maxFiles={10}
+                  onUploadComplete={fetchData}
+                />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Pitch Edit/Create Modal */}
+      {editingPitch && (
+        <PitchEditModal
+          pitch={editingPitch}
+          complexId={complexId!}
+          onClose={() => {
+            setEditingPitch(null);
+            fetchPitches();
+          }}
+          onPitchUpdate={fetchPitches}
+        />
+      )}
+    </div>
+  );
+};
+
+// Pitch Edit/Create Modal - Full pitch editing with all attributes
+const PitchEditModal = ({ pitch, complexId, onClose, onPitchUpdate }: { pitch: any; complexId: string; onClose: () => void; onPitchUpdate?: () => void }) => {
+  const isNewPitch = !pitch.id;
+  const [currentPitch, setCurrentPitch] = useState(pitch);
+  
+  // Fetch latest pitch data on mount for existing pitches
+  useEffect(() => {
+    if (!isNewPitch && pitch.id) {
+      const fetchPitch = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('pitches')
+            .select('*')
+            .eq('id', pitch.id)
+            .single();
+          
+          if (!error && data) {
+            setCurrentPitch(data);
+            console.log('[PitchEditModal] Loaded pitch data:', data);
+          } else {
+            console.error('[PitchEditModal] Error loading pitch:', error);
+          }
+        } catch (err) {
+          console.error('[PitchEditModal] Error fetching pitch:', err);
+        }
+      };
+      fetchPitch();
+    }
+  }, [pitch.id, isNewPitch]);
+  const [formData, setFormData] = useState({
+    name: pitch.name || pitch.Name || '',
+    size: pitch.size || pitch.Size || '11 a side',
+    surface: pitch.surface || 'Grass',
+    sport_type: pitch.sport_type || 'Football',
+    price_per_hour: pitch.price_per_hour || pitch.Price || 0,
+    opening_hour: pitch.opening_hour || 8,
+    closing_hour: pitch.closing_hour || 23,
+    match_duration: pitch.match_duration || 75,
+    status: pitch.status || 'active'
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  // Refresh pitch data when images are uploaded
+  const refreshPitchData = async () => {
+    if (isNewPitch || !pitch.id) return;
+    try {
+      console.log('[PitchEditModal] Refreshing pitch data for:', pitch.id);
+      const { data, error: fetchError } = await supabase
+        .from('pitches')
+        .select('*')
+        .eq('id', pitch.id)
+        .single();
+      
+      if (fetchError) {
+        console.error('[PitchEditModal] Error fetching pitch:', fetchError);
+        return;
+      }
+      
+      if (data) {
+        console.log('[PitchEditModal] Updated pitch data:', data);
+        setCurrentPitch(data);
+        // Also update the form data if needed
+        setFormData(prev => ({
+          ...prev,
+          name: data.name || prev.name,
+          size: data.size || prev.size,
+          surface: data.surface || prev.surface,
+          sport_type: data.sport_type || prev.sport_type,
+          price_per_hour: data.price_per_hour || prev.price_per_hour,
+          opening_hour: data.opening_hour || prev.opening_hour,
+          closing_hour: data.closing_hour || prev.closing_hour,
+          match_duration: data.match_duration || prev.match_duration,
+          status: data.status || prev.status
+        }));
+      }
+    } catch (err) {
+      console.error('[PitchEditModal] Error refreshing pitch data:', err);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) {
+      setError('Pitch name is required');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    try {
+      const pitchData = {
+        ...formData,
+        complex_id: complexId
+      };
+
+      if (isNewPitch) {
+        // Create new pitch
+        const { data, error: insertError } = await supabase
+          .from('pitches')
+          .insert([pitchData])
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+      } else {
+        // Update existing pitch
+        const { error: updateError } = await supabase
+          .from('pitches')
+          .update(pitchData)
+          .eq('id', pitch.id);
+
+        if (updateError) throw updateError;
+      }
+
+      onClose();
+    } catch (err: any) {
+      console.error('Error saving pitch:', err);
+      setError(err.message || 'Failed to save pitch. Please try again.');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[100] flex items-end md:items-center justify-center p-6 animate-in fade-in duration-300">
+      <div className="bg-slate-900 rounded-[3rem] w-full max-w-md border border-white/10 shadow-2xl animate-in slide-in-from-bottom duration-500 max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-8 border-b border-white/5 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-black text-white uppercase tracking-tighter">
+              {isNewPitch ? 'Add New Pitch' : 'Edit Pitch'}
+            </h2>
+            <button onClick={onClose} className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full text-slate-400 transition-all">
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-8 space-y-6 overflow-y-auto flex-1">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4">
+              <p className="text-red-400 text-sm font-bold">{error}</p>
+            </div>
+          )}
+
+          {/* Pitch Name */}
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Pitch Name</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full bg-slate-950 border border-white/5 rounded-2xl p-4 text-sm font-black text-white focus:border-primary/50 transition-all outline-none"
+              placeholder="e.g., Main Football Pitch"
+            />
+          </div>
+
+          {/* Sport Type */}
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Sport Type</label>
+            <select
+              value={formData.sport_type}
+              onChange={(e) => setFormData({ ...formData, sport_type: e.target.value })}
+              className="w-full bg-slate-950 border border-white/5 rounded-2xl p-4 text-sm font-black text-white appearance-none focus:border-primary/50 transition-all outline-none"
+            >
+              <option value="Football">Football</option>
+              <option value="Padel">Padel</option>
+              <option value="Tennis">Tennis</option>
+              <option value="Basketball">Basketball</option>
+              <option value="Volleyball">Volleyball</option>
+              <option value="Handball">Handball</option>
+              <option value="Rugby">Rugby</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          {/* Size and Surface */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Size</label>
+              <select
+                value={formData.size}
+                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                className="w-full bg-slate-950 border border-white/5 rounded-2xl p-4 text-sm font-black text-white appearance-none focus:border-primary/50 transition-all outline-none"
+              >
+                <option value="6 a side">6 a side</option>
+                <option value="7 a side">7 a side</option>
+                <option value="11 a side">11 a side</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Surface</label>
+              <select
+                value={formData.surface}
+                onChange={(e) => setFormData({ ...formData, surface: e.target.value })}
+                className="w-full bg-slate-950 border border-white/5 rounded-2xl p-4 text-sm font-black text-white appearance-none focus:border-primary/50 transition-all outline-none"
+              >
+                <option value="Grass">Grass</option>
+                <option value="3G">3G</option>
+                <option value="4G">4G</option>
+                <option value="outdoor">Outdoor</option>
+                <option value="indoor">Indoor</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Operating Hours */}
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Operating Hours</label>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Opening</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="23"
+                  value={formData.opening_hour}
+                  onChange={(e) => setFormData({ ...formData, opening_hour: +e.target.value })}
+                  className="w-full bg-slate-950 border border-white/5 rounded-2xl p-4 text-sm font-black text-white focus:border-primary/50 transition-all outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Closing</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="23"
+                  value={formData.closing_hour}
+                  onChange={(e) => setFormData({ ...formData, closing_hour: +e.target.value })}
+                  className="w-full bg-slate-950 border border-white/5 rounded-2xl p-4 text-sm font-black text-white focus:border-primary/50 transition-all outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing */}
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Price Per Hour (TND)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.price_per_hour}
+              onChange={(e) => setFormData({ ...formData, price_per_hour: +e.target.value })}
+              className="w-full bg-slate-950 border border-white/5 rounded-2xl p-4 text-sm font-black text-white focus:border-primary/50 transition-all outline-none"
+            />
+          </div>
+
+          {/* Match Duration */}
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Match Duration (minutes)</label>
+            <input
+              type="number"
+              min="30"
+              max="180"
+              value={formData.match_duration}
+              onChange={(e) => setFormData({ ...formData, match_duration: +e.target.value })}
+              className="w-full bg-slate-950 border border-white/5 rounded-2xl p-4 text-sm font-black text-white focus:border-primary/50 transition-all outline-none"
+            />
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full bg-slate-950 border border-white/5 rounded-2xl p-4 text-sm font-black text-white appearance-none focus:border-primary/50 transition-all outline-none"
+            >
+              <option value="active">Active</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+
+          {/* Pitch Images - Only for existing pitches */}
+          {!isNewPitch && pitch.id && (
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Pitch Images</label>
+              {currentPitch?.id ? (
+                <ImageUpload
+                  collection="pitches"
+                  recordId={currentPitch.id}
+                  fieldName="images"
+                  currentImages={ensureArray(currentPitch?.images, currentPitch?.image)}
+                  maxFiles={10}
+                  onUploadComplete={async () => {
+                    await refreshPitchData();
+                    if (onPitchUpdate) onPitchUpdate();
+                  }}
+                />
+              ) : (
+                <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-6 text-center">
+                  <p className="text-slate-400 text-sm font-bold">Save the pitch first to upload images</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="p-8 border-t border-white/5 flex-shrink-0 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 bg-white/5 text-slate-400 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white/10 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 bg-primary text-slate-950 py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 disabled:opacity-50 transition-all"
+          >
+            {saving ? (
+              <div className="animate-spin h-5 w-5 border-2 border-slate-950 border-t-transparent rounded-full mx-auto" />
+            ) : (
+              isNewPitch ? 'Create Pitch' : 'Save Changes'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Pitch Settings Modal (Dark Mode) - For quick settings only
+const PitchSettingsModal = ({ pitch, onClose }: { pitch: any; onClose: () => void }) => {
+  const [settings, setSettings] = useState({
+    opening_hour: pitch.opening_hour || 8,
+    closing_hour: pitch.closing_hour || 23,
+    match_duration: pitch.match_duration || 75,
+    pricePerHour: pitch.price_per_hour || pitch.pricePerHour || 0,
+    status: pitch.status || 'active'
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updateData: any = { ...settings };
+      if (updateData.pricePerHour !== undefined) {
+        updateData.price_per_hour = updateData.pricePerHour;
+        delete updateData.pricePerHour;
+      }
+
+      const { error } = await supabase
+        .from('pitches')
+        .update(updateData)
+        .eq('id', pitch.id);
+
+      if (error) throw error;
+      onClose();
+    } catch (error) {
+      alert('Network error: Failed to sync pitch configuration');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-[100] flex items-end md:items-center justify-center p-6 animate-in fade-in duration-300" >
+      <div className="bg-slate-900 rounded-[3rem] w-full max-w-sm border border-white/10 shadow-2xl animate-in slide-in-from-bottom duration-500">
+        <div className="p-8 border-b border-white/5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">Slot Engine</h2>
+            <button onClick={onClose} className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full text-slate-400 transition-all">
+              <X size={20} />
+            </button>
+          </div>
+          <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-2">Configuring {pitch.Name || pitch.name}</p>
+        </div>
+
+        <div className="p-8 space-y-8 max-h-[60vh] overflow-y-auto">
+          {/* Operating Hours */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 block text-primary">Start Time</label>
+              <input
+                type="number"
+                value={settings.opening_hour}
+                onChange={(e) => setSettings({ ...settings, opening_hour: +e.target.value })}
+                className="w-full bg-slate-950 border border-white/5 rounded-2xl p-4 text-sm font-black text-white focus:border-primary/50 transition-all outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 block text-primary">End Time</label>
+              <input
+                type="number"
+                value={settings.closing_hour}
+                onChange={(e) => setSettings({ ...settings, closing_hour: +e.target.value })}
+                className="w-full bg-slate-950 border border-white/5 rounded-2xl p-4 text-sm font-black text-white focus:border-primary/50 transition-all outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Pricing */}
+          <div>
+            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 block text-primary">Rate / Hour (TND)</label>
+            <input
+              type="number"
+              value={settings.pricePerHour}
+              onChange={(e) => setSettings({ ...settings, pricePerHour: +e.target.value })}
+              className="w-full bg-slate-950 border border-white/5 rounded-2xl p-4 text-sm font-black text-white focus:border-primary/50 transition-all outline-none"
+            />
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 block text-primary">Service Status</label>
+            <div className="relative">
+              <select
+                value={settings.status}
+                onChange={(e) => setSettings({ ...settings, status: e.target.value })}
+                className="w-full bg-slate-950 border border-white/5 rounded-2xl p-4 text-sm font-black text-white appearance-none focus:border-primary/50 transition-all outline-none"
+              >
+                <option value="active">Operational</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="closed">Offline</option>
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                <MoreVertical size={16} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-8 border-t border-white/5">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full bg-primary text-slate-900 py-5 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 hover:brightness-110 active:scale-95 disabled:opacity-50 transition-all"
+          >
+            {saving ? <div className="animate-spin h-4 w-4 border-2 border-slate-900 border-t-transparent rounded-full mx-auto" /> : 'Confirm Configuration'}
+          </button>
+        </div>
+      </div>
+    </div >
+  );
+};
+const AdminPage = () => {
+  return (
+    <div className="p-6 bg-slate-950 min-h-screen pb-24">
+      <h1 className="text-2xl font-black mb-6 text-white uppercase tracking-tighter italic">Venue Command</h1>
+
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 shadow-sm">
+          <p className="text-gray-500 text-xs uppercase font-bold mb-1">Daily Revenue</p>
+          <p className="text-2xl font-bold text-green-600">£1,240</p>
+          <p className="text-xs text-green-600 mt-1 flex items-center">▲ 12% vs last week</p>
+        </div>
+        <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 shadow-sm">
+          <p className="text-gray-500 text-xs uppercase font-bold mb-1">Occupancy</p>
+          <p className="text-2xl font-bold text-blue-600">82%</p>
+          <p className="text-xs text-gray-400 mt-1">4 slots remaining</p>
+        </div>
+      </div>
+
+      <div className="bg-slate-900/50 rounded-2xl border border-white/5 shadow-sm overflow-hidden mb-6">
+        <div className="p-4 border-b border-white/5 flex justify-between items-center">
+          <h3 className="font-black text-xs text-white uppercase tracking-widest">Dynamic Pricing Engine</h3>
+          <div className="bg-primary/10 text-primary px-2 py-1 rounded-full text-[9px] font-black uppercase">ACTIVE</div>
+        </div>
+        <div className="p-4 text-sm">
+          <div className="flex justify-between py-2 border-b border-white/5">
+            <span className="text-slate-400 font-bold text-xs uppercase tracking-tight">Rain Protocol</span>
+            <span className="font-black text-primary">-10%</span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-white/5">
+            <span className="text-slate-400 font-bold text-xs uppercase tracking-tight">Peak Surcharge</span>
+            <span className="font-black text-primary">+15%</span>
+          </div>
+          <div className="flex justify-between py-2">
+            <span className="text-slate-400 font-bold text-xs uppercase tracking-tight">Last Minute</span>
+            <span className="font-black text-rose-500">-25%</span>
+          </div>
+        </div>
+      </div>
+
+      <button className="w-full bg-white/5 border border-white/5 text-slate-300 font-black py-4 rounded-2xl mb-4 text-[11px] uppercase tracking-widest hover:bg-white/10 transition-all italic">Manage Block Bookings</button>
+      <button className="w-full bg-rose-500/10 border border-rose-500/20 text-rose-500 font-black py-4 rounded-2xl text-[11px] uppercase tracking-widest hover:bg-rose-500/20 transition-all italic">Maintenance Mode</button>
+    </div>
+  );
+};
+
+// --- Onboarding Component ---
+
+const Onboarding = ({ onComplete }: { onComplete: () => void }) => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const slides = [
+    {
+      title: "Discover Larena",
+      description: "Access the best sports venues in Tunisia with a single tap.",
+      image: "/onboarding/find_dark-removebg-preview.png"
+    },
+    {
+      title: "Join the Community",
+      description: "Connect with players, join open matches, and never play shorthanded again.",
+      image: "/onboarding/play_dark-removebg-preview.png"
+    },
+    {
+      title: "Game Ready",
+      description: "Real-time updates and seamless booking for your next big match.",
+      image: "/onboarding/updates_dark-removebg-preview.png"
+    }
+  ];
+
+  const handleNext = () => {
+    if (currentSlide < slides.length - 1) {
+      setCurrentSlide(currentSlide + 1);
+    } else {
+      localStorage.setItem('onboarding_seen', 'true');
+      onComplete();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex flex-col bg-[#020617] px-6 py-12 md:p-12 overflow-hidden transition-colors duration-500">
+      {/* Larena Logo Header */}
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 z-10">
+        <div className="w-16 h-16 flex items-center justify-center">
+          <img 
+            src="/assets/logo-v2.png" 
+            alt="Larena Logo" 
+            className="w-full h-full object-contain"
+            style={{ filter: 'brightness(0) saturate(100%) invert(85%) sepia(95%) saturate(2000%) hue-rotate(60deg) brightness(105%) contrast(95%)' }}
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center text-center max-w-sm mx-auto w-full">
+        {/* Animated Highlight Background */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full aspect-square bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+
+        <div className="relative w-full aspect-square mb-10 flex items-center justify-center">
+          <img
+            src={slides[currentSlide].image}
+            alt={slides[currentSlide].title}
+            className="w-full h-full object-contain animate-in fade-in zoom-in duration-1000"
+          />
+        </div>
+
+        <h1 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tighter animate-in slide-in-from-bottom-6 duration-700 uppercase leading-none">
+          {slides[currentSlide].title.split(' ').slice(0, -1).join(' ')}
+          <br />
+          <span 
+            className="text-primary"
+            style={{ fontFamily: "'Sakana', 'Plus Jakarta Sans', sans-serif" }}
+          >
+            {slides[currentSlide].title.split(' ').slice(-1)[0]}
+          </span>
+        </h1>
+
+        <p className="text-slate-500 leading-relaxed font-black animate-in slide-in-from-bottom-10 duration-700 delay-200 uppercase text-[10px] tracking-[0.4em] max-w-[280px]">
+          {slides[currentSlide].description}
+        </p>
+      </div>
+
+      <div className="w-full max-w-sm mx-auto flex flex-col items-center gap-10">
+        {/* Progress dots */}
+        <div className="flex gap-3">
+          {slides.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 rounded-full transition-all duration-51 content-[''] ${i === currentSlide ? 'w-10 bg-primary shadow-[0_0_15px_rgba(192,255,0,0.4)]' : 'w-2 bg-white/10'
+                }`}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={handleNext}
+          className="w-full bg-primary text-slate-950 font-black py-5.5 rounded-[2rem] shadow-2xl shadow-primary/20 hover:shadow-primary/30 active:scale-95 transition-all flex items-center justify-center gap-3 group tracking-[0.3em] uppercase text-[11px]"
+        >
+          {currentSlide === slides.length - 1 ? "Start Larena" : "Next Step"}
+          <ArrowRight size={20} strokeWidth={3} className="group-hover:translate-x-1.5 transition-transform" />
+        </button>
+
+        {currentSlide < slides.length - 1 && (
+          <button
+            onClick={() => {
+              localStorage.setItem('onboarding_seen', 'true');
+              onComplete();
+            }}
+            className="text-slate-600 font-black text-[9px] uppercase tracking-[0.4em] hover:text-white transition-colors py-2"
+          >
+            Skip Intro
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- Main Layout ---
+
+const App = () => {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [onlineUsers, setOnlineUsers] = useState<Record<string, any>>({});
+  const presenceChannelRef = useRef<any>(null);
+
+  useEffect(() => {
+    // Splash screen timer
+    const timer = setTimeout(() => setShowSplash(false), 2800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Check if user has seen onboarding
+    const hasSeenOnboarding = localStorage.getItem('onboarding_seen');
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  const [debugMsg, setDebugMsg] = useState('Initializing...');
+  const loadingRef = useRef(loading);
+
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
+
+  useEffect(() => {
+    let mounted = true;
+    let authProcessing = false;
+    let listenerHandle: any = null;
+    let cleanupSocial: (() => void) | undefined;
+
+    // Function to refresh pending requests count
+    const refreshPendingRequestsCount = async (userId: string) => {
+      const { count } = await supabase
+        .from('friendships')
+        .select('id', { count: 'exact' })
+        .eq('friend_id', userId)
+        .eq('status', 'pending');
+      if (mounted) setPendingRequestsCount(count || 0);
+    };
+
+    // --- Real-time Social Listener ---
+    const setupSocialListener = (userId: string) => {
+      console.log('📡 [Social] Setting up real-time listener:', userId);
+
+      // Initial fetch
+      refreshPendingRequestsCount(userId);
+
+      // Real-time subscription
+      const friendshipChannel = supabase
+        .channel(`public:friendships:friend_id=eq.${userId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'friendships', filter: `friend_id=eq.${userId}` },
+          async () => {
+            refreshPendingRequestsCount(userId);
+          }
+        )
+        .subscribe();
+
+      // Listen for manual refresh events (from CrewPage)
+      const handleRefresh = () => {
+        refreshPendingRequestsCount(userId);
+      };
+      window.addEventListener('refreshPendingRequests', handleRefresh);
+
+      return () => {
+        supabase.removeChannel(friendshipChannel);
+        window.removeEventListener('refreshPendingRequests', handleRefresh);
+      };
+    };
+
+    console.log('🔐 Initializing auth system...');
+    setDebugMsg('🔐 Auth system starting...');
+
+    // Handle deep links for mobile OAuth
+    const handleDeepLink = async (url: string) => {
+      if (authProcessing) {
+        console.log('⏳ [DeepLink] Session change already in progress...');
+        return;
+      }
+
+      console.log('🔗 [DeepLink] Received:', url);
+      setDebugMsg(`🔗 Parse: ${url.substring(0, 20)}...`);
+
+      // Parse tokens or code from URL
+      let urlWithParams = url;
+      // Handle Supabase's tendency to use hashtags for fragments
+      if (url.includes('#') && !url.includes('?')) {
+        urlWithParams = url.replace('#', '?');
+      } else if (url.includes('#')) {
+        urlWithParams = url.replace('#', '&');
+      }
+
+      try {
+        const urlObj = new URL(urlWithParams);
+        const accessToken = urlObj.searchParams.get('access_token');
+        const refreshToken = urlObj.searchParams.get('refresh_token');
+        const code = urlObj.searchParams.get('code');
+        const error = urlObj.searchParams.get('error');
+        const errorDescription = urlObj.searchParams.get('error_description');
+
+        if (error) {
+          console.error('❌ [DeepLink] OAuth error:', error, errorDescription);
+          setDebugMsg(`❌ Error: ${error}`);
+          setLoading(false);
+          return;
+        }
+
+        if (code) {
+          console.log('🔗 [DeepLink] Exchanging code...');
+          setDebugMsg('🔄 Verifying identity...');
+          authProcessing = true;
+          setLoading(true);
+
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            console.error('❌ [DeepLink] Exchange failed:', exchangeError);
+            setDebugMsg(`❌ Sync fail: ${exchangeError.message}`);
+            setLoading(false);
+          }
+          // onAuthStateChange will handle UI transition if successful
+          authProcessing = false;
+        } else if (accessToken && refreshToken) {
+          console.log('🔗 [DeepLink] Setting session...');
+          setDebugMsg('✅ Resuming session...');
+          authProcessing = true;
+          setLoading(true);
+
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (sessionError) {
+            console.error('❌ [DeepLink] Session set failed:', sessionError);
+            setDebugMsg(`❌ Resume fail: ${sessionError.message}`);
+            setLoading(false);
+          }
+          // onAuthStateChange will handle UI transition if successful
+          authProcessing = false;
+        } else {
+          console.log('🔗 [DeepLink] No auth params found in URL');
+          // If we were loading, stop it as this likely wasn't an auth redirect
+          if (loadingRef.current) setLoading(false);
+        }
+      } catch (err) {
+        console.error('❌ [DeepLink] URL parse error:', err);
+        setDebugMsg('❌ URL Parse Error');
+        if (loadingRef.current) setLoading(false);
+      }
+    };
+
+    // Deep link listeners
+    CapApp.addListener('appUrlOpen', data => {
+      console.log('📱 [App] URL opened:', data.url);
+      handleDeepLink(data.url);
+    }).then(handle => {
+      listenerHandle = handle;
+    });
+
+    CapApp.getLaunchUrl().then(data => {
+      if (data?.url) {
+        console.log('🚀 [App] Launched with URL:', data.url);
+        handleDeepLink(data.url);
+      }
+    });
+
+    // Auth state listener - SINGLE SOURCE OF TRUTH
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
+      console.log(`🔐 [Auth] ${event}`, session ? 'User logged in' : 'No user');
+      setDebugMsg(`🔐 ${event.toLowerCase()}`);
+
+      if (!session) {
+        setUser(null);
+        setLoading(false);
+        // User logged out - device token will be cleaned up when new user logs in
+        return;
+      }
+
+      // INSTANT UI
+      const basicUser = {
+        ...session.user,
+        name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
+        role: session.user.user_metadata?.role || 'player'
+      };
+
+      setUser(basicUser);
+      setLoading(false);
+
+      if (session?.user) {
+        if (cleanupSocial) cleanupSocial();
+        cleanupSocial = setupSocialListener(session.user.id);
+        
+        // Initialize push notifications immediately on login (only on mobile)
+        if (Capacitor.isNativePlatform()) {
+          console.log('🔔 [Push] User logged in, initializing push notifications immediately...');
+          initializePushNotifications(session.user.id)
+            .then(result => {
+              console.log('🔔 [Push] Initialization result:', result);
+            })
+            .catch(err => {
+              console.error('🔔 [Push] Failed to initialize:', err);
+            });
+        }
+      }
+
+      // BACKGROUND SYNC
+      if (['SIGNED_IN', 'INITIAL_SESSION', 'TOKEN_REFRESHED'].includes(event)) {
+        fetchUserProfile(session.user).catch(() => { });
+      }
+    });
+
+    setDebugMsg('🔍 Searching for session...');
+
+    // Safety timeout - forces loading screen away if stuck
+    const safetyTimeout = setTimeout(() => {
+      if (mounted && loadingRef.current) {
+        console.warn('⚠️ [Safety] Timeout reached - forcing UI unlock');
+        setDebugMsg('⚠️ Starting offline...');
+        setLoading(false);
+      }
+    }, 15000); // 15s for slower devices
+
+    return () => {
+      mounted = false;
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+      if (cleanupSocial) cleanupSocial();
+      if (listenerHandle) listenerHandle.remove();
+    };
+  }, []); // Run ONCE on mount
+
+  // --- Real-time Presence System ---
+  useEffect(() => {
+    if (!user) return;
+
+    const setupPresence = async () => {
+      console.log('⚡ Initializing Presence Tracking...');
+
+      const channel = supabase.channel('global_presence', {
+        config: {
+          presence: {
+            key: user.id,
+          },
+        },
+      });
+
+      presenceChannelRef.current = channel;
+
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          const onlineMap: Record<string, any> = {};
+
+          Object.keys(state).forEach((key) => {
+            const presence = state[key][0]; // Take the first presence instance for this user
+            onlineMap[key] = presence;
+          });
+
+          setOnlineUsers(onlineMap);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.track({
+              user_id: user.id,
+              status: 'online',
+              last_seen: new Date().toISOString()
+            });
+          }
+        });
+
+      // Activity detection for "Away" status
+      const handleVisibilityChange = () => {
+        const isAway = document.visibilityState === 'hidden';
+        console.log(`👁️ Visibility changed: ${isAway ? 'AWAY' : 'ONLINE'}`);
+
+        channel.track({
+          user_id: user.id,
+          status: isAway ? 'away' : 'online',
+          last_seen: new Date().toISOString()
+        });
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('blur', () => {
+        channel.track({ user_id: user.id, status: 'away', last_seen: new Date().toISOString() });
+      });
+      window.addEventListener('focus', () => {
+        channel.track({ user_id: user.id, status: 'online', last_seen: new Date().toISOString() });
+      });
+
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        supabase.removeChannel(channel);
+      };
+    };
+
+    setupPresence();
+  }, [user?.id]);
+
+  if (showOnboarding) {
+    return <Onboarding onComplete={() => setShowOnboarding(false)} />;
+  }
+
+  const fetchUserProfile = async (authUser: any) => {
+    if (!authUser?.id) return;
+    console.log('👤 Syncing user profile:', authUser.id);
+
+    try {
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+
+      if (error) {
+        console.warn('⚠️ User profile sync failed, using auth data only:', error.message);
+        // We don't throw here, just use the auth data we already have
+        return;
+      }
+
+      // Merge data and update user state
+      const fullUser = {
+        ...authUser,
+        ...profile,
+        name: profile?.name || authUser?.user_metadata?.name || authUser?.email?.split('@')[0],
+        role: profile?.role || authUser?.user_metadata?.role || 'player'
+      };
+      console.log('✅ User profile synced:', fullUser.name);
+      setUser(fullUser);
+    } catch (error) {
+      console.error('❌ Error syncing profile:', error);
+    } finally {
+      // End the global loading state if it was still active
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    console.log('🚪 Logging out...');
+    try {
+      await supabase.auth.signOut();
+      // onAuthStateChange will handle clearing user state
+    } catch (error) {
+      console.error('❌ Logout error:', error);
+      // Force clear state even if signOut fails
+      setUser(null);
+      setLoading(false);
+    }
+  };
+
+  // Show animated splash or auth loading
+  if (loading || showSplash) {
+    return <SplashScreen show={true} debugMsg={debugMsg} />;
+  }
+
+  // Show login screen if not authenticated
+  if (!user) {
+    return (
+      <div className="w-full md:max-w-md mx-auto min-h-screen bg-slate-950 flex items-center justify-center p-6 pt-safe pb-safe">
+        <Auth onSuccess={async () => {
+          // Fetch user after successful login
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+          if (authUser) {
+            await fetchUserProfile(authUser.id);
+          }
+        }} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-[100vw] overflow-x-hidden min-h-screen bg-slate-950">
+      <HashRouter>
+        <div className="w-full md:max-w-md mx-auto min-h-screen bg-slate-950 relative shadow-2xl overflow-hidden pb-[calc(64px+env(safe-area-inset-bottom))] pt-safe">
+          <ScrollToTop />
+          {/* Email Verification Banner */}
+          {user && !user.email_confirmed_at && (
+            <div className="bg-amber-500 text-white p-3 text-center sticky top-0 z-50 shadow-lg">
+              <div className="flex items-center justify-center gap-2 text-xs font-bold">
+                <Mail size={14} />
+                <span>Please verify your email to access all features</span>
+                <button
+                  onClick={async () => {
+                    try {
+                      const { error } = await supabase.auth.resend({
+                        type: 'signup',
+                        email: user.email!,
+                      });
+                      if (error) throw error;
+                      alert('Verification email sent! Check your inbox.');
+                    } catch (err: any) {
+                      alert('Failed to send email: ' + err.message);
+                    }
+                  }}
+                  className="ml-2 bg-white text-amber-600 px-2 py-1 rounded-lg text-[10px] font-black hover:bg-amber-50 transition-colors"
+                >
+                  RESEND
+                </button>
+              </div>
+            </div>
+          )}
+
+          <Routes>
+            <Route path="/" element={<HomePage user={user} pendingCount={pendingRequestsCount} />} />
+            <Route path="/complex/:id" element={<ComplexDetailPage user={user} />} />
+            <Route path="/pitch/:id" element={<PitchDetailsPage />} />
+            <Route path="/booking/confirm" element={<BookingConfirmPage />} />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/social" element={<CrewPage currentUser={user} onlineUsers={onlineUsers} />} />
+            <Route path="/chat/:friendshipId" element={<ChatPage currentUser={user} onlineUsers={onlineUsers} />} />
+            <Route path="/spaces" element={<SpacesPage currentUser={user} />} />
+            <Route path="/lobby/:lobbyId" element={<LobbyDetailPage currentUser={user} />} />
+            <Route path="/team/:teamId" element={<TeamDetailPage currentUser={user} />} />
+            <Route path="/profile" element={<UserProfile user={user} onLogout={handleLogout} onRefresh={() => fetchUserProfile(user)} />} />
+            <Route path="/bookings" element={<UserBookingsPage />} />
+            <Route path="/owner" element={<OwnerDashboard />} />
+            <Route path="/owner/bookings/:complexId" element={<OwnerBookingsPage />} />
+            <Route path="/owner/pitches/:complexId" element={<OwnerPitchesPage />} />
+            <Route path="/email-confirmed" element={<EmailConfirmationPage />} />
+          </Routes>
+          <TabBar pendingCount={pendingRequestsCount} />
+        </div>
+      </HashRouter>
+    </div>
+  );
+};
+
+export default App;

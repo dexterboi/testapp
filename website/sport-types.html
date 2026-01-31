@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html class="dark" lang="fr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Types de Sport - Larena</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#D9FF66",
+                        "background-dark": "#05080F",
+                        "card-dark": "#0D111D",
+                        "sidebar-dark": "#080B14",
+                    },
+                    fontFamily: { display: ["Outfit", "sans-serif"], body: ["Inter", "sans-serif"] },
+                },
+            },
+        };
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: max(884px, 100dvh);
+        }
+
+        .sidebar-active {
+            background-color: #D9FF66;
+            color: #05080F;
+            font-weight: 700;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+
+<body class="flex min-h-screen overflow-hidden bg-background-dark text-slate-100">
+    <!-- Sidebar -->
+    <aside
+        class="w-20 md:w-64 bg-sidebar-dark border-r border-slate-800 flex flex-col h-screen fixed left-0 top-0 z-50">
+        <div class="p-6">
+            <div class="flex items-center gap-4 group">
+                <div
+                    class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:rotate-6 transition-transform">
+                    <img src="assets/logo.png" alt="Larena" class="h-6 w-6 object-contain brightness-0" />
+                </div>
+                <div class="hidden md:flex flex-col">
+                    <span
+                        class="text-xl font-display font-black tracking-tighter uppercase leading-none text-white">Larena</span>
+                    <span
+                        class="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none mt-1">PitchPerfect</span>
+                </div>
+            </div>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <a href="dashboard.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">analytics</span>
+                <span class="hidden md:block font-semibold">Tableau de Bord</span>
+            </a>
+            <a href="complexes.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">apartment</span>
+                <span class="hidden md:block font-semibold">Complexes</span>
+            </a>
+            <a href="bookings.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">calendar_month</span>
+                <span class="hidden md:block font-semibold">Réservations</span>
+            </a>
+            <a href="sport-types.html"
+                class="sidebar-active flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">sports_soccer</span>
+                <span class="hidden md:block font-semibold">Types de Sport</span>
+            </a>
+            <a href="academy-mgmt.html"
+                class="flex items-center gap-4 px-4 py-3.5 text-slate-400 hover:text-primary hover:bg-white/5 rounded-2xl transition-all cursor-pointer">
+                <span class="material-symbols-outlined">school</span>
+                <span class="hidden md:block font-semibold">Académie</span>
+            </a>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer">
+                <div
+                    class="w-10 h-10 rounded-full border-2 border-slate-700 overflow-hidden bg-slate-800 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-slate-400">person</span>
+                </div>
+                <div class="hidden md:block overflow-hidden">
+                    <p id="userName" class="text-sm font-bold truncate">Loading...</p>
+                    <button id="logoutBtn"
+                        class="text-[10px] text-slate-500 uppercase font-bold tracking-wider hover:text-primary text-left">Déconnexion</button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 ml-20 md:ml-64 h-screen overflow-y-auto bg-background-dark">
+        <header
+            class="sticky top-0 z-40 bg-background-dark/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-display font-bold">Types de Sport</h1>
+                <p class="text-xs text-slate-500 font-medium">Durée du match & intervalle par sport. Les terrains
+                    utilisent ces paramètres pour les créneaux.</p>
+            </div>
+            <button id="addSportTypeBtn"
+                class="bg-primary text-background-dark px-4 py-2 rounded-xl text-sm font-bold hover:scale-105 transition-transform flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">add</span> Ajouter un Type de Sport
+            </button>
+        </header>
+
+        <div class="p-6 max-w-7xl mx-auto">
+            <div id="sportTypesSection" class="hidden space-y-6">
+                <div class="bg-card-dark rounded-3xl border border-slate-800 overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr
+                                class="bg-slate-900/50 border-b border-slate-800 text-xs uppercase tracking-wider text-slate-400 font-bold">
+                                <th class="px-6 py-4">Nom</th>
+                                <th class="px-6 py-4">Durée du match</th>
+                                <th class="px-6 py-4">Intervalle</th>
+                                <th class="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sportTypesList" class="divide-y divide-slate-800 text-sm font-medium text-slate-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="sportTypesEmpty" class="hidden text-center py-16">
+                <div
+                    class="w-24 h-24 rounded-3xl bg-white/5 border border-white/5 flex items-center justify-center mx-auto mb-6">
+                    <span class="material-symbols-outlined text-5xl text-slate-600">sports</span>
+                </div>
+                <h2 class="text-xl font-bold text-white mb-2">Aucun type de sport pour le moment</h2>
+                <p class="text-slate-400 mb-6 max-w-sm mx-auto">Créez des types de sport (ex. Football 90min, Padel
+                    60min) pour que chaque terrain puisse utiliser la bonne longueur de créneau et le bon intervalle.
+                </p>
+                <button id="addSportTypeBtnEmpty"
+                    class="bg-primary text-background-dark px-6 py-3 rounded-xl font-bold hover:shadow-lg transition-all">Ajouter
+                    votre premier type de sport</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Sport Type Modal -->
+    <div id="sportTypeModal"
+        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 z-[60]">
+        <div class="bg-card-dark rounded-3xl p-8 max-w-md w-full border border-slate-800 shadow-2xl">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-white" id="sportTypeModalTitle">Ajouter un Type de Sport</h3>
+                <button class="text-slate-400 hover:text-white transition-colors"
+                    onclick="closeModal('sportTypeModal')">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <form id="sportTypeForm" class="space-y-6">
+                <input type="hidden" id="sportTypeId" />
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nom *</label>
+                    <input type="text" id="sportTypeName" required placeholder="e.g. Football, Padel"
+                        class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Durée du match
+                        (min) *</label>
+                    <input type="number" id="sportTypeDuration" min="30" max="180" step="5" value="60"
+                        class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary" />
+                    <p class="text-xs text-slate-500 mt-1">Longueur du créneau. ex: 90 pour le football, 60 pour le
+                        padel.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Intervalle entre
+                        les
+                        créneaux (min)</label>
+                    <input type="number" id="sportTypeBuffer" min="0" max="60" value="15"
+                        class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-primary" />
+                    <p class="text-xs text-slate-500 mt-1">Espace entre les réservations consécutives. Par défaut 15.
+                    </p>
+                </div>
+                <div class="flex gap-4 pt-4 border-t border-slate-800">
+                    <button type="submit"
+                        class="flex-1 bg-primary text-background-dark py-3 rounded-xl font-bold hover:shadow-lg transition-all">Enregistrer</button>
+                    <button type="button" onclick="closeModal('sportTypeModal')"
+                        class="px-6 py-3 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-700 transition-all">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "PitchPerfect",
+  "description": "The ultimate soccer field booking app with AI concierge, split payments, and team management.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone"
+  ]
+}
