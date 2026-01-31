@@ -11,14 +11,30 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Custom storage adapter for Capacitor
 const SupabaseStorageAdapter = {
   getItem: async (key: string) => {
-    const { value } = await Preferences.get({ key });
-    return value;
+    try {
+      const { value } = await Preferences.get({ key });
+      console.log(`🔐 [Auth Adapter] getItem: ${key} -> ${value ? 'Found' : 'Null'}`);
+      return value;
+    } catch (err) {
+      console.error(`❌ [Auth Adapter] getItem error:`, err);
+      return null;
+    }
   },
   setItem: async (key: string, value: string) => {
-    await Preferences.set({ key, value });
+    try {
+      console.log(`🔐 [Auth Adapter] setItem: ${key}`);
+      await Preferences.set({ key, value });
+    } catch (err) {
+      console.error(`❌ [Auth Adapter] setItem error:`, err);
+    }
   },
   removeItem: async (key: string) => {
-    await Preferences.remove({ key });
+    try {
+      console.log(`🔐 [Auth Adapter] removeItem: ${key}`);
+      await Preferences.remove({ key });
+    } catch (err) {
+      console.error(`❌ [Auth Adapter] removeItem error:`, err);
+    }
   },
 };
 

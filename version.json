@@ -1,17 +1,17 @@
 {
-    "version": "2.2.2",
-    "latest_version": "2.2.2",
-    "build": 222,
+    "version": "2.2.3",
+    "latest_version": "2.2.3",
+    "build": 223,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "Fix: Mobile Login & Data Loading (Native Storage)",
+    "notes": "Fix: Tailwind Production Build & Auth Debugging",
     "ios": {
-        "version": "2.2.2",
-        "build": 222,
-        "release_notes": "Fix: Critical data persistence for mobile"
+        "version": "2.2.3",
+        "build": 223,
+        "release_notes": "Fix: Tailwind CSS & Auth Logging"
     },
     "android": {
-        "version": "2.2.2",
-        "build": 222,
-        "release_notes": "Fix: Critical data persistence for mobile"
+        "version": "2.2.3",
+        "build": 223,
+        "release_notes": "Fix: Tailwind CSS & Auth Logging"
     }
 }

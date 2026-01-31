@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-app-bg: #F8F9FA;
+    --bg-app-surface: #FFFFFF;
+    --bg-app-surface-2: #F1F3F5;
+    --text-app-text: #121417;
+    --text-app-text-muted: #6C757D;
+    --border-app-border: rgba(0, 0, 0, 0.08);
+  }
+
+  .dark {
+    --bg-app-bg: #121417;
+    --bg-app-surface: #1E2126;
+    --bg-app-surface-2: #2A2E35;
+    --text-app-text: #F8F9FA;
+    --text-app-text-muted: #A0AEC0;
+    --border-app-border: rgba(255, 255, 255, 0.06);
+  }
+
+  body {
+    @apply bg-app-bg text-app-text font-sans antialiased;
+  }
+}
+
+/* Safe Area Utilities */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+.mt-safe {
+  margin-top: env(safe-area-inset-top);
+}
+
+/* Hide scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
