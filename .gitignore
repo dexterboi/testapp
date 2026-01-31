@@ -103,6 +103,10 @@ Thumbs.db
 android/app/build/
 ios/App/App/public/
 ios/App/build/
+# Firebase Credentials
+android/app/*firebase-adminsdk*.json
+android/app/google-services.json
+**/larena-4acd2-*.json
 
 # Distribution assets (tracked specifically)
 # app-debug.apk

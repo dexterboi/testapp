@@ -1,17 +1,17 @@
 {
-    "version": "2.2.3",
-    "latest_version": "2.2.3",
-    "build": 223,
+    "version": "2.2.4",
+    "latest_version": "2.2.4",
+    "build": 224,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "Fix: Tailwind Production Build & Auth Debugging",
+    "notes": "Critical Fix: Mobile Google Login Redirect",
     "ios": {
-        "version": "2.2.3",
-        "build": 223,
-        "release_notes": "Fix: Tailwind CSS & Auth Logging"
+        "version": "2.2.4",
+        "build": 224,
+        "release_notes": "Fix: Google Login Loop"
     },
     "android": {
-        "version": "2.2.3",
-        "build": 223,
-        "release_notes": "Fix: Tailwind CSS & Auth Logging"
+        "version": "2.2.4",
+        "build": 224,
+        "release_notes": "Fix: Google Login Loop"
     }
 }

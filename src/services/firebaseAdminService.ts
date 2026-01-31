@@ -18,9 +18,13 @@ const initializeFirebaseAdmin = () => {
     try {
         // Load service account from environment variable or file
         // For production, use environment variable with the JSON content
-        const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT 
+        const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
             ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-            : require('../../android/app/larena-4acd2-firebase-adminsdk-fbsvc-3ecf5b620b.json');
+            : null;
+
+        if (!serviceAccount) {
+            throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable not set');
+        }
 
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),

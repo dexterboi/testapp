@@ -239,39 +239,43 @@ const App = () => {
     const listener = CapApp.addListener('appUrlOpen', async (event) => {
       console.log('🔗 [Deep Link] Received URL:', event.url);
 
-      if (event.url.includes('oauth-callback') || event.url.includes('#access_token')) {
-        console.log('🔗 [Deep Link] OAuth callback detected. Parsing tokens...');
+      // Normalize URL
+      const urlStr = event.url.replace('#', '?');
+      const url = new URL(urlStr);
 
-        // Extract tokens from the fragment
-        const url = new URL(event.url.replace('#', '?'));
-        const accessToken = url.searchParams.get('access_token');
-        const refreshToken = url.searchParams.get('refresh_token');
+      const code = url.searchParams.get('code');
+      const accessToken = url.searchParams.get('access_token');
+      const refreshToken = url.searchParams.get('refresh_token');
 
-        if (accessToken && refreshToken) {
-          console.log('✅ [Deep Link] Tokens found. Setting session...');
-          try {
-            const { error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
+      console.log('🔗 [Deep Link] Params found:', { code: !!code, accessToken: !!accessToken });
 
-            if (error) throw error;
-            console.log('✅ [Deep Link] Session established successfully!');
+      try {
+        if (code) {
+          console.log('✅ [Deep Link] PKCE Code detected. Exchanging for session...');
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
 
-            // Close browser overlay as soon as we have the session
-            await Browser.close();
-            console.log('✅ [Deep Link] Browser closed');
-
-            // Refresh user state immediately
-            checkUser();
-          } catch (e: any) {
-            console.error('❌ [Deep Link] Auth error:', e.message);
-          }
-        } else {
-          console.warn('⚠️ [Deep Link] No tokens found in URL');
-          // Fallback: still try to close browser
-          Browser.close().catch(() => { });
+          console.log('✅ [Deep Link] PKCE Exchange successful:', data.session?.user.id);
         }
+        else if (accessToken && refreshToken) {
+          console.log('✅ [Deep Link] Implicit Tokens detected. Setting session...');
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) throw error;
+        }
+        else {
+          console.warn('⚠️ [Deep Link] No code or tokens found in URL:', event.url);
+        }
+
+        // Success Cleanup
+        await Browser.close();
+        checkUser(); // Refresh state
+
+      } catch (e: any) {
+        console.error('❌ [Deep Link] Auth Processing Failed:', e.message);
+        Browser.close().catch(() => { });
       }
     });
 
