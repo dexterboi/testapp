@@ -1,6 +1,17 @@
 {
-    "version": "1.1.1",
-    "latest_version": "1.1.1",
+    "version": "2.2.1",
+    "latest_version": "2.2.1",
+    "build": 221,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "release_notes": "Implemented adaptive theme system for Spaces, Lobby, and Team pages (v1.1.1)."
+    "notes": "Fixed Supabase connection for deployed app",
+    "ios": {
+        "version": "2.2.1",
+        "build": 221,
+        "release_notes": "Supabase connection fix"
+    },
+    "android": {
+        "version": "2.2.1",
+        "build": 221,
+        "release_notes": "FIXED: Supabase connection in production deployment"
+    }
 }
