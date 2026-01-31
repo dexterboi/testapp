@@ -246,35 +246,55 @@ const App = () => {
       const code = url.searchParams.get('code');
       const accessToken = url.searchParams.get('access_token');
       const refreshToken = url.searchParams.get('refresh_token');
+      const error = url.searchParams.get('error');
+      const errorDescription = url.searchParams.get('error_description');
 
-      console.log('🔗 [Deep Link] Params found:', { code: !!code, accessToken: !!accessToken });
+      console.log('🔗 [Deep Link] Params:', { code: !!code, accessToken: !!accessToken, error });
+
+      if (error) {
+        console.error('❌ [Deep Link] Error:', errorDescription);
+        alert(`Login Failed: ${errorDescription}`);
+        Browser.close().catch(() => { });
+        return;
+      }
 
       try {
         if (code) {
-          console.log('✅ [Deep Link] PKCE Code detected. Exchanging for session...');
+          console.log('✅ [Deep Link] PKCE Code detected. Exchanging...');
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
 
-          console.log('✅ [Deep Link] PKCE Exchange successful:', data.session?.user.id);
+          console.log('✅ [Deep Link] Exchange success for:', data.session?.user.email);
+          // Force set user immediately to update UI without waiting for onAuthStateChange
+          if (data.session) {
+            const user = {
+              id: data.session.user.id,
+              email: data.session.user.email,
+              name: data.session.user.user_metadata?.name || 'User',
+              avatar: data.session.user.user_metadata?.avatar_url,
+              role: data.session.user.user_metadata?.role || 'user'
+            };
+            setUser(user);
+            fetchAndSetUserProfile(data.session.user);
+          }
         }
         else if (accessToken && refreshToken) {
-          console.log('✅ [Deep Link] Implicit Tokens detected. Setting session...');
+          console.log('✅ [Deep Link] Tokens detected. Setting session...');
           const { error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           });
           if (error) throw error;
         }
-        else {
-          console.warn('⚠️ [Deep Link] No code or tokens found in URL:', event.url);
-        }
 
         // Success Cleanup
         await Browser.close();
-        checkUser(); // Refresh state
+        // Double check user state
+        checkUser();
 
       } catch (e: any) {
         console.error('❌ [Deep Link] Auth Processing Failed:', e.message);
+        alert(`Login Error: ${e.message}`);
         Browser.close().catch(() => { });
       }
     });

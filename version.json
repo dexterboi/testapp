@@ -1,17 +1,17 @@
 {
-    "version": "2.2.4",
-    "latest_version": "2.2.4",
-    "build": 224,
+    "version": "2.2.5",
+    "latest_version": "2.2.5",
+    "build": 225,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "Critical Fix: Mobile Google Login Redirect",
+    "notes": "Debug: Enhanced Auth Logging & Fixes",
     "ios": {
-        "version": "2.2.4",
-        "build": 224,
-        "release_notes": "Fix: Google Login Loop"
+        "version": "2.2.5",
+        "build": 225,
+        "release_notes": "Debug: Auth Fix"
     },
     "android": {
-        "version": "2.2.4",
-        "build": 224,
-        "release_notes": "Fix: Google Login Loop"
+        "version": "2.2.5",
+        "build": 225,
+        "release_notes": "Debug: Auth Fix"
     }
 }
