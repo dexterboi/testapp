@@ -1,17 +1,17 @@
 {
-    "version": "2.2.0",
-    "latest_version": "2.2.0",
-    "build": 220,
+    "version": "2.2.1",
+    "latest_version": "2.2.1",
+    "build": 221,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "FINAL FIX: Version sync and design improvements. No more update loops.",
+    "notes": "Fixed Supabase connection for deployed app",
     "ios": {
-        "version": "2.2.0",
-        "build": 220,
-        "release_notes": "Version sync fix"
+        "version": "2.2.1",
+        "build": 221,
+        "release_notes": "Supabase connection fix"
     },
     "android": {
-        "version": "2.2.0",
-        "build": 220,
-        "release_notes": "FIXED: Version synchronized. No more update prompts after install."
+        "version": "2.2.1",
+        "build": 221,
+        "release_notes": "FIXED: Supabase connection in production deployment"
     }
 }
