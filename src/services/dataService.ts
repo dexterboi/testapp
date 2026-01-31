@@ -449,6 +449,49 @@ export const sendMessage = async (friendshipId: string, senderId: string, conten
             .single();
 
         if (error) throw error;
+
+        // Trigger push notification to the recipient
+        // We do this asynchronously and don't block the UI
+        (async () => {
+            try {
+                // Get the recipient ID
+                const { data: friendship } = await supabase
+                    .from('friendships')
+                    .select('user_id, friend_id')
+                    .eq('id', friendshipId)
+                    .single();
+
+                if (friendship) {
+                    const recipientId = friendship.user_id === senderId ? friendship.friend_id : friendship.user_id;
+
+                    // Get sender name for the notification
+                    const { data: senderProfile } = await supabase
+                        .from('user_profiles')
+                        .select('name')
+                        .eq('id', senderId)
+                        .single();
+
+                    const senderName = senderProfile?.name || 'Friend';
+
+                    // Call Edge Function
+                    await supabase.functions.invoke('send-push-notification', {
+                        body: {
+                            userId: recipientId,
+                            title: senderName,
+                            body: content,
+                            data: {
+                                type: 'chat_message',
+                                friendship_id: friendshipId,
+                                sender_id: senderId
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Error triggering chat notification:', err);
+            }
+        })();
+
         return { success: true, data };
     } catch (error: any) {
         console.error('Error sending message:', error);
