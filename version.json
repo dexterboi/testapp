@@ -1,0 +1,17 @@
+{
+    "version": "1.1.11",
+    "latest_version": "1.1.11",
+    "build": 121,
+    "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
+    "notes": "Hotfix: Fixed crash on startup due to backend dependency issues. Improved security.",
+    "ios": {
+        "version": "1.1.11",
+        "build": 121,
+        "release_notes": "Hotfix: Fixed crash on startup."
+    },
+    "android": {
+        "version": "1.1.11",
+        "build": 121,
+        "release_notes": "Hotfix: Fixed crash on startup."
+    }
+}
