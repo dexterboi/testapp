@@ -1,17 +1,17 @@
 {
-    "version": "1.1.17",
-    "latest_version": "1.1.17",
-    "build": 127,
+    "version": "1.1.18",
+    "latest_version": "1.1.18",
+    "build": 128,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "TabBar: Removed Social button, updated icons (spaces=ball, crew=people), labels in French. v1.1.17 build 127.",
+    "notes": "TabBar: Fixed version sync, renamed to Espaces, improved responsiveness. v1.1.18 build 128.",
     "ios": {
-        "version": "1.1.17",
-        "build": 127,
-        "release_notes": "TabBar: Removed Social button, updated icons, French labels."
+        "version": "1.1.18",
+        "build": 128,
+        "release_notes": "TabBar: Fixed version sync, renamed to Espaces, improved responsiveness."
     },
     "android": {
-        "version": "1.1.15",
-        "build": 125,
-        "release_notes": "Design Update: Fixed TabBar positioning, updated detail pages."
+        "version": "1.1.18",
+        "build": 128,
+        "release_notes": "TabBar: Fixed version sync, renamed to Espaces, improved responsiveness."
     }
 }
