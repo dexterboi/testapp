@@ -1,16 +1,16 @@
 {
-    "version": "1.1.19",
-    "latest_version": "1.1.19",
+    "version": "1.1.18",
+    "latest_version": "1.1.18",
     "build": 129,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
     "notes": "Compact navbar with icons+text, fixed version comparison logic. v1.1.19 build 129.",
     "ios": {
-        "version": "1.1.19",
+        "version": "1.1.18",
         "build": 129,
         "release_notes": "Compact navbar with icons+text, fixed version comparison logic."
     },
     "android": {
-        "version": "1.1.19",
+        "version": "1.1.18",
         "build": 129,
         "release_notes": "Compact navbar with icons+text, fixed version comparison logic."
     }
