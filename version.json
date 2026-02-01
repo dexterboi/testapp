@@ -1,13 +1,13 @@
 {
-    "version": "1.1.16",
-    "latest_version": "1.1.16",
-    "build": 126,
+    "version": "1.1.17",
+    "latest_version": "1.1.17",
+    "build": 127,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "TabBar Update: New icons (social=people, crew=chat), text labels on all active tabs. v1.1.16 build 126.",
+    "notes": "TabBar: Removed Social button, updated icons (spaces=ball, crew=people), labels in French. v1.1.17 build 127.",
     "ios": {
-        "version": "1.1.16",
-        "build": 126,
-        "release_notes": "TabBar Update: New icons and text labels for all active tabs."
+        "version": "1.1.17",
+        "build": 127,
+        "release_notes": "TabBar: Removed Social button, updated icons, French labels."
     },
     "android": {
         "version": "1.1.15",
