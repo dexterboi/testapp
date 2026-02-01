@@ -3,15 +3,15 @@
     "latest_version": "1.1.13",
     "build": 123,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "Fixed push notifications - updated Firebase service account and Edge Functions. Notifications now working correctly.",
+    "notes": "Home Page Redesign: Modern layout with improved cards and header. Updated to v1.1.13 build 123.",
     "ios": {
         "version": "1.1.13",
         "build": 123,
-        "release_notes": "Fixed push notifications system."
+        "release_notes": "Home Page Redesign: Modern layout with improved cards and header."
     },
     "android": {
         "version": "1.1.13",
         "build": 123,
-        "release_notes": "Fixed push notifications system."
+        "release_notes": "Home Page Redesign: Modern layout with improved cards and header."
     }
 }
