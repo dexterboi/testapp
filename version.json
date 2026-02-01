@@ -1,17 +1,17 @@
 {
-    "version": "1.1.18",
-    "latest_version": "1.1.18",
-    "build": 129,
+    "version": "1.1.20",
+    "latest_version": "1.1.20",
+    "build": 130,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "Compact navbar with icons+text, fixed version comparison logic. v1.1.19 build 129.",
+    "notes": "Navbar accordion effect, all files aligned to v1.1.20. build 130.",
     "ios": {
-        "version": "1.1.18",
-        "build": 129,
-        "release_notes": "Compact navbar with icons+text, fixed version comparison logic."
+        "version": "1.1.20",
+        "build": 130,
+        "release_notes": "Navbar accordion effect, all files aligned to v1.1.20."
     },
     "android": {
-        "version": "1.1.18",
-        "build": 129,
-        "release_notes": "Compact navbar with icons+text, fixed version comparison logic."
+        "version": "1.1.20",
+        "build": 130,
+        "release_notes": "Navbar accordion effect, all files aligned to v1.1.20."
     }
 }
