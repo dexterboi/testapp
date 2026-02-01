@@ -1,13 +1,13 @@
 {
-    "version": "1.1.15",
-    "latest_version": "1.1.15",
-    "build": 125,
+    "version": "1.1.16",
+    "latest_version": "1.1.16",
+    "build": 126,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "Design Update: Fixed TabBar safe area, updated Complex/Pitch pages, fixed Padel image. v1.1.15 build 125.",
+    "notes": "TabBar Update: New icons (social=people, crew=chat), text labels on all active tabs. v1.1.16 build 126.",
     "ios": {
-        "version": "1.1.15",
-        "build": 125,
-        "release_notes": "Design Update: Fixed TabBar positioning, updated detail pages."
+        "version": "1.1.16",
+        "build": 126,
+        "release_notes": "TabBar Update: New icons and text labels for all active tabs."
     },
     "android": {
         "version": "1.1.15",
