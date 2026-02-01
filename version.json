@@ -1,17 +1,17 @@
 {
-    "version": "1.1.14",
-    "latest_version": "1.1.14",
-    "build": 124,
+    "version": "1.1.15",
+    "latest_version": "1.1.15",
+    "build": 125,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "Design Update: Fixed heart icon, updated Crew and Profile pages with modern design. v1.1.14 build 124.",
+    "notes": "Design Update: Fixed TabBar safe area, updated Complex/Pitch pages, fixed Padel image. v1.1.15 build 125.",
     "ios": {
-        "version": "1.1.14",
-        "build": 124,
-        "release_notes": "Design Update: Fixed heart icon, updated Crew and Profile pages."
+        "version": "1.1.15",
+        "build": 125,
+        "release_notes": "Design Update: Fixed TabBar positioning, updated detail pages."
     },
     "android": {
-        "version": "1.1.14",
-        "build": 124,
-        "release_notes": "Design Update: Fixed heart icon, updated Crew and Profile pages."
+        "version": "1.1.15",
+        "build": 125,
+        "release_notes": "Design Update: Fixed TabBar positioning, updated detail pages."
     }
 }
