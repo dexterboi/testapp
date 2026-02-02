@@ -3,15 +3,15 @@
     "latest_version": "1.1.21",
     "build": 131,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "Added user account deletion feature for non-owner users. All files aligned to v1.1.21. build 131.",
+    "notes": "Added user account deletion feature for non-owner users. Fixed 401 error by adding apikey header. All files aligned to v1.1.21. build 131.",
     "ios": {
         "version": "1.1.21",
         "build": 131,
-        "release_notes": "Added user account deletion feature for non-owner users."
+        "release_notes": "Added user account deletion feature for non-owner users. Fixed 401 error."
     },
     "android": {
         "version": "1.1.21",
         "build": 131,
-        "release_notes": "Added user account deletion feature for non-owner users."
+        "release_notes": "Added user account deletion feature for non-owner users. Fixed 401 error."
     }
 }
