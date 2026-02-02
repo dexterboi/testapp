@@ -1,17 +1,17 @@
 {
-    "version": "1.1.21",
-    "latest_version": "1.1.21",
-    "build": 131,
+    "version": "1.1.22",
+    "latest_version": "1.1.22",
+    "build": 132,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "Added user account deletion feature for non-owner users. Fixed 401 error by adding apikey header. All files aligned to v1.1.21. build 131.",
+    "notes": "Added onboarding profile completion form for new users. Users can now complete their profile after registration. All files aligned to v1.1.22. build 132.",
     "ios": {
-        "version": "1.1.21",
-        "build": 131,
-        "release_notes": "Added user account deletion feature for non-owner users. Fixed 401 error."
+        "version": "1.1.22",
+        "build": 132,
+        "release_notes": "Added onboarding profile completion form for new users."
     },
     "android": {
-        "version": "1.1.21",
-        "build": 131,
-        "release_notes": "Added user account deletion feature for non-owner users. Fixed 401 error."
+        "version": "1.1.22",
+        "build": 132,
+        "release_notes": "Added onboarding profile completion form for new users."
     }
 }
