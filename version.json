@@ -1,17 +1,17 @@
 {
-    "version": "1.1.20",
-    "latest_version": "1.1.20",
-    "build": 130,
+    "version": "1.1.21",
+    "latest_version": "1.1.21",
+    "build": 131,
     "download_url": "https://github.com/dexterboi/testapp/raw/main/app-debug.apk",
-    "notes": "Navbar accordion effect, all files aligned to v1.1.20. build 130.",
+    "notes": "Added user account deletion feature for non-owner users. All files aligned to v1.1.21. build 131.",
     "ios": {
-        "version": "1.1.20",
-        "build": 130,
-        "release_notes": "Navbar accordion effect, all files aligned to v1.1.20."
+        "version": "1.1.21",
+        "build": 131,
+        "release_notes": "Added user account deletion feature for non-owner users."
     },
     "android": {
-        "version": "1.1.20",
-        "build": 130,
-        "release_notes": "Navbar accordion effect, all files aligned to v1.1.20."
+        "version": "1.1.21",
+        "build": 131,
+        "release_notes": "Added user account deletion feature for non-owner users."
     }
 }
