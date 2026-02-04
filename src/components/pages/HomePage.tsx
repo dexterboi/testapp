@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LayoutGrid, Map } from 'lucide-react';
+import { LayoutGrid, Map, Heart, Bell } from 'lucide-react';
 import { supabase, getFileUrl } from '@/services/supabase';
 import { getComplexes, getUserLocation, calculateDistance } from '@/services/dataService';
 import { FilterModal } from '@/components/common/FilterModal';
@@ -18,7 +18,7 @@ interface HomePageProps {
 export const HomePage = ({ user, pendingCount }: HomePageProps) => {
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
     const [complexes, setComplexes] = useState<any[]>([]);
-    const [allComplexes, setAllComplexes] = useState<any[]>([]); // Store all complexes for filtering
+    const [allComplexes, setAllComplexes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -26,7 +26,7 @@ export const HomePage = ({ user, pendingCount }: HomePageProps) => {
     const [filters, setFilters] = useState({
         maxPrice: 200,
         minRating: 0,
-        maxDistance: 100, // Increased default to show more complexes
+        maxDistance: 100,
         surfaces: [] as string[],
         amenities: [] as string[]
     });
@@ -41,6 +41,28 @@ export const HomePage = ({ user, pendingCount }: HomePageProps) => {
 
     const navigate = useNavigate();
     const { t } = useTranslation();
+
+    // Helper to get sport image URL
+    const getSportImage = (sport: string) => {
+        const images: Record<string, string> = {
+            'Football': 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000',
+            'Padel': 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?auto=format&fit=crop&q=80&w=1000',
+            'Tennis': 'https://images.unsplash.com/photo-1622163642998-1ea2bc3e7a6e?auto=format&fit=crop&q=80&w=1000',
+            'Basketball': 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=1000'
+        };
+        return images[sport] || images['Football'];
+    };
+
+    // Helper to get sport badge
+    const getSportBadge = (sport: string) => {
+        const badges: Record<string, { text: string; className: string }> = {
+            'Football': { text: 'PRO', className: 'bg-primary text-[#1A1D1F]' },
+            'Padel': { text: 'TRENDING', className: 'bg-white/80 backdrop-blur-md text-[#1A1D1F]' },
+            'Tennis': { text: 'PRO', className: 'bg-primary text-[#1A1D1F]' },
+            'Basketball': { text: 'TEAM', className: 'bg-blue-500 text-white' }
+        };
+        return badges[sport] || { text: 'SPORT', className: 'bg-primary text-[#1A1D1F]' };
+    };
 
     useEffect(() => {
         initializeData();
@@ -460,12 +482,10 @@ export const HomePage = ({ user, pendingCount }: HomePageProps) => {
     };
 
     // Extract sports types for the horizontal scroller
-    const sportsTypes = ['Football', 'Padel', 'Tennis', 'Basketball'].filter(s =>
-        s === 'Football' || s === 'Padel' // User specifically asked for these for now
-    );
+    const sportsTypes = ['Football', 'Padel', 'Tennis', 'Basketball'];
 
     return (
-        <div className="pb-[calc(8rem+env(safe-area-inset-bottom))] bg-app-bg min-h-screen font-sans transition-colors duration-300">
+        <div className="pb-[calc(8rem+env(safe-area-inset-bottom))] bg-[#F8F9FA] dark:bg-[#121417] min-h-screen font-sans transition-colors duration-300">
             <FilterModal
                 isOpen={isFilterOpen}
                 onClose={() => setIsFilterOpen(false)}
@@ -478,163 +498,124 @@ export const HomePage = ({ user, pendingCount }: HomePageProps) => {
                 isOpen={isNotificationsOpen}
                 onClose={() => {
                     setIsNotificationsOpen(false);
-                    fetchNotificationCount(); // Refresh count when closing
+                    fetchNotificationCount();
                 }}
                 userId={user?.id}
                 pendingCount={pendingCount}
             />
 
-            {/* Premium Header */}
-            <header className="px-6 pt-[calc(3rem+env(safe-area-inset-top))] pb-8 bg-app-bg border-b border-app-border">
-                <div className="flex justify-between items-start mb-8">
+            {/* New Header Design */}
+            <header className="px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-4">
+                <div className="flex justify-between items-center mb-6">
                     <div>
-                        <div className="flex items-center gap-2 mb-1 opacity-60">
-                            <span className="material-symbols-rounded text-sm text-primary">location_on</span>
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-app-text-muted">{userLocation ? 'Tunis, TN' : t('home.locating')}</p>
-                        </div>
-                        <h1 className="text-3xl font-black tracking-tighter text-app-text leading-none">
-                            {t('home.explore')} <br /> <span className="text-primary italic">{t('home.venues')}</span>
-                        </h1>
+                        <p className="text-slate-500 text-sm font-medium mb-1">Hello, 👋</p>
+                        <h1 className="text-2xl font-extrabold tracking-tight text-[#1A1D1F] dark:text-white">{user?.name?.split(' ')[0] || 'Player'}</h1>
                     </div>
                     <div className="flex items-center gap-3">
                         {/* Notification Bell */}
                         <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsNotificationsOpen(true);
-                            }}
-                            className="relative w-12 h-12 rounded-2xl bg-app-surface border border-app-border flex items-center justify-center hover:opacity-80 transition-all active:scale-95 group"
+                            onClick={() => setIsNotificationsOpen(true)}
+                            className="relative w-12 h-12 rounded-full bg-white dark:bg-[#1E2126] flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 active:scale-95 transition-all"
                         >
-                            <span className="material-symbols-rounded text-app-text-muted group-hover:text-primary transition-colors">notifications</span>
+                            <Bell size={20} className="text-slate-600 dark:text-slate-300" />
                             {totalNotifications > 0 && (
-                                <div className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-rose-500 rounded-full border-2 border-app-bg flex items-center justify-center px-1.5 animate-pulse">
-                                    <span className="text-[10px] font-black text-white">{totalNotifications > 99 ? '99+' : totalNotifications}</span>
+                                <div className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center border-2 border-white dark:border-[#121417]">
+                                    <span className="text-[10px] font-bold text-white">{totalNotifications > 9 ? '9+' : totalNotifications}</span>
                                 </div>
                             )}
                         </button>
-
                         {/* Profile Avatar */}
-                        <div className="relative group cursor-pointer" onClick={() => navigate('/profile')}>
-                            <div className="w-16 h-16 rounded-[2rem] overflow-hidden border-2 border-app-bg shadow-2xl ring-4 ring-primary/5 group-hover:rotate-6 group-hover:scale-105 transition-all duration-500 bg-app-surface-2">
-                                <img
-                                    src={getAvatarUrl(user?.avatar, user?.name, user?.id)}
-                                    alt="Profile"
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
-                            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-app-surface-2 rounded-full flex items-center justify-center border-2 border-app-bg shadow-lg shadow-black/20">
-                                <span className="material-symbols-rounded text-primary text-[14px]">bolt</span>
-                            </div>
+                        <div
+                            className="w-12 h-12 rounded-full bg-slate-100 overflow-hidden border-2 border-primary/40 cursor-pointer"
+                            onClick={() => navigate('/profile')}
+                        >
+                            <img
+                                src={getAvatarUrl(user?.avatar, user?.name, user?.id)}
+                                alt="Profile"
+                                className="w-full h-full object-cover"
+                            />
                         </div>
                     </div>
                 </div>
 
-                {/* Search Bar & Filter */}
-                <div className="relative group">
-                    <span className="material-symbols-rounded absolute left-5 top-1/2 -translate-y-1/2 text-app-text-muted group-focus-within:text-primary transition-all duration-300">search</span>
+                {/* Search Bar */}
+                <div className="relative">
+                    <span className="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
                     <input
                         type="text"
-                        placeholder={t('home.search_placeholder')}
-                        className="w-full h-14 pl-12 pr-14 rounded-[1.5rem] bg-app-surface border border-app-border text-sm font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary/30 text-app-text transition-all placeholder:text-app-text-muted"
+                        placeholder={t('home.search_placeholder') || "Search for sports or venues"}
+                        className="w-full h-12 pl-12 pr-14 rounded-2xl bg-white dark:bg-[#1E2126] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#1A1D1F] dark:text-white placeholder:text-slate-400 shadow-sm"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                     <button
                         onClick={() => setIsFilterOpen(true)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-primary rounded-[1rem] text-slate-900 shadow-xl shadow-primary/10 active:scale-90 hover:bg-primary/90 transition-all font-black"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-primary rounded-xl text-[#1A1D1F] shadow-sm"
                     >
-                        <span className="material-symbols-rounded text-lg">tune</span>
-                        {activeFiltersCount > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-app-bg">
-                                {activeFiltersCount}
-                            </span>
-                        )}
+                        <span className="material-symbols-rounded text-xl">tune</span>
                     </button>
                 </div>
             </header>
 
             <main className="animate-in fade-in duration-700">
-                {/* View Toggle */}
-                {/* View Toggle */}
-                <div className="px-6 mt-2 mb-6">
-                    <div className="flex bg-app-bg shadow-inner border border-app-border p-1 rounded-2xl">
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`flex-1 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${viewMode === 'list' ? 'bg-primary text-slate-900 shadow-lg shadow-primary/10' : 'text-app-text-muted hover:text-app-text'}`}
-                        >
-                            <LayoutGrid size={16} /> {t('home.view_list')}
-                        </button>
-                        <button
-                            onClick={() => setViewMode('map')}
-                            className={`flex-1 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${viewMode === 'map' ? 'bg-primary text-slate-900 shadow-lg shadow-primary/10' : 'text-app-text-muted hover:text-app-text'}`}
-                        >
-                            <Map size={16} /> {t('home.view_map')}
-                        </button>
-                    </div>
-                </div>
-
                 {viewMode === 'list' ? (
                     <>
-                        {/* Popular Sports Scroller */}
+                        {/* Popular Sports Section */}
                         <section className="mt-4">
-                            <div className="flex justify-between items-end px-6 mb-4">
-                                <h2 className="text-lg font-bold text-app-text">{t('home.popular_sports')}</h2>
-                                <button className="text-primary text-sm font-semibold hover:opacity-80 transition-opacity">{t('common.view_all')}</button>
+                            <div className="flex justify-between items-center px-6 mb-4">
+                                <h2 className="text-xs font-bold tracking-[0.1em] uppercase text-slate-400">Popular Sports</h2>
+                                <button className="text-green-600 dark:text-primary font-bold text-xs tracking-tight">VIEW ALL</button>
                             </div>
                             <div className="flex overflow-x-auto gap-4 px-6 no-scrollbar pb-2">
-                                {sportsTypes.map((sport) => (
-                                    <div
-                                        key={sport}
-                                        onClick={() => setSelectedSport(selectedSport === sport ? null : sport)}
-                                        className={`flex-none w-44 relative group cursor-pointer active:scale-95 transition-all ${selectedSport === sport ? 'ring-4 ring-primary rounded-[2rem]' : ''}`}
-                                    >
-                                        <div className="aspect-[3/4] rounded-[2rem] overflow-hidden relative shadow-lg">
-                                            <img
-                                                alt={sport}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                                src={sport === 'Football'
-                                                    ? 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000'
-                                                    : 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&q=80&w=1000' // Using an indoor/padel-like image from assetService
-                                                }
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent"></div>
-                                            <div className="absolute bottom-5 left-5">
-                                                <span className={`text-black text-[10px] font-bold px-2 py-1 rounded-full uppercase mb-2 inline-block ${sport === 'Football' ? 'bg-primary' : 'bg-blue-400 text-white'}`}>
-                                                    {sport === 'Football' ? t('home.popular') : t('home.trending')}
-                                                </span>
-                                                <h3 className="text-white font-bold text-lg leading-tight">{sport}</h3>
-                                            </div>
-                                            {selectedSport === sport && (
-                                                <div className="absolute top-3 right-3 bg-primary text-slate-900 w-8 h-8 rounded-full flex items-center justify-center shadow-lg">
-                                                    <span className="material-symbols-rounded text-lg">check</span>
+                                {sportsTypes.map((sport) => {
+                                    const badge = getSportBadge(sport);
+                                    return (
+                                        <div
+                                            key={sport}
+                                            onClick={() => setSelectedSport(selectedSport === sport ? null : sport)}
+                                            className="flex-none w-40 relative group cursor-pointer"
+                                        >
+                                            <div className="aspect-[4/5] rounded-[1.5rem] overflow-hidden relative shadow-card">
+                                                <img
+                                                    alt={sport}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                                    src={getSportImage(sport)}
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                                                <div className="absolute bottom-4 left-4">
+                                                    <span className={`${badge.className} text-[9px] font-black px-2 py-0.5 rounded-md uppercase mb-1.5 inline-block`}>
+                                                        {badge.text}
+                                                    </span>
+                                                    <h3 className="text-white font-bold text-base leading-tight">{sport}</h3>
                                                 </div>
-                                            )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </section>
 
-                        {/* Nearby Venues */}
-                        <section className="mt-6 px-6 pb-10">
-                            <div className="flex justify-between items-center mb-6 px-1">
-                                <div>
-                                    <h2 className="text-2xl font-black text-app-text tracking-tighter uppercase">{t('home.nearby_venues')} <span className="text-primary italic">{t('home.venues')}</span></h2>
-                                    <p className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mt-1">{t('home.recommended_sub')}</p>
-                                </div>
-                                <button onClick={() => setViewMode('map')} className="w-12 h-12 rounded-2xl bg-app-surface border border-app-border flex items-center justify-center text-app-text-muted hover:text-primary transition-all active:scale-90">
-                                    <span className="material-symbols-rounded">map</span>
+                        {/* Nearby Venues Section */}
+                        <section className="mt-8 px-6 pb-10">
+                            <div className="flex justify-between items-center mb-5">
+                                <h2 className="text-xs font-bold tracking-[0.1em] uppercase text-slate-400">Nearby Venues</h2>
+                                <button
+                                    onClick={() => setViewMode('map')}
+                                    className="flex items-center gap-1.5 text-slate-500 text-[10px] font-bold bg-white dark:bg-[#1E2126] px-3 py-1.5 rounded-full shadow-sm border border-slate-100 dark:border-slate-700"
+                                >
+                                    <span className="material-symbols-rounded text-sm">map</span>
+                                    MAP
                                 </button>
                             </div>
 
                             {loading ? (
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     {[1, 2, 3].map(i => (
-                                        <div key={i} className="h-32 bg-app-surface rounded-[2.5rem] animate-pulse border border-app-border shadow-sm"></div>
+                                        <div key={i} className="h-24 bg-white dark:bg-[#1E2126] rounded-2xl animate-pulse shadow-soft"></div>
                                     ))}
                                 </div>
                             ) : (
-                                <div className="space-y-6">
+                                <div className="space-y-3">
                                     {complexes.map(complex => {
                                         const images = ensureArray(complex.images, complex.image);
                                         const mainImage = images[0]
@@ -645,42 +626,38 @@ export const HomePage = ({ user, pendingCount }: HomePageProps) => {
                                             <div
                                                 key={complex.id}
                                                 onClick={() => navigate(`/complex/${complex.id}`)}
-                                                className="bg-app-surface backdrop-blur-md p-5 rounded-[2.5rem] border border-app-border shadow-sm transition-all active:scale-[0.98] cursor-pointer hover:opacity-90 group relative overflow-hidden"
+                                                className="bg-white dark:bg-[#1E2126] p-3 rounded-2xl flex items-center gap-4 shadow-soft hover:shadow-card transition-all cursor-pointer"
                                             >
-                                                <div className="flex gap-5 items-center">
-                                                    <div className="w-24 h-24 rounded-[2rem] overflow-hidden bg-app-surface-2 shrink-0 border border-app-border p-0.5">
-                                                        <img
-                                                            alt={complex.name}
-                                                            className="w-full h-full object-cover rounded-[1.8rem] group-hover:scale-110 transition-transform duration-700 opacity-90 group-hover:opacity-100"
-                                                            src={mainImage}
-                                                        />
+                                                <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
+                                                    <img
+                                                        alt={complex.name}
+                                                        className="w-full h-full object-cover"
+                                                        src={mainImage}
+                                                    />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-bold text-sm text-[#1A1D1F] dark:text-white truncate">{complex.name}</h4>
+                                                    <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-400">
+                                                        <div className="flex items-center gap-0.5">
+                                                            <span className="material-symbols-rounded text-green-500 text-[14px]">star</span>
+                                                            <span className="font-bold text-[#1A1D1F] dark:text-white">{complex.avg_rating || '4.8'}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="material-symbols-rounded text-[14px]">location_on</span>
+                                                            <span>{complex.distance !== undefined ? `${complex.distance.toFixed(1)} km` : 'Tunis'}</span>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex justify-between items-start mb-1">
-                                                            <h4 className="font-black text-lg leading-tight text-app-text truncate group-hover:text-primary transition-colors">{complex.name}</h4>
-                                                            <div className="flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full border border-primary/20">
-                                                                <span className="material-symbols-rounded text-[14px] fill-1">star</span>
-                                                                <span className="text-[10px] font-black">{complex.avg_rating || '4.8'}</span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 mb-3">
-                                                            <span className="material-symbols-rounded text-app-text-muted text-sm">location_on</span>
-                                                            <span className="text-[11px] font-bold text-app-text-muted truncate">{complex.address?.split(',').slice(0, 1) || 'Tunis'}</span>
-                                                        </div>
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex gap-1.5">
-                                                                {ensureArray(complex.sports || ['Football']).slice(0, 2).map((sport, idx) => (
-                                                                    <span key={idx} className="text-[8px] font-black bg-app-surface-2 text-app-text-muted px-2.5 py-1 rounded-lg uppercase tracking-widest border border-app-border">
-                                                                        {sport}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                            {complex.distance !== undefined && (
-                                                                <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">{complex.distance.toFixed(1)} km</p>
-                                                            )}
-                                                        </div>
+                                                    <div className="mt-2 flex gap-1.5">
+                                                        {ensureArray(complex.sports || ['Football']).slice(0, 2).map((sport, idx) => (
+                                                            <span key={idx} className="text-[9px] font-bold text-slate-500 bg-slate-50 dark:bg-slate-700 dark:text-slate-300 px-2 py-0.5 rounded">
+                                                                {sport.toUpperCase()}
+                                                            </span>
+                                                        ))}
                                                     </div>
                                                 </div>
+                                                <button className="w-8 h-8 flex items-center justify-center rounded-full text-slate-300 hover:text-red-500 transition-colors">
+                                                    <Heart size={18} />
+                                                </button>
                                             </div>
                                         );
                                     })}

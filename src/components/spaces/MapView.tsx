@@ -13,9 +13,19 @@ interface MapViewProps {
     compact?: boolean;
     complexes?: any[];
     userLocation?: { lat: number; lng: number } | null;
+    initialCenter?: { lat: number; lng: number };
+    initialZoom?: number;
 }
 
-const MapView = ({ onBack, showBackButton = true, compact = false, complexes: initialComplexes, userLocation: initialLocation }: MapViewProps) => {
+const MapView = ({
+    onBack,
+    showBackButton = true,
+    compact = false,
+    complexes: initialComplexes,
+    userLocation: initialLocation,
+    initialCenter,
+    initialZoom = 13
+}: MapViewProps) => {
     const navigate = useNavigate();
     const [complexes, setComplexes] = useState<any[]>(initialComplexes || []);
     const [selectedComplex, setSelectedComplex] = useState<any | null>(null);
@@ -108,7 +118,7 @@ const MapView = ({ onBack, showBackButton = true, compact = false, complexes: in
         const map = L.map(mapRef.current, {
             zoomControl: false,
             attributionControl: false
-        }).setView([36.8065, 10.1815], 12);
+        }).setView(initialCenter ? [initialCenter.lat, initialCenter.lng] : [36.8065, 10.1815], initialCenter ? initialZoom : 12);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -139,7 +149,11 @@ const MapView = ({ onBack, showBackButton = true, compact = false, complexes: in
         });
 
         userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon, zIndexOffset: 1000 }).addTo(mapInstance);
-        mapInstance.setView([userLocation.lat, userLocation.lng], 15);
+
+        // Only set view to user location if no initial center was provided
+        if (!initialCenter) {
+            mapInstance.setView([userLocation.lat, userLocation.lng], 15);
+        }
     }, [userLocation, mapInstance]);
 
     useEffect(() => {

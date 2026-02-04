@@ -62,7 +62,7 @@ const TeamDetailPage = ({ currentUser }: { currentUser: any }) => {
             setMessages(messagesData);
         } catch (error) {
             console.error('Error fetching team details:', error);
-            navigate('/spaces');
+            navigate('/matches');
         } finally {
             setLoading(false);
         }
@@ -174,7 +174,7 @@ const TeamDetailPage = ({ currentUser }: { currentUser: any }) => {
             {/* Premium Header */}
             <header className="bg-app-bg/80 backdrop-blur-xl px-6 pt-14 pb-6 border-b border-app-border flex items-center gap-4 z-40 shrink-0 sticky top-0">
                 <button
-                    onClick={() => navigate('/spaces')}
+                    onClick={() => navigate('/matches')}
                     className="w-10 h-10 bg-app-surface-2 rounded-xl flex items-center justify-center text-app-text-muted hover:text-app-text border border-app-border shadow-sm transition-all active:scale-90"
                 >
                     <span className="material-symbols-rounded">arrow_back_ios_new</span>

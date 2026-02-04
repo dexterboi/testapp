@@ -6,6 +6,7 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { Capacitor } from '@capacitor/core';
 import { getAvatarUrl } from '@/utils';
 import { useTranslation } from 'react-i18next';
+import { Trash2, AlertTriangle, X } from 'lucide-react';
 
 interface UserProfileProps {
     user: any;
@@ -29,6 +30,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
+
+    // Account deletion states
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteConfirmation, setDeleteConfirmation] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    // Check if user is an owner
+    const isOwner = user?.role?.toLowerCase() === 'owner';
 
     const handleAvatarClick = () => {
         setShowSourceModal(true);
@@ -230,22 +240,32 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
     const displayPhone = user?.phone || 'No phone verified';
 
     return (
-        <div className="bg-app-bg min-h-screen pb-24 font-sans transition-colors duration-300">
+        <div className="bg-[#F8F9FA] dark:bg-[#121417] min-h-screen pb-24 font-sans transition-colors duration-300">
             {/* Profile Header */}
-            <div className="bg-app-surface p-8 pt-16 rounded-b-[4rem] shadow-2xl mb-8 border-b border-app-border relative overflow-hidden">
+            <div className="px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-6">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <p className="text-slate-500 text-sm font-medium mb-1">Hello, 👋</p>
+                        <h1 className="text-2xl font-extrabold tracking-tight text-[#1A1D1F] dark:text-white">{t('tabs.profile')}</h1>
+                    </div>
+                </div>
+            </div>
+
+            {/* Profile Header */}
+            <div className="bg-white dark:bg-[#1E2126] mx-6 p-6 rounded-2xl shadow-soft mb-6 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
                 <div className="flex flex-col items-center relative z-10">
-                    <div className="relative group cursor-pointer mb-8" onClick={handleAvatarClick}>
-                        <div className="w-40 h-40 rounded-[3.5rem] overflow-hidden border-4 border-app-bg shadow-2xl relative group-hover:scale-[1.05] transition-all duration-700 p-1 bg-app-surface-2">
-                            <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover rounded-[3rem] group-hover:blur-[2px] transition-all" />
-                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[3rem]">
-                                <span className="material-symbols-rounded text-white text-4xl mb-1">photo_camera</span>
-                                <span className="text-[10px] font-black text-white uppercase tracking-widest">{t('profile.update_btn')}</span>
+                    <div className="relative group cursor-pointer mb-6" onClick={handleAvatarClick}>
+                        <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-[#F8F9FA] dark:border-[#121417] shadow-xl relative group-hover:scale-[1.05] transition-all duration-700 bg-slate-100">
+                            <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover group-hover:blur-[2px] transition-all" />
+                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <span className="material-symbols-rounded text-white text-3xl mb-1">photo_camera</span>
+                                <span className="text-[9px] font-bold text-white uppercase tracking-widest">{t('profile.update_btn')}</span>
                             </div>
                         </div>
 
-                        <div className="absolute -bottom-2 -right-2 bg-app-surface text-primary p-4 rounded-[1.2rem] shadow-2xl z-10 group-hover:rotate-12 transition-all border-4 border-app-bg">
-                            <span className="material-symbols-rounded text-2xl font-bold">bolt</span>
+                        <div className="absolute -bottom-1 -right-1 bg-primary text-[#1A1D1F] p-2 rounded-full shadow-lg z-10 group-hover:rotate-12 transition-all border-2 border-white dark:border-[#1E2126]">
+                            <span className="material-symbols-rounded text-lg font-bold">bolt</span>
                         </div>
 
                         {isUploading && (
@@ -264,70 +284,67 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                     </div>
 
                     {!isEditingName ? (
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-4xl font-black text-app-text tracking-tighter uppercase leading-none">
-                                {user.name?.split(' ')[0] || t('profile.pro_tag')} <span className="text-primary italic">{user.name?.split(' ').slice(1).join(' ') || t('profile.player_tag')}</span>
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-xl font-bold text-[#1A1D1F] dark:text-white tracking-tight">
+                                {user.name}
                             </h2>
-                            <button onClick={() => setIsEditingName(true)} className="w-10 h-10 rounded-2xl bg-app-surface text-app-text-muted hover:text-app-text transition-all flex items-center justify-center active:scale-90 border border-app-border">
-                                <span className="material-symbols-rounded text-xl">edit</span>
+                            <button onClick={() => setIsEditingName(true)} className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-[#1A1D1F] dark:hover:text-white transition-all flex items-center justify-center active:scale-90">
+                                <span className="material-symbols-rounded text-lg">edit</span>
                             </button>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-3 w-full max-w-xs px-4">
+                        <div className="flex items-center gap-2 w-full max-w-xs px-4">
                             <input
                                 type="text"
                                 value={userName}
                                 onChange={(e) => setUserName(e.target.value)}
-                                className="flex-1 h-14 px-6 bg-app-surface border-2 border-app-border rounded-[1.2rem] text-xl font-black text-app-text focus:ring-4 focus:ring-primary/10 transition-all uppercase"
+                                className="flex-1 h-12 px-4 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-base font-bold text-[#1A1D1F] dark:text-white focus:ring-2 focus:ring-primary focus:outline-none"
                                 autoFocus
                             />
-                            <button onClick={handleSaveName} className="w-14 h-14 bg-app-surface text-primary rounded-[1.2rem] flex items-center justify-center shadow-xl active:scale-90 transition-all">
-                                {isSavingName ? <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" /> : <span className="material-symbols-rounded font-bold text-2xl">check</span>}
+                            <button onClick={handleSaveName} className="w-12 h-12 bg-primary text-[#1A1D1F] rounded-xl flex items-center justify-center shadow-sm active:scale-90 transition-all">
+                                {isSavingName ? <div className="animate-spin h-5 w-5 border-2 border-[#1A1D1F] border-t-transparent rounded-full" /> : <span className="material-symbols-rounded font-bold text-xl">check</span>}
                             </button>
-                            <button onClick={handleCancelName} className="w-14 h-14 bg-app-surface-2 text-app-text-muted rounded-[1.2rem] flex items-center justify-center active:scale-90 transition-all">
-                                <span className="material-symbols-rounded font-bold text-2xl">close</span>
+                            <button onClick={handleCancelName} className="w-12 h-12 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-xl flex items-center justify-center active:scale-90 transition-all">
+                                <span className="material-symbols-rounded font-bold text-xl">close</span>
                             </button>
                         </div>
                     )}
-                    <p className="text-app-text-muted text-[11px] mt-4 mb-10 font-black tracking-[0.25em] uppercase px-6 py-2 bg-app-bg shadow-inner rounded-full border border-app-border">{user.email}</p>
+                    <p className="text-slate-500 text-xs mt-2 mb-6 font-medium">{user.email}</p>
 
                     {/* Elite Takwira ID Card */}
-                    <div className="bg-app-surface w-full rounded-[3rem] p-8 mb-10 relative overflow-hidden shadow-2xl border border-app-border group">
-                        <div className="absolute top-0 right-0 w-80 h-80 bg-primary/20 rounded-full -mr-40 -mt-40 blur-[100px] group-hover:scale-125 transition-transform duration-1000" />
-                        <div className="absolute bottom-0 left-0 w-60 h-60 bg-primary/10 rounded-full -ml-30 -mb-30 blur-[80px]" />
-
+                    <div className="bg-[#1A1D1F] w-full rounded-2xl p-5 mb-6 relative overflow-hidden shadow-card">
                         <div className="relative z-10">
-                            <div className="flex justify-between items-start mb-12">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-primary rounded-[1.2rem] flex items-center justify-center shadow-xl shadow-primary/20 rotate-3 group-hover:rotate-6 transition-transform">
-                                        <span className="material-symbols-rounded text-slate-900 text-3xl font-black">verified_user</span>
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
+                                        <span className="material-symbols-rounded text-[#1A1D1F] text-2xl">verified_user</span>
                                     </div>
                                     <div>
-                                        <span className="text-app-text font-black text-[13px] tracking-[0.4em] uppercase block leading-none mb-1">{t('profile.pitch_id')}</span>
-                                        <span className="text-primary font-black text-[9px] tracking-widest uppercase opacity-90 italic">{t('profile.elite_member')}</span>
+                                        <span className="text-white font-bold text-xs tracking-wider uppercase block">{t('profile.pitch_id')}</span>
+                                        <span className="text-primary text-[9px] tracking-wide">{t('profile.elite_member')}</span>
                                     </div>
                                 </div>
-                                <div className="bg-black/10 backdrop-blur-md px-3 py-1.5 rounded-xl border border-app-border font-black text-[9px] text-white/60 tracking-[0.2em] uppercase">{t('profile.member_since')} {new Date(user.created_at).getFullYear()}</div>
+                                <div className="bg-white/10 px-2 py-1 rounded-lg text-[9px] text-white/60 tracking-wide">{t('profile.member_since')} {new Date(user.created_at).getFullYear()}</div>
                             </div>
 
                             <div className="flex justify-between items-end">
                                 <div>
-                                    <p className="text-app-text-muted text-[9px] font-black uppercase tracking-[0.3em] mb-2 leading-none">{t('profile.player_identification')}</p>
-                                    <div className="flex items-center gap-3">
-                                        <p className="text-app-text font-black text-2xl tracking-[0.15em] font-mono leading-none">{user.takwira_id || '#TAK-0000'}</p>
+                                    <p className="text-white/50 text-[9px] font-bold uppercase tracking-wider mb-1">{t('profile.player_identification')}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-white font-bold text-lg tracking-wider font-mono">{user.takwira_id || '#TAK-0000'}</p>
                                         <button
                                             onClick={() => {
                                                 navigator.clipboard.writeText(user.takwira_id);
                                                 alert(t('profile.id_copied'));
                                             }}
-                                            className="w-8 h-8 flex items-center justify-center bg-app-surface-2 rounded-xl text-app-text-muted hover:text-primary transition-all active:scale-90"
+                                            className="w-7 h-7 flex items-center justify-center bg-white/10 rounded-lg text-white/60 hover:text-primary transition-all active:scale-90"
                                         >
-                                            <span className="material-symbols-rounded text-lg">content_copy</span>
+                                            <span className="material-symbols-rounded text-base">content_copy</span>
                                         </button>
                                     </div>
                                 </div>
-                                <div className="bg-app-surface-2 p-2.5 rounded-2xl shadow-xl shadow-black/20 group-hover:scale-110 transition-transform">
-                                    <span className="material-symbols-rounded text-app-text text-3xl font-bold">qr_code_2</span>
+                                <div className="bg-white/10 p-2 rounded-xl">
+                                    <span className="material-symbols-rounded text-white text-2xl">qr_code_2</span>
                                 </div>
                             </div>
                         </div>
@@ -336,69 +353,69 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
                     {/* Phone Number Section */}
                     <div className="w-full mb-6">
                         {!isEditingPhone ? (
-                            <div className="flex items-center justify-center gap-3 bg-app-surface-2 border border-app-border py-4 px-6 rounded-[2rem] shadow-inner group hover:border-primary/30 transition-all">
-                                <span className={`material-symbols-rounded text-xl ${user.phone ? 'text-primary' : 'text-app-text-muted'}`}>phone_iphone</span>
-                                <span className={`text-[11px] font-black uppercase tracking-widest ${user.phone ? 'text-app-text-muted' : 'text-app-text-muted opacity-60'}`}>
+                            <div className="flex items-center justify-center gap-3 bg-slate-100 dark:bg-slate-700 py-3 px-4 rounded-xl shadow-sm group">
+                                <span className={`material-symbols-rounded text-lg ${user.phone ? 'text-primary' : 'text-slate-400'}`}>phone_iphone</span>
+                                <span className={`text-sm font-medium ${user.phone ? 'text-[#1A1D1F] dark:text-white' : 'text-slate-400'}`}>
                                     {user?.phone || t('profile.no_phone')}
                                 </span>
                                 <button
                                     onClick={() => setIsEditingPhone(true)}
-                                    className="ml-2 w-8 h-8 rounded-full bg-app-surface text-app-text-muted hover:text-app-text transition-all active:scale-90"
+                                    className="ml-2 w-8 h-8 rounded-lg bg-white dark:bg-slate-600 text-slate-400 hover:text-[#1A1D1F] dark:hover:text-white transition-all active:scale-90"
                                 >
-                                    <span className="material-symbols-rounded text-lg">edit</span>
+                                    <span className="material-symbols-rounded text-base">edit</span>
                                 </button>
                             </div>
                         ) : (
-                            <div className="flex items-center gap-3 w-full">
+                            <div className="flex items-center gap-2 w-full">
                                 <input
                                     type="tel"
                                     value={phoneNumber}
                                     onChange={(e) => setPhoneNumber(e.target.value)}
                                     placeholder="+216 -- --- ---"
-                                    className="flex-1 h-14 px-6 bg-app-surface-2 border-2 border-app-border rounded-3xl text-sm font-black text-app-text focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder:text-app-text-muted/40"
+                                    className="flex-1 h-12 px-4 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm font-bold text-[#1A1D1F] dark:text-white focus:ring-2 focus:ring-primary focus:outline-none"
                                     disabled={isSavingPhone}
                                 />
                                 <button
                                     onClick={handleSavePhone}
                                     disabled={isSavingPhone}
-                                    className="w-14 h-14 bg-primary text-slate-900 rounded-3xl flex items-center justify-center shadow-lg shadow-primary/20 active:scale-90 transition-all disabled:opacity-50"
+                                    className="w-12 h-12 bg-primary text-[#1A1D1F] rounded-xl flex items-center justify-center shadow-sm active:scale-90 transition-all disabled:opacity-50"
                                 >
                                     {isSavingPhone ? (
-                                        <div className="animate-spin h-5 w-5 border-2 border-slate-900 border-t-transparent rounded-full" />
+                                        <div className="animate-spin h-5 w-5 border-2 border-[#1A1D1F] border-t-transparent rounded-full" />
                                     ) : (
-                                        <span className="material-symbols-rounded font-bold text-2xl">check</span>
+                                        <span className="material-symbols-rounded font-bold text-xl">check</span>
                                     )}
                                 </button>
                                 <button
                                     onClick={handleCancelPhone}
                                     disabled={isSavingPhone}
-                                    className="w-14 h-14 bg-app-surface-2 text-app-text-muted rounded-3xl flex items-center justify-center active:scale-90 transition-all disabled:opacity-50"
+                                    className="w-12 h-12 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-xl flex items-center justify-center active:scale-90 transition-all disabled:opacity-50"
                                 >
-                                    <span className="material-symbols-rounded font-bold text-2xl">close</span>
+                                    <span className="material-symbols-rounded font-bold text-xl">close</span>
                                 </button>
                             </div>
                         )}
                         {!user.phone && !isEditingPhone && (
                             <div className="flex items-center justify-center gap-1.5 mt-3">
                                 <span className="material-symbols-rounded text-amber-500 text-xs">warning</span>
-                                <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">{t('profile.phone_required')}</p>
+                                <p className="text-[9px] font-bold text-amber-500 uppercase tracking-wider">{t('profile.phone_required')}</p>
                             </div>
                         )}
                     </div>
 
-                    <div className="flex gap-4 w-full">
+                    <div className="flex gap-3 w-full">
                         {[
                             { label: t('profile.played'), value: user.gamesPlayed || 0, color: 'slate' },
                             { label: t('profile.victory'), value: user.wins || 0, color: 'primary' },
                             { label: t('profile.defeat'), value: user.losses || 0, color: 'rose' }
                         ].map((stat, idx) => (
-                            <div key={idx} className={`flex-1 p-5 rounded-[2.2rem] text-center border transition-all hover:-translate-y-1 ${stat.color === 'primary'
-                                ? 'bg-primary/5 border-primary/20 shadow-lg shadow-primary/5'
-                                : 'bg-app-surface border-app-border hover:bg-app-surface-2'
+                            <div key={idx} className={`flex-1 p-4 rounded-xl text-center transition-all hover:-translate-y-1 ${stat.color === 'primary'
+                                ? 'bg-primary/10'
+                                : 'bg-slate-100 dark:bg-slate-700'
                                 }`}>
-                                <p className={`text-[9px] font-black uppercase tracking-widest mb-1.5 ${stat.color === 'primary' ? 'text-primary' : 'text-app-text-muted'
+                                <p className={`text-[9px] font-bold uppercase tracking-wider mb-1 ${stat.color === 'primary' ? 'text-primary' : 'text-slate-500'
                                     }`}>{stat.label}</p>
-                                <p className="text-2xl font-black text-app-text tabular-nums">{stat.value}</p>
+                                <p className="text-xl font-bold text-[#1A1D1F] dark:text-white tabular-nums">{stat.value}</p>
                             </div>
                         ))}
                     </div>
@@ -406,84 +423,93 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
             </div>
 
             {/* Menu Options */}
-            <div className="px-8 space-y-6">
-                <div className="flex items-center justify-between px-2">
-                    <h3 className="text-[10px] font-black text-app-text-muted uppercase tracking-[0.2em]">{t('profile.activity_career')}</h3>
-                    <div className="h-px bg-app-border flex-1 ml-4" />
-                </div>
+            <div className="px-6 space-y-4">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em]">{t('profile.activity_career')}</h3>
 
                 <div className="grid gap-3">
                     {user?.role?.toLowerCase() === 'owner' && (
                         <button
                             onClick={() => navigate('/owner')}
-                            className="group w-full flex items-center p-5 bg-primary/10 hover:bg-primary transition-all rounded-[2.5rem] border border-primary/20 shadow-lg shadow-primary/10 active:scale-[0.98]"
+                            className="group w-full flex items-center p-4 bg-primary/10 hover:bg-primary/20 transition-all rounded-2xl active:scale-[0.98]"
                         >
-                            <div className="w-14 h-14 bg-app-surface-2 rounded-3xl flex items-center justify-center text-primary shadow-xl group-hover:rotate-12 transition-all mr-5">
-                                <span className="material-symbols-rounded text-3xl">dashboard_customize</span>
+                            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-[#1A1D1F] shadow-sm mr-4">
+                                <span className="material-symbols-rounded text-2xl">dashboard_customize</span>
                             </div>
                             <div className="flex-1 text-left">
-                                <p className="text-sm font-black text-app-text uppercase tracking-tight group-hover:text-slate-900">{t('profile.owner_dashboard')}</p>
-                                <p className="text-[10px] text-app-text-muted font-bold uppercase tracking-widest group-hover:text-slate-800">{t('profile.owner_dashboard_sub')}</p>
+                                <p className="text-sm font-bold text-[#1A1D1F] dark:text-white">{t('profile.owner_dashboard')}</p>
+                                <p className="text-[10px] text-slate-500">{t('profile.owner_dashboard_sub')}</p>
                             </div>
-                            <span className="material-symbols-rounded text-app-text-muted group-hover:text-slate-900 group-hover:translate-x-1 transition-transform">chevron_right</span>
+                            <span className="material-symbols-rounded text-slate-400">chevron_right</span>
                         </button>
                     )}
 
                     {[
-                        { label: t('profile.achievements'), desc: t('profile.achievements_sub'), icon: 'military_tech', color: 'primary', path: '/achievements' },
-                        { label: t('profile.academy'), desc: t('profile.academy_sub'), icon: 'school', color: 'amber', path: '/academy-student' },
-                        { label: t('profile.history'), desc: t('profile.history_sub_receipts'), icon: 'history', color: 'blue', path: '/history' },
-                        { label: t('profile.active_squads'), desc: t('profile.active_squads_sub'), icon: 'groups', color: 'emerald', path: '/teams' }
+                        { label: t('profile.achievements'), desc: t('profile.achievements_sub'), icon: 'military_tech', path: '/achievements' },
+                        { label: t('profile.history'), desc: t('profile.history_sub_receipts'), icon: 'history', path: '/history' },
+                        { label: t('profile.active_squads'), desc: t('profile.active_squads_sub'), icon: 'groups', path: '/teams' }
                     ].map((item, idx) => (
                         <button
                             key={idx}
                             onClick={() => navigate(item.path)}
-                            className="group w-full flex items-center p-5 bg-app-surface hover:bg-app-surface-2 transition-all rounded-[2.5rem] border border-app-border active:scale-[0.98]"
+                            className="group w-full flex items-center p-4 bg-white dark:bg-[#1E2126] hover:shadow-card transition-all rounded-2xl shadow-soft active:scale-[0.98]"
                         >
-                            <div className={`w-14 h-14 rounded-3xl flex items-center justify-center text-app-text-muted group-hover:text-primary transition-all mr-5 bg-app-surface-2 shadow-inner p-3`}>
-                                <span className="material-symbols-rounded text-3xl">{item.icon}</span>
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-primary transition-all mr-4 bg-slate-100 dark:bg-slate-700`}>
+                                <span className="material-symbols-rounded text-2xl">{item.icon}</span>
                             </div>
                             <div className="flex-1 text-left">
-                                <p className="text-sm font-black text-app-text uppercase tracking-tight">{item.label}</p>
-                                <p className="text-[10px] text-app-text-muted font-black uppercase tracking-widest opacity-60">{item.desc}</p>
+                                <p className="text-sm font-bold text-[#1A1D1F] dark:text-white">{item.label}</p>
+                                <p className="text-[10px] text-slate-500">{item.desc}</p>
                             </div>
-                            <span className="material-symbols-rounded text-app-text-muted group-hover:text-primary group-hover:translate-x-1 transition-all">arrow_forward</span>
+                            <span className="material-symbols-rounded text-slate-400 group-hover:text-primary transition-all">arrow_forward</span>
                         </button>
                     ))}
                 </div>
 
-                <div className="flex items-center justify-between px-2 pt-4">
-                    <h3 className="text-[10px] font-black text-app-text-muted uppercase tracking-[0.2em]">{t('profile.account_hub')}</h3>
-                    <div className="h-px bg-app-border flex-1 ml-4" />
-                </div>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.1em] pt-4">{t('profile.account_hub')}</h3>
 
                 <div className="grid gap-3">
                     <button
                         onClick={() => navigate('/preferences')}
-                        className="group w-full flex items-center p-5 bg-app-surface hover:bg-app-surface-2 transition-all rounded-[2.5rem] border border-app-border active:scale-[0.98]"
+                        className="group w-full flex items-center p-4 bg-white dark:bg-[#1E2126] hover:shadow-card transition-all rounded-2xl shadow-soft active:scale-[0.98]"
                     >
-                        <div className="w-14 h-14 bg-app-surface-2 rounded-3xl flex items-center justify-center text-app-text-muted group-hover:text-app-text transition-all mr-5">
-                            <span className="material-symbols-rounded text-2xl">settings</span>
+                        <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-[#1A1D1F] dark:group-hover:text-white transition-all mr-4">
+                            <span className="material-symbols-rounded text-xl">settings</span>
                         </div>
                         <div className="flex-1 text-left">
-                            <p className="text-sm font-black text-app-text uppercase tracking-tight">{t('profile.preferences')}</p>
-                            <p className="text-[10px] text-app-text-muted font-bold uppercase tracking-widest">{t('profile.preferences_sub')}</p>
+                            <p className="text-sm font-bold text-[#1A1D1F] dark:text-white">{t('profile.preferences')}</p>
+                            <p className="text-[10px] text-slate-500">{t('profile.preferences_sub')}</p>
                         </div>
-                        <span className="material-symbols-rounded text-app-text-muted">chevron_right</span>
+                        <span className="material-symbols-rounded text-slate-400">chevron_right</span>
                     </button>
 
                     <button
                         onClick={onLogout}
-                        className="group w-full flex items-center p-5 bg-rose-500/10 hover:bg-rose-500/20 transition-all rounded-[2.5rem] border border-rose-500/20 active:scale-[0.98]"
+                        className="group w-full flex items-center p-4 bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-all rounded-2xl active:scale-[0.98]"
                     >
-                        <div className="w-14 h-14 bg-rose-500/10 rounded-3xl flex items-center justify-center text-rose-500 shadow-sm group-hover:rotate-12 transition-all mr-5">
-                            <span className="material-symbols-rounded text-2xl">logout</span>
+                        <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/30 rounded-xl flex items-center justify-center text-rose-500 mr-4">
+                            <span className="material-symbols-rounded text-xl">logout</span>
                         </div>
                         <div className="flex-1 text-left">
-                            <p className="text-sm font-black text-rose-500 uppercase tracking-tight">{t('profile.sign_out')}</p>
-                            <p className="text-[10px] text-rose-400 font-bold uppercase tracking-widest">{t('profile.sign_out_sub')}</p>
+                            <p className="text-sm font-bold text-rose-500">{t('profile.sign_out')}</p>
+                            <p className="text-[10px] text-rose-400">{t('profile.sign_out_sub')}</p>
                         </div>
                     </button>
+
+                    {/* Delete Account Button - Only for non-owner users */}
+                    {!isOwner && (
+                        <button
+                            onClick={() => setShowDeleteModal(true)}
+                            className="group w-full flex items-center p-4 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 transition-all rounded-2xl active:scale-[0.98] border border-red-200 dark:border-red-800/30"
+                        >
+                            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-xl flex items-center justify-center text-red-500 mr-4">
+                                <Trash2 className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 text-left">
+                                <p className="text-sm font-bold text-red-500">{t('profile.delete_account') || 'Delete Account'}</p>
+                                <p className="text-[10px] text-red-400">{t('profile.delete_account_sub') || 'Permanently delete your account and all data'}</p>
+                            </div>
+                        </button>
+                    )}
                 </div>
             </div>
             {/* Source Selection Modal */}
@@ -557,6 +583,115 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onRefr
 
                     <div className="px-12 text-center pb-12">
                         <p className="text-[10px] text-app-text-muted font-black uppercase tracking-[0.3em] leading-relaxed">{t('profile.camera_guideline')}</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Account Confirmation Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[200] flex items-center justify-center p-6 animate-in fade-in duration-300">
+                    <div className="w-full max-w-md bg-white dark:bg-[#1E2126] rounded-[2rem] border border-red-200 dark:border-red-800/30 p-8 shadow-2xl animate-in zoom-in-95 duration-300">
+                        <div className="flex flex-col items-center text-center mb-6">
+                            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4">
+                                <AlertTriangle className="w-8 h-8 text-red-500" />
+                            </div>
+                            <h3 className="text-xl font-bold text-[#1A1D1F] dark:text-white mb-2">
+                                {t('profile.delete_confirm_title') || 'Delete Account?'}
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                {t('profile.delete_confirm_message') || 'This action cannot be undone. All your data will be permanently deleted.'}
+                            </p>
+                        </div>
+
+                        <div className="bg-red-50 dark:bg-red-900/10 rounded-xl p-4 mb-6">
+                            <p className="text-xs text-red-600 dark:text-red-400 mb-2">
+                                {t('profile.delete_type_confirm') || 'Type "DELETE" to confirm:'}
+                            </p>
+                            <input
+                                type="text"
+                                value={deleteConfirmation}
+                                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                                placeholder="DELETE"
+                                className="w-full px-4 py-3 bg-white dark:bg-[#121417] border border-red-200 dark:border-red-800/30 rounded-xl text-sm text-[#1A1D1F] dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                            />
+                        </div>
+
+                        {deleteError && (
+                            <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-xl p-4 mb-6">
+                                <p className="text-xs text-red-600 dark:text-red-400">{deleteError}</p>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setDeleteConfirmation('');
+                                    setDeleteError(null);
+                                }}
+                                disabled={isDeleting}
+                                className="py-3 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-xl font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
+                            >
+                                {t('profile.cancel') || 'Cancel'}
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (deleteConfirmation !== 'DELETE') {
+                                        setDeleteError(t('profile.delete_type_error') || 'Please type "DELETE" to confirm');
+                                        return;
+                                    }
+                                    setIsDeleting(true);
+                                    setDeleteError(null);
+                                    try {
+                                        const { data: { session } } = await supabase.auth.getSession();
+                                        if (!session) {
+                                            throw new Error('No active session');
+                                        }
+
+                                        const response = await fetch(
+                                            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user-account`,
+                                            {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Authorization': `Bearer ${session.access_token}`,
+                                                    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                                                    'Content-Type': 'application/json'
+                                                }
+                                            }
+                                        );
+
+                                        const result = await response.json();
+
+                                        if (!response.ok) {
+                                            throw new Error(result.error || 'Failed to delete account');
+                                        }
+
+                                        // Account deleted successfully
+                                        setShowDeleteModal(false);
+                                        onLogout();
+                                    } catch (error: any) {
+                                        console.error('Error deleting account:', error);
+                                        setDeleteError(error.message || 'Failed to delete account. Please try again.');
+                                    } finally {
+                                        setIsDeleting(false);
+                                    }
+                                }}
+                                disabled={isDeleting || deleteConfirmation !== 'DELETE'}
+                                className="py-3 px-4 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold text-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {isDeleting ? (
+                                    <>
+                                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        {t('profile.deleting') || 'Deleting...'}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 className="w-4 h-4" />
+                                        {t('profile.delete_account_confirm') || 'Delete Account'}
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

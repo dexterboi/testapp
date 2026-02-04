@@ -51,6 +51,10 @@
             'safe-bottom': 'env(safe-area-inset-bottom)',
             'safe-left': 'env(safe-area-inset-left)',
             'safe-right': 'env(safe-area-inset-right)',
+          },
+          boxShadow: {
+            'soft': '0 8px 30px rgba(0,0,0,0.04)',
+            'card': '0 4px 20px rgba(0,0,0,0.06)',
           }
         }
       }
@@ -78,9 +82,11 @@
       --bg-app-bg: #F8F9FA;
       --bg-app-surface: #FFFFFF;
       --bg-app-surface-2: #F1F3F5;
-      --text-app-text: #121417;
+      --text-app-text: #1A1D1F;
       --text-app-text-muted: #6C757D;
       --border-app-border: rgba(0, 0, 0, 0.08);
+      --charcoal: #1A1D1F;
+      --card-white: #FFFFFF;
     }
 
     .dark {
@@ -90,6 +96,8 @@
       --text-app-text: #F8F9FA;
       --text-app-text-muted: #A0AEC0;
       --border-app-border: rgba(255, 255, 255, 0.06);
+      --charcoal: #F8F9FA;
+      --card-white: #1E2126;
     }
 
     @font-face {

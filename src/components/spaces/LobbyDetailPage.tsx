@@ -9,11 +9,15 @@ import {
     getFriendships,
     respondToLobbyRequest,
     leaveLobby,
-    kickLobbyMember
+    kickLobbyMember,
+    updateLobby
 } from '@/services/dataService';
 import { SuccessModal, ConfirmationModal } from '@/components/common/ConfirmationModal';
-import { getAvatarUrl } from '@/utils';
+import { getAvatarUrl, getImageUrl, ensureArray } from '@/utils';
+import { getFileUrl } from '@/services/supabase';
 import { useTranslation } from 'react-i18next';
+import { getRealPlaceholderImage } from '@/services/assetService';
+import MapView from './MapView';
 
 const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
     const { t } = useTranslation();
@@ -23,7 +27,7 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
     const [members, setMembers] = useState<any[]>([]);
     const [messages, setMessages] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'chat' | 'players'>('chat');
+    const [activeTab, setActiveTab] = useState<'chat' | 'players' | 'details'>('chat');
     const [messageInput, setMessageInput] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -33,6 +37,16 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
     const [leaveModalOpen, setLeaveModalOpen] = useState(false);
     const [kickModalOpen, setKickModalOpen] = useState(false);
     const [memberToKick, setMemberToKick] = useState<{ userId: string; userName: string } | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+    // Edit form state
+    const [editName, setEditName] = useState('');
+    const [editLevel, setEditLevel] = useState('all');
+    const [editAgeRange, setEditAgeRange] = useState('');
+    const [editTeamSize, setEditTeamSize] = useState(5);
+    const [editPreferredDate, setEditPreferredDate] = useState('');
+    const [editPreferredTime, setEditPreferredTime] = useState('18:00');
+    const [editType, setEditType] = useState<'public' | 'private'>('public');
 
     useEffect(() => {
         if (lobbyId) {
@@ -55,12 +69,21 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
         try {
             const { data: lobbyData, error: lobbyError } = await supabase
                 .from('lobbies')
-                .select('*, host:host_id(id, name, avatar, phone)')
+                .select('*, host:host_id(id, name, avatar, phone), complex:complex_id(id, name, address, images, location_lat, location_lng)')
                 .eq('id', lobbyId)
                 .single();
 
             if (lobbyError) throw lobbyError;
             setLobby(lobbyData);
+
+            // Initialize edit state
+            setEditName(lobbyData.name || '');
+            setEditLevel(lobbyData.level || 'all');
+            setEditAgeRange(lobbyData.age_range || '');
+            setEditTeamSize(lobbyData.team_size || 5);
+            setEditPreferredDate(lobbyData.preferred_date || '');
+            setEditPreferredTime(lobbyData.preferred_time || '18:00');
+            setEditType(lobbyData.type || 'public');
 
             const membersData = await getLobbyMembers(lobbyId!);
             setMembers(membersData);
@@ -97,21 +120,21 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
                     const isFriendOfHost = friendIds.includes(lobbyData.host_id);
 
                     if (!isFriendOfHost) {
-                        setErrorModal({ isOpen: true, message: 'You do not have access to this private lobby. You need to be invited.' });
-                        setTimeout(() => navigate('/spaces'), 2000);
+                        setErrorModal({ isOpen: true, message: t('social.no_access_private') || 'You do not have access to this private match. You need to be invited.' });
+                        setTimeout(() => navigate('/matches'), 2000);
                         setLoading(false);
                         return;
                     }
                 }
             } else {
                 // Not logged in - redirect
-                navigate('/spaces');
+                navigate('/matches');
                 setLoading(false);
                 return;
             }
         } catch (error) {
             console.error('Error fetching lobby details:', error);
-            navigate('/spaces');
+            navigate('/matches');
         } finally {
             setLoading(false);
         }
@@ -280,7 +303,7 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
             setSuccessModal({ isOpen: true, message: 'You have left the lobby.' });
             // Navigate back to spaces page after a short delay
             setTimeout(() => {
-                navigate('/spaces');
+                navigate('/matches');
             }, 1500);
         } else {
             setErrorModal({ isOpen: true, message: error || 'Failed to leave lobby' });
@@ -300,6 +323,38 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
         } else {
             setErrorModal({ isOpen: true, message: error || 'Failed to kick member' });
         }
+    };
+
+    const handleUpdateLobby = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!lobbyId || !currentUser) return;
+
+        const { success, error } = await updateLobby(lobbyId, {
+            name: editName,
+            level: editLevel,
+            age_range: editAgeRange,
+            team_size: editTeamSize,
+            max_players: editTeamSize * 2,
+            preferred_date: editPreferredDate,
+            preferred_time: editPreferredTime,
+            type: editType
+        });
+
+        if (success) {
+            setIsEditModalOpen(false);
+            setSuccessModal({ isOpen: true, message: 'Match updated successfully!' });
+            fetchLobbyData();
+        } else {
+            setErrorModal({ isOpen: true, message: error || 'Failed to update match' });
+        }
+    };
+
+    const handleGetDirections = () => {
+        if (!lobby?.complex?.location_lat || !lobby?.complex?.location_lng) return;
+        const { location_lat: lat, location_lng: lng } = lobby.complex;
+        // Using Google Maps URL for directions
+        const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+        window.open(url, '_blank');
     };
 
     // Check if current user is an approved member or host
@@ -322,7 +377,7 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
             {/* Premium Header */}
             <header className="bg-app-bg/80 backdrop-blur-xl px-6 pt-14 pb-6 border-b border-app-border flex items-center gap-4 z-40 shrink-0 sticky top-0">
                 <button
-                    onClick={() => navigate('/spaces')}
+                    onClick={() => navigate('/matches')}
                     className="w-10 h-10 bg-app-surface-2 rounded-xl flex items-center justify-center text-app-text-muted hover:text-app-text border border-app-border shadow-sm transition-all active:scale-90"
                 >
                     <span className="material-symbols-rounded">arrow_back_ios_new</span>
@@ -342,6 +397,15 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
                             title={t('social.leave_lobby')}
                         >
                             <span className="material-symbols-rounded">exit_to_app</span>
+                        </button>
+                    )}
+                    {isHost && (
+                        <button
+                            onClick={() => setIsEditModalOpen(true)}
+                            className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center active:scale-90 transition-all shadow-sm hover:bg-primary/20"
+                            title={t('common.modify')}
+                        >
+                            <span className="material-symbols-rounded">edit</span>
                         </button>
                     )}
                     {(canParticipate || isHost) && (
@@ -364,6 +428,7 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
             <div className="px-6 py-4 bg-app-bg border-b border-app-border shrink-0">
                 <div className="flex p-1.5 bg-app-surface rounded-[1.5rem] gap-2 border border-app-border">
                     {[
+                        { key: 'details', label: t('spaces.details_tab') || 'Details', icon: 'info' },
                         { key: 'chat', label: t('social.match_chat'), icon: 'forum' },
                         { key: 'players', label: t('social.squad_list'), icon: 'groups' }
                     ].map(({ key, label, icon }) => (
@@ -384,7 +449,109 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden relative">
-                {activeTab === 'chat' ? (
+                {activeTab === 'details' ? (
+                    <div className="h-full overflow-y-auto p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Venue Hero */}
+                        <div className="relative h-48 rounded-[2.5rem] overflow-hidden bg-app-surface border border-app-border group">
+                            {(() => {
+                                const images = ensureArray(lobby?.complex?.images || lobby?.complex?.image);
+                                const firstImage = images[0];
+                                return firstImage ? (
+                                    <img
+                                        src={getImageUrl(firstImage, 'complex-images', lobby?.complex_id, getFileUrl)}
+                                        className="w-full h-full object-cover transform scale-105 group-hover:scale-110 transition-transform duration-700"
+                                        alt={lobby?.complex?.name}
+                                        onError={(e) => {
+                                            e.currentTarget.src = getRealPlaceholderImage(lobby?.complex_id || 'default', 'complex');
+                                        }}
+                                    />
+                                ) : (
+                                    <img
+                                        src={getRealPlaceholderImage(lobby?.complex_id || 'default', 'complex')}
+                                        className="w-full h-full object-cover"
+                                        alt={lobby?.complex?.name}
+                                    />
+                                );
+                            })()}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                            <div className="absolute bottom-6 left-6 right-6">
+                                <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-1">{t('spaces.venue_label').replace('*', '')}</p>
+                                <h3 className="text-xl font-black text-white uppercase tracking-tighter">{lobby?.complex?.name || 'Local Ground'}</h3>
+                                <p className="text-white/60 text-[10px] font-bold uppercase truncate">{lobby?.complex?.address}</p>
+                            </div>
+                        </div>
+
+                        {/* Match Settings Grid */}
+                        <div className="grid grid-cols-2 gap-4">
+                            {[
+                                { label: t('spaces.date_label').replace('*', ''), value: lobby?.preferred_date ? new Date(lobby.preferred_date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : '---', icon: 'calendar_today' },
+                                { label: t('spaces.time_label').replace('*', ''), value: lobby?.preferred_time || '---', icon: 'schedule' },
+                                { label: t('spaces.level_label'), value: lobby?.level?.toUpperCase() || 'ALL', icon: 'trending_up' },
+                                { label: t('spaces.team_size_label'), value: `${lobby?.team_size} vs ${lobby?.team_size}`, icon: 'sports_soccer' },
+                                { label: t('spaces.age_label'), value: lobby?.age_range || 'ALL AGES', icon: 'face' },
+                                { label: t('spaces.price_per_player'), value: `${lobby?.price_per_player || 0} TND`, icon: 'payments' }
+                            ].map((item, i) => (
+                                <div key={i} className="bg-app-surface/50 border border-app-border p-4 rounded-3xl flex flex-col gap-2">
+                                    <div className="flex items-center gap-2 text-primary opacity-80">
+                                        <span className="material-symbols-rounded text-lg">{item.icon}</span>
+                                        <span className="text-[9px] font-black uppercase tracking-widest">{item.label}</span>
+                                    </div>
+                                    <span className="text-xs font-black text-app-text uppercase">{item.value}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Map Integration */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between px-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-rounded text-primary">map</span>
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-app-text-muted">Pitch Location</h3>
+                                </div>
+                                <button
+                                    onClick={handleGetDirections}
+                                    className="flex items-center gap-1.5 text-primary hover:text-primary-dark transition-colors px-3 py-1 bg-primary/10 rounded-full border border-primary/20"
+                                >
+                                    <span className="material-symbols-rounded text-base">directions</span>
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Get Directions</span>
+                                </button>
+                            </div>
+
+                            <div className="rounded-[2.5rem] overflow-hidden border border-app-border bg-app-surface h-[250px] relative shadow-lg">
+                                {lobby?.complex ? (
+                                    <MapView
+                                        compact
+                                        showBackButton={false}
+                                        complexes={[lobby.complex]}
+                                        userLocation={null} // We can pass current location if we had it, but MapView handles it
+                                        initialCenter={{ lat: lobby.complex.location_lat, lng: lobby.complex.location_lng }}
+                                        initialZoom={15}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-app-text-muted">
+                                        <span className="material-symbols-rounded text-4xl animate-pulse">place</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Host Info */}
+                        <div className="bg-primary/5 rounded-[2.5rem] border border-primary/10 p-6 flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-primary/20 bg-app-surface">
+                                <img
+                                    src={getAvatarUrl(lobby?.host?.avatar, lobby?.host?.name, lobby?.host?.id)}
+                                    className="w-full h-full object-cover"
+                                    alt="Host"
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-primary text-[9px] font-black uppercase tracking-widest mb-1">Match Captain</p>
+                                <h4 className="text-sm font-black text-app-text uppercase">{lobby?.host?.name}</h4>
+                            </div>
+                            <span className="material-symbols-rounded text-primary">verified</span>
+                        </div>
+                    </div>
+                ) : activeTab === 'chat' ? (
                     <div className="h-full flex flex-col">
                         {/* Access Restriction Banner */}
                         {!canParticipate && currentUser && (
@@ -666,7 +833,7 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
                                                 You can view this lobby but need approval to chat and participate.
                                             </p>
                                             <button
-                                                onClick={() => navigate('/spaces')}
+                                                onClick={() => navigate('/matches')}
                                                 className="bg-primary text-slate-900 px-4 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary-dark transition-all active:scale-95 shadow-lg shadow-primary/20"
                                             >
                                                 Go to Spaces to Request Access
@@ -730,17 +897,175 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
                 </div>
             )}
 
+            {/* Edit Match Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-[101] bg-app-bg/80 backdrop-blur-md flex items-end justify-center p-6 animate-in fade-in duration-500">
+                    <div className="bg-app-surface w-full max-w-sm rounded-[3.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom-32 duration-700 relative border border-app-border max-h-[90vh] overflow-y-auto">
+                        <button
+                            onClick={() => setIsEditModalOpen(false)}
+                            className="absolute top-6 right-6 w-10 h-10 bg-app-surface-2 rounded-full flex items-center justify-center text-app-text-muted hover:text-app-text active:scale-90 transition-all"
+                        >
+                            <span className="material-symbols-rounded">close</span>
+                        </button>
+
+                        <div className="mb-6">
+                            <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-1">Edit Match</p>
+                            <h2 className="text-2xl font-black text-app-text tracking-tighter uppercase leading-none">Modify Details</h2>
+                        </div>
+
+                        <form onSubmit={handleUpdateLobby} className="space-y-4">
+                            {/* Match Name */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">Match Name</label>
+                                <input
+                                    type="text"
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                    className="w-full bg-app-bg border-2 border-app-border rounded-[1.2rem] px-4 py-3 font-black text-app-text focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                    required
+                                />
+                            </div>
+
+                            {/* Level & Age Group */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.level_label')}</label>
+                                    <div className="relative">
+                                        <select
+                                            value={editLevel}
+                                            onChange={(e) => setEditLevel(e.target.value)}
+                                            className="w-full bg-app-bg border-2 border-app-border rounded-[1.2rem] px-4 py-3 font-black text-app-text appearance-none focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                        >
+                                            <option value="all">All Levels</option>
+                                            <option value="beginner">Beginner</option>
+                                            <option value="intermediate">Intermediate</option>
+                                            <option value="advanced">Advanced</option>
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-app-text-muted">
+                                            <span className="material-symbols-rounded text-sm">unfold_more</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.age_label')}</label>
+                                    <input
+                                        type="text"
+                                        value={editAgeRange}
+                                        onChange={(e) => setEditAgeRange(e.target.value)}
+                                        className="w-full bg-app-bg border-2 border-app-border rounded-[1.2rem] px-4 py-3 font-black text-app-text focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                        placeholder="e.g. 18-35"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Players Per Team Slider */}
+                            <div className="space-y-2.5 bg-app-surface-2 p-4 rounded-[1.5rem] border border-app-border/30">
+                                <div className="flex justify-between items-center px-1">
+                                    <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">{t('spaces.team_size_label')}</label>
+                                    <span className="bg-primary/10 text-primary px-3 py-0.5 rounded-full text-xs font-black ring-1 ring-primary/20">
+                                        {editTeamSize} vs {editTeamSize}
+                                    </span>
+                                </div>
+                                <div className="px-1">
+                                    <input
+                                        type="range"
+                                        min="2"
+                                        max="11"
+                                        step="1"
+                                        value={editTeamSize}
+                                        onChange={(e) => setEditTeamSize(parseInt(e.target.value))}
+                                        className="w-full h-2 bg-app-bg rounded-lg appearance-none cursor-pointer accent-primary border border-app-border/50"
+                                    />
+                                    <div className="flex justify-between mt-1.5 px-0.5">
+                                        <span className="text-[8px] font-black text-app-text-muted/50">2v2</span>
+                                        <span className="text-[8px] font-black text-app-text-muted/50">11v11</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Date & Time Selection */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.date_label')}</label>
+                                    <input
+                                        type="date"
+                                        value={editPreferredDate}
+                                        onChange={(e) => setEditPreferredDate(e.target.value)}
+                                        min={new Date().toISOString().split('T')[0]}
+                                        className="w-full bg-app-bg border-2 border-app-border rounded-[1.2rem] px-4 py-3 font-black text-app-text focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.time_label')}</label>
+                                    <input
+                                        type="time"
+                                        value={editPreferredTime}
+                                        onChange={(e) => setEditPreferredTime(e.target.value)}
+                                        className="w-full bg-app-bg border-2 border-app-border rounded-[1.2rem] px-4 py-3 font-black text-app-text focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Match Type Selection */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditType('public')}
+                                    className={`py-3 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${editType === 'public'
+                                        ? 'bg-primary text-slate-900 shadow-lg shadow-primary/20'
+                                        : 'bg-app-bg text-app-text-muted border-2 border-app-border'
+                                        }`}
+                                >
+                                    <span className="material-symbols-rounded text-sm">public</span>
+                                    {t('spaces.lobby_type_public')}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditType('private')}
+                                    className={`py-3 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${editType === 'private'
+                                        ? 'bg-primary text-slate-900 shadow-lg shadow-primary/20'
+                                        : 'bg-app-bg text-app-text-muted border-2 border-app-border'
+                                        }`}
+                                >
+                                    <span className="material-symbols-rounded text-sm">lock</span>
+                                    {t('spaces.lobby_type_private')}
+                                </button>
+                            </div>
+
+                            {/* Bottom Action Bar */}
+                            <div className="flex gap-3 items-stretch pt-2">
+                                <div className="bg-app-surface-2 px-4 py-1 rounded-[1.5rem] flex flex-col justify-center flex-1 border border-app-border/30">
+                                    <span className="text-[8px] font-black text-app-text-muted uppercase tracking-widest leading-none mb-0.5">{t('spaces.price_per_player')}</span>
+                                    <span className="text-base font-black text-primary leading-none">{lobby?.price_per_player || 0} TND</span>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    className="flex-[1.8] bg-primary text-slate-900 py-4 rounded-[1.5rem] font-black uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all text-xs flex items-center justify-center gap-2"
+                                >
+                                    <span className="material-symbols-rounded text-lg">check_circle</span>
+                                    {t('common.save_changes')}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Success/Error Modals */}
             <SuccessModal
                 isOpen={successModal.isOpen}
+                title="Success"
                 message={successModal.message}
                 onClose={() => setSuccessModal({ isOpen: false, message: '' })}
             />
             <SuccessModal
                 isOpen={errorModal.isOpen}
+                title="Error"
                 message={errorModal.message}
                 onClose={() => setErrorModal({ isOpen: false, message: '' })}
-                type="error"
             />
 
             {/* Leave Lobby Confirmation Modal */}
@@ -769,7 +1094,7 @@ const LobbyDetailPage = ({ currentUser }: { currentUser: any }) => {
                     setMemberToKick(null);
                 }}
             />
-        </div>
+        </div >
     );
 };
 

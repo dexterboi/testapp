@@ -70,10 +70,10 @@ const ComplexDetailPage = ({ user }: { user: any }) => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-app-bg flex items-center justify-center">
+            <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#121417] flex items-center justify-center">
                 <div className="relative">
                     <div className="animate-ping absolute inset-0 bg-primary/20 rounded-full"></div>
-                    <div className="bg-app-surface p-6 rounded-full border border-app-border relative">
+                    <div className="bg-white dark:bg-[#1E2126] p-6 rounded-full shadow-soft relative">
                         <span className="material-symbols-rounded text-3xl text-primary animate-pulse">stadium</span>
                     </div>
                 </div>
@@ -83,13 +83,13 @@ const ComplexDetailPage = ({ user }: { user: any }) => {
 
     if (!complex) {
         return (
-            <div className="min-h-screen bg-app-bg flex items-center justify-center p-6">
+            <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#121417] flex items-center justify-center p-6">
                 <div className="text-center group">
-                    <div className="bg-app-surface backdrop-blur-xl p-8 rounded-[3rem] shadow-sm border border-app-border mb-6 group-hover:shadow-xl transition-all duration-500">
-                        <span className="material-symbols-rounded text-5xl text-app-text-muted mb-4 opacity-20">search_off</span>
-                        <p className="text-app-text font-extrabold text-xl mb-1 tracking-tight">Complex not found</p>
-                        <p className="text-app-text-muted text-sm mb-6">This venue might have been moved or removed.</p>
-                        <button onClick={() => navigate('/')} className="w-full bg-primary text-slate-900 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 active:scale-95 transition-all">
+                    <div className="bg-white dark:bg-[#1E2126] backdrop-blur-xl p-8 rounded-2xl shadow-soft mb-6 group-hover:shadow-card transition-all duration-500">
+                        <span className="material-symbols-rounded text-5xl text-slate-400 mb-4">search_off</span>
+                        <p className="text-[#1A1D1F] dark:text-white font-extrabold text-xl mb-1 tracking-tight">Complex not found</p>
+                        <p className="text-slate-500 text-sm mb-6">This venue might have been moved or removed.</p>
+                        <button onClick={() => navigate('/')} className="w-full bg-primary text-[#1A1D1F] py-4 rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 active:scale-95 transition-all">
                             Discover Venues
                         </button>
                     </div>
@@ -101,9 +101,9 @@ const ComplexDetailPage = ({ user }: { user: any }) => {
     const imagesArray = ensureArray(complex.images, complex.image);
 
     return (
-        <div className="bg-app-bg min-h-screen pb-[calc(9rem+env(safe-area-inset-bottom))] font-sans text-app-text">
+        <div className="bg-[#F8F9FA] dark:bg-[#121417] min-h-screen pb-[calc(9rem+env(safe-area-inset-bottom))] font-sans text-[#1A1D1F] dark:text-white">
             {/* Premium Header Image - Banner */}
-            <div className="relative h-[450px] overflow-hidden">
+            <div className="relative h-[350px] overflow-hidden">
                 {imagesArray.length > 0 ? (
                     <img
                         src={getFullImageUrl(imagesArray[0], 'complex-images', complex.id)}
@@ -125,65 +125,64 @@ const ComplexDetailPage = ({ user }: { user: any }) => {
                         className="w-full h-full object-cover"
                     />
                 )}
-                <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-app-bg via-app-bg/40 to-transparent"></div>
+                <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[#F8F9FA] dark:from-[#121417] via-[#F8F9FA]/40 dark:via-[#121417]/40 to-transparent"></div>
 
                 <button
                     onClick={() => navigate(-1)}
-                    className="absolute top-[calc(3rem+env(safe-area-inset-top))] left-6 w-12 h-12 bg-app-surface/20 backdrop-blur-xl flex items-center justify-center rounded-2xl text-app-text border border-app-border shadow-2xl active:scale-90 transition-all z-30"
+                    className="absolute top-[calc(2rem+env(safe-area-inset-top))] left-6 w-10 h-10 bg-white/80 dark:bg-[#1E2126]/80 backdrop-blur-xl flex items-center justify-center rounded-xl text-[#1A1D1F] dark:text-white shadow-lg active:scale-90 transition-all z-30"
                 >
                     <span className="material-symbols-rounded">arrow_back_ios_new</span>
                 </button>
 
-                <div className="absolute bottom-16 left-8 right-8 z-30">
-                    <div className="flex flex-wrap gap-2 mb-3">
-                        <span className="bg-primary/20 backdrop-blur-md text-primary font-black text-[9px] px-3 py-1 rounded-full uppercase tracking-widest border border-primary/20">
+                <div className="absolute bottom-12 left-6 right-6 z-30">
+                    <div className="flex flex-wrap gap-2 mb-2">
+                        <span className="bg-primary/20 backdrop-blur-md text-primary font-bold text-[9px] px-3 py-1 rounded-full uppercase tracking-wider">
                             Top Rated
                         </span>
-                        <span className="bg-app-surface/40 backdrop-blur-md text-app-text font-black text-[9px] px-3 py-1 rounded-full uppercase tracking-widest border border-app-border">
+                        <span className="bg-white/40 dark:bg-[#1E2126]/40 backdrop-blur-md text-[#1A1D1F] dark:text-white font-bold text-[9px] px-3 py-1 rounded-full uppercase tracking-wider">
                             Verified
                         </span>
                     </div>
-                    <h1 className="text-4xl font-black text-app-text tracking-tighter mb-2 leading-none">{complex.name}</h1>
-                    <div className="flex items-center text-app-text-muted text-xs font-bold gap-2">
+                    <h1 className="text-2xl font-extrabold text-[#1A1D1F] dark:text-white tracking-tight mb-1 leading-none">{complex.name}</h1>
+                    <div className="flex items-center text-slate-500 text-xs font-medium gap-1">
                         <span className="material-symbols-rounded text-sm text-primary">location_on</span>
                         <span className="truncate">{complex.address?.split(',').slice(0, 2).join(',') || 'Tunis, Tunisia'}</span>
                     </div>
                 </div>
             </div>
 
-            <div className="px-8 -mt-8 relative z-30 space-y-6">
+            <div className="px-6 -mt-6 relative z-30 space-y-4">
                 {/* Quick Stats Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-app-surface backdrop-blur-md p-5 rounded-[2.5rem] shadow-sm border border-app-border">
-                        <div className="flex items-center gap-3 mb-1">
-                            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white dark:bg-[#1E2126] p-4 rounded-2xl shadow-soft">
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                                 <span className="material-symbols-rounded text-primary text-lg">star</span>
                             </div>
-                            <span className="text-xl font-black text-app-text leading-none">{complex.avg_rating || '0.0'}</span>
+                            <span className="text-xl font-bold text-[#1A1D1F] dark:text-white leading-none">{complex.avg_rating || '0.0'}</span>
                         </div>
-                        <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest ml-11">Rating ({reviews.length})</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-10">Rating ({reviews.length})</p>
                     </div>
-                    <div className="bg-app-surface backdrop-blur-md p-5 rounded-[2.5rem] shadow-sm border border-app-border">
-                        <div className="flex items-center gap-3 mb-1">
-                            <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                    <div className="bg-white dark:bg-[#1E2126] p-4 rounded-2xl shadow-soft">
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
                                 <span className="material-symbols-rounded text-blue-500 text-lg">near_me</span>
                             </div>
-                            <span className="text-xl font-black text-app-text leading-none">1.2 km</span>
+                            <span className="text-xl font-bold text-[#1A1D1F] dark:text-white leading-none">1.2 km</span>
                         </div>
-                        <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest ml-11">Nearby</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-10">Nearby</p>
                     </div>
                 </div>
 
                 {/* Complex Description */}
-                <div className="bg-app-surface p-8 rounded-[3rem] text-app-text shadow-2xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-primary/20 transition-all duration-700"></div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-3">About Venue</p>
-                    <p className="text-sm font-medium leading-relaxed opacity-90">
+                <div className="bg-white dark:bg-[#1E2126] p-5 rounded-2xl shadow-soft relative overflow-hidden">
+                    <p className="text-xs font-bold uppercase tracking-wider text-primary mb-2">About Venue</p>
+                    <p className="text-sm font-medium leading-relaxed text-slate-600 dark:text-slate-300">
                         {complex.description || "Premium sports destination featuring professional-grade pitches, modern amenities, and a vibrant community of athletes in Tunis."}
                     </p>
-                    <div className="mt-6 flex items-center gap-2">
-                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-primary/80">Available Today</span>
+                    <div className="mt-4 flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-green-600">Available Today</span>
                     </div>
                 </div>
 

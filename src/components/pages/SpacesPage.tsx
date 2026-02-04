@@ -11,11 +11,14 @@ import {
     addTeamMember,
     deleteLobby,
     getComplexes,
-    getUserLocation
+    getUserLocation,
+    getPitchesByComplex
 } from '@/services/dataService';
 import { useTranslation } from 'react-i18next';
 import { ConfirmationModal, SuccessModal } from '@/components/common/ConfirmationModal';
-import { getAvatarUrl } from '@/utils';
+import { getAvatarUrl, getImageUrl, ensureArray } from '@/utils';
+import { getFileUrl } from '@/services/supabase';
+import { getRealPlaceholderImage } from '@/services/assetService';
 
 const SpacesPage = ({ currentUser }: { currentUser: any }) => {
     const navigate = useNavigate();
@@ -33,11 +36,19 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
     const [maxPlayers, setMaxPlayers] = useState(10);
     const [lobbyType, setLobbyType] = useState<'private' | 'public'>('public');
     const [selectedComplexId, setSelectedComplexId] = useState<string>('');
+    const [selectedPitchId, setSelectedPitchId] = useState<string>('');
     const [preferredDate, setPreferredDate] = useState<string>('');
     const [preferredTime, setPreferredTime] = useState<string>('18:00');
     const [complexes, setComplexes] = useState<any[]>([]);
+    const [pitches, setPitches] = useState<any[]>([]);
     const [requestAccessModal, setRequestAccessModal] = useState<{ isOpen: boolean; lobbyId: string | null }>({ isOpen: false, lobbyId: null });
     const [requestMessage, setRequestMessage] = useState<string>('');
+
+    // New Match Fields
+    const [level, setLevel] = useState<string>('all');
+    const [ageRange, setAgeRange] = useState<string>('');
+    const [teamSize, setTeamSize] = useState<number>(5);
+    const [pricePerPlayer, setPricePerPlayer] = useState<number>(0);
 
     useEffect(() => {
         fetchUserLocation();
@@ -49,6 +60,19 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
             fetchData();
         }
     }, [userLocation, currentUser]);
+
+    useEffect(() => {
+        if (selectedComplexId) {
+            fetchPitches(selectedComplexId);
+        } else {
+            setPitches([]);
+            setSelectedPitchId('');
+        }
+    }, [selectedComplexId]);
+
+    useEffect(() => {
+        calculatePrice();
+    }, [selectedPitchId, teamSize]);
 
     const fetchUserLocation = async () => {
         try {
@@ -65,6 +89,33 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
             setComplexes(complexesData);
         } catch (error) {
             console.error('Error fetching complexes:', error);
+        }
+    };
+
+    const fetchPitches = async (complexId: string) => {
+        try {
+            const pitchesData = await getPitchesByComplex(complexId);
+            setPitches(pitchesData);
+        } catch (error) {
+            console.error('Error fetching pitches:', error);
+        }
+    };
+
+    const calculatePrice = () => {
+        if (!selectedPitchId || !teamSize) {
+            setPricePerPlayer(0);
+            return;
+        }
+        const pitch = pitches.find(p => p.id === selectedPitchId);
+        if (pitch) {
+            const price = pitch.price_per_hour || 0;
+            // Assuming match duration is 1 hour or price is total.
+            // Usually price is per hour. Let's assume 1 hour match for calculation or just base price.
+            // Formula: Price / (Team Size * 2)
+            const totalPlayers = teamSize * 2;
+            if (totalPlayers > 0) {
+                setPricePerPlayer(Math.round((price / totalPlayers) * 10) / 10);
+            }
         }
     };
 
@@ -90,24 +141,34 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
             name: newName.trim(),
             host_id: currentUser.id,
             complex_id: selectedComplexId,
-            max_players: maxPlayers,
+            pitch_id: selectedPitchId || undefined,
+            max_players: teamSize * 2, // Auto-calculate max players
             type: lobbyType,
             preferred_date: preferredDate,
             preferred_time: preferredTime,
-            status: 'open'
+            status: 'open',
+            level,
+            age_range: ageRange,
+            team_size: teamSize,
+            price_per_player: pricePerPlayer
         });
 
         if (success) {
             setIsLobbyModalOpen(false);
             setNewName('');
             setSelectedComplexId('');
+            setSelectedPitchId('');
             setPreferredDate('');
             setPreferredTime('18:00');
             setLobbyType('public');
-            setSuccessModal({ isOpen: true, message: 'Lobby created successfully!' });
+            setLevel('all');
+            setAgeRange('');
+            setTeamSize(5);
+            setPricePerPlayer(0);
+            setSuccessModal({ isOpen: true, message: 'Match created successfully!' });
             fetchData();
         } else {
-            setErrorModal({ isOpen: true, message: error || 'Failed to create lobby' });
+            setErrorModal({ isOpen: true, message: error || 'Failed to create match' });
         }
     };
 
@@ -277,9 +338,9 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
             </header>
 
             {/* Content Section */}
-            <div className="px-8">
+            <div className="px-6">
                 {activeTab === 'lobbies' ? (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         {/* Start Lobby Hero */}
                         <button
                             onClick={() => setIsLobbyModalOpen(true)}
@@ -308,11 +369,11 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                 <p className="text-app-text-muted text-xs leading-relaxed max-w-[200px] mx-auto">{t('spaces.be_first')}</p>
                             </div>
                         ) : (
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {lobbies.map(lobby => (
                                     <div
                                         key={lobby.id}
-                                        className="bg-app-surface/50 backdrop-blur-md p-6 rounded-[2.5rem] border border-app-border shadow-lg hover:bg-app-surface transition-all duration-500 group cursor-pointer animate-in fade-in slide-in-from-bottom-4 relative overflow-hidden"
+                                        className="bg-white dark:bg-[#1E2126] p-3 rounded-2xl flex items-center gap-4 shadow-soft hover:shadow-card transition-all cursor-pointer"
                                         onClick={() => {
                                             // Check if user has access before navigating
                                             const isHost = lobby.host_id === currentUser?.id;
@@ -320,130 +381,121 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                             const isPublic = lobby.type === 'public';
 
                                             if (isHost || isMember || isPublic) {
-                                                navigate(`/lobby/${lobby.id}`);
+                                                navigate(`/match/${lobby.id}`);
                                             } else {
                                                 // For private lobbies, user needs to be invited
                                                 setErrorModal({ isOpen: true, message: 'This is a private lobby. You need to be invited to view it.' });
                                             }
                                         }}
                                     >
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                                        <div className="flex justify-between items-start mb-6 relative z-10">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <h3 className="font-black text-xl text-app-text tracking-tight group-hover:text-primary transition-colors">{lobby.name}</h3>
-                                                    {lobby.type && (
-                                                        <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${lobby.type === 'public'
-                                                            ? 'bg-primary/20 text-primary border border-primary/30'
-                                                            : 'bg-app-surface-2 text-app-text-muted border border-app-border'
-                                                            }`}>
-                                                            {lobby.type}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="material-symbols-rounded text-sm text-primary">stadium</span>
-                                                    <span className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">
-                                                        {lobby.complex?.name || 'Local Ground'}
+                                        {/* Match Icon/Image - Use Complex Image if available */}
+                                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-app-surface flex-shrink-0 flex items-center justify-center relative border border-app-border group">
+                                            {(() => {
+                                                const images = ensureArray(lobby.complex?.images || lobby.complex?.image);
+                                                const firstImage = images[0];
+                                                return firstImage ? (
+                                                    <img
+                                                        src={getImageUrl(firstImage, 'complex-images', lobby.complex_id, getFileUrl)}
+                                                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                                                        alt={lobby.complex?.name}
+                                                        onError={(e) => {
+                                                            e.currentTarget.src = getRealPlaceholderImage(lobby.complex_id || 'default', 'complex');
+                                                        }}
+                                                    />
+                                                ) : lobby.pitch_id ? (
+                                                    <img
+                                                        src={getRealPlaceholderImage(lobby.pitch_id, 'pitch')}
+                                                        className="w-full h-full object-cover"
+                                                        alt="Pitch"
+                                                    />
+                                                ) : (
+                                                    <span className="material-symbols-rounded text-3xl text-app-text-muted">stadium</span>
+                                                );
+                                            })()}
+                                        </div>
+
+                                        {/* Lobby Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="font-bold text-sm text-[#1A1D1F] dark:text-white truncate">{lobby.name}</h4>
+                                                {lobby.type && (
+                                                    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${lobby.type === 'public'
+                                                        ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                                                        : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                                                        }`}>
+                                                        {lobby.type === 'public' ? 'PUBLIC' : 'PRIVATE'}
                                                     </span>
-                                                </div>
-                                                {(lobby.preferred_date || lobby.preferred_time) && (
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <span className="material-symbols-rounded text-sm text-app-text-muted">schedule</span>
-                                                        <span className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">
-                                                            {lobby.preferred_date ? new Date(lobby.preferred_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
-                                                            {lobby.preferred_date && lobby.preferred_time ? ' • ' : ''}
-                                                            {lobby.preferred_time || ''}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                {lobby._distance !== undefined && (
-                                                    <div className="flex items-center gap-1 mt-1">
-                                                        <span className="material-symbols-rounded text-xs text-app-text-muted">location_on</span>
-                                                        <span className="text-[9px] font-black text-app-text-muted">
-                                                            {lobby._distance < 1 ? `${Math.round(lobby._distance * 1000)}m` : `${lobby._distance.toFixed(1)}km`} away
-                                                        </span>
-                                                    </div>
                                                 )}
                                             </div>
-                                            <div className="bg-app-surface-2 text-app-text px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-app-border shadow-lg">
-                                                {lobby.members?.length || 0}<span className="text-app-text-muted mx-1">/</span>{lobby.max_players}
+                                            <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-400">
+                                                <div className="flex items-center gap-0.5">
+                                                    <span className="material-symbols-rounded text-green-500 text-[14px]">stadium</span>
+                                                    <span className="font-bold text-[#1A1D1F] dark:text-white truncate max-w-[100px]">{lobby.complex?.name || 'Local Ground'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="material-symbols-rounded text-[14px]">schedule</span>
+                                                    <span>{lobby.preferred_time || '18:00'}</span>
+                                                </div>
+                                            </div>
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <div className="flex -space-x-1.5">
+                                                    {Array.from({ length: Math.min(lobby.members?.length || 0, 3) }).map((_, i) => (
+                                                        <div key={i} className="w-5 h-5 rounded-full border-2 border-white dark:border-[#1E2126] bg-slate-200 overflow-hidden">
+                                                            <img
+                                                                src={getAvatarUrl(lobby.members?.[i]?.user?.avatar, lobby.members?.[i]?.user?.name, lobby.members?.[i]?.user?.id)}
+                                                                className="w-full h-full object-cover"
+                                                                alt="Member"
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                    {(lobby.members?.length > 3) && (
+                                                        <div className="w-5 h-5 rounded-full border-2 border-white dark:border-[#1E2126] bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-500">
+                                                            +{lobby.members.length - 3}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span className="text-[10px] text-slate-400 font-medium">
+                                                    {lobby.members?.length || 0}/{lobby.max_players} {t('spaces.capacity_players') || 'players'}
+                                                </span>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center justify-between mt-auto relative z-10">
-                                            <div className="flex -space-x-3">
-                                                {Array.from({ length: Math.min(lobby.members?.length || 0, 5) }).map((_, i) => (
-                                                    <div key={i} className="w-9 h-9 rounded-xl border-2 border-app-bg bg-app-surface-2 overflow-hidden shadow-sm">
-                                                        <img
-                                                            src={getAvatarUrl(lobby.members?.[i]?.user?.avatar, lobby.members?.[i]?.user?.name, lobby.members?.[i]?.user?.id)}
-                                                            className="w-full h-full object-cover"
-                                                            alt="Member"
-                                                        />
-                                                    </div>
-                                                ))}
-                                                {(lobby.members?.length > 5) && (
-                                                    <div className="w-9 h-9 rounded-xl border-2 border-app-bg bg-app-surface-2 flex items-center justify-center text-[10px] font-black text-primary">
-                                                        +{lobby.members.length - 5}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                                                {/* Delete button - only show for lobby owner */}
-                                                {lobby.host_id === currentUser?.id && (
-                                                    <button
-                                                        onClick={(e) => handleDeleteLobby(lobby.id, e)}
-                                                        className="w-11 h-11 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all shadow-sm active:scale-90"
-                                                        title="Delete Lobby"
-                                                    >
-                                                        <span className="material-symbols-rounded">delete</span>
-                                                    </button>
-                                                )}
+                                        {/* Action Buttons */}
+                                        <div className="flex flex-col gap-1.5" onClick={e => e.stopPropagation()}>
+                                            {lobby.type === 'public' ? (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleJoinLobby(lobby.id);
+                                                    }}
+                                                    disabled={lobby.members?.some((m: any) =>
+                                                        m.user_id === currentUser?.id &&
+                                                        (m.status === 'joined' || m.status === 'requested')
+                                                    )}
+                                                    className={`h-7 px-3 rounded-lg font-bold text-[9px] uppercase tracking-wide transition-all ${lobby.members?.some((m: any) =>
+                                                        m.user_id === currentUser?.id &&
+                                                        (m.status === 'joined' || m.status === 'requested')
+                                                    )
+                                                        ? 'bg-slate-100 text-slate-400 dark:bg-slate-700 dark:text-slate-500'
+                                                        : 'bg-green-500 text-white active:scale-95'
+                                                        }`}
+                                                >
+                                                    {lobby.members?.some((m: any) =>
+                                                        m.user_id === currentUser?.id && m.status === 'joined'
+                                                    ) ? 'JOINED' :
+                                                        lobby.members?.some((m: any) =>
+                                                            m.user_id === currentUser?.id && m.status === 'requested'
+                                                        ) ? 'PENDING' : 'JOIN'}
+                                                </button>
+                                            ) : (
                                                 <button
                                                     onClick={() => openInviteModal(lobby, 'lobby')}
-                                                    className="w-11 h-11 rounded-2xl bg-app-surface-2 border border-app-border flex items-center justify-center text-app-text-muted hover:text-primary hover:bg-app-surface-2 transition-all shadow-sm active:scale-90"
+                                                    disabled={lobby.members?.some((m: any) => m.user_id === currentUser?.id)}
+                                                    className="h-7 px-3 rounded-lg font-bold text-[9px] uppercase tracking-wide bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400"
                                                 >
-                                                    <span className="material-symbols-rounded">person_add</span>
+                                                    {lobby.members?.some((m: any) => m.user_id === currentUser?.id) ? t('social.joined').toUpperCase() : t('spaces.private').toUpperCase()}
                                                 </button>
-                                                {lobby.type === 'public' ? (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation(); // Prevent navigation
-                                                            handleJoinLobby(lobby.id);
-                                                        }}
-                                                        disabled={lobby.members?.some((m: any) =>
-                                                            m.user_id === currentUser?.id &&
-                                                            (m.status === 'joined' || m.status === 'requested')
-                                                        )}
-                                                        className={`h-11 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${lobby.members?.some((m: any) =>
-                                                            m.user_id === currentUser?.id &&
-                                                            (m.status === 'joined' || m.status === 'requested')
-                                                        )
-                                                            ? 'bg-app-surface-2 text-app-text-muted border border-app-border'
-                                                            : 'bg-primary text-slate-900 shadow-lg shadow-primary/20 active:scale-95 hover:bg-primary-dark'
-                                                            }`}
-                                                    >
-                                                        {lobby.members?.some((m: any) =>
-                                                            m.user_id === currentUser?.id && m.status === 'joined'
-                                                        ) ? t('spaces.joined') :
-                                                            lobby.members?.some((m: any) =>
-                                                                m.user_id === currentUser?.id && m.status === 'requested'
-                                                            ) ? t('spaces.requested') : t('spaces.request_access')}
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => openInviteModal(lobby, 'lobby')}
-                                                        disabled={lobby.members?.some((m: any) => m.user_id === currentUser?.id)}
-                                                        className={`h-11 px-6 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${lobby.members?.some((m: any) => m.user_id === currentUser?.id)
-                                                            ? 'bg-app-surface-2 text-app-text-muted border border-app-border'
-                                                            : 'bg-app-surface-2 text-app-text-muted border border-app-border hover:bg-app-surface-2'
-                                                            }`}
-                                                    >
-                                                        {lobby.members?.some((m: any) => m.user_id === currentUser?.id) ? t('spaces.joined') : t('spaces.private')}
-                                                    </button>
-                                                )}
-                                            </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -451,7 +503,7 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                         )}
                     </div>
                 ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         {/* Create Team Hero */}
                         <button
                             onClick={() => setIsTeamModalOpen(true)}
@@ -480,47 +532,54 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                 <p className="text-app-text-muted text-xs leading-relaxed max-w-[200px] mx-auto">{t('spaces.start_team_sub')}</p>
                             </div>
                         ) : (
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {teams.map(team => (
                                     <div
                                         key={team.id}
-                                        className="bg-app-surface/50 backdrop-blur-md p-6 rounded-[2.5rem] border border-app-border shadow-lg hover:bg-app-surface transition-all duration-500 group flex gap-5 items-center cursor-pointer animate-in fade-in slide-in-from-bottom-4"
+                                        className="bg-white dark:bg-[#1E2126] p-3 rounded-2xl flex items-center gap-4 shadow-soft hover:shadow-card transition-all cursor-pointer"
                                         onClick={() => navigate(`/team/${team.id}`)}
                                     >
-                                        <div className="w-20 h-20 rounded-[2rem] bg-app-surface flex items-center justify-center border border-app-border overflow-hidden relative shadow-inner p-1 group-hover:border-primary/30 transition-colors">
+                                        {/* Team Icon */}
+                                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center flex-shrink-0">
                                             {team.avatar_url ? (
-                                                <img src={team.avatar_url} className="w-full h-full object-cover rounded-[1.6rem]" alt="Team logo" />
+                                                <img src={team.avatar_url} className="w-full h-full object-cover" alt="Team logo" />
                                             ) : (
-                                                <span className="material-symbols-rounded text-4xl text-app-text-muted">shield</span>
+                                                <span className="material-symbols-rounded text-3xl text-slate-400">shield</span>
                                             )}
                                         </div>
+
+                                        {/* Team Info */}
                                         <div className="flex-1 min-w-0">
-                                            <h3 className="font-black text-xl text-app-text truncate group-hover:text-primary transition-colors tracking-tight">{team.name}</h3>
-                                            <p className="text-[10px] font-black text-app-text-muted uppercase tracking-widest mb-3">
-                                                {t('spaces.members_count', { count: team.members?.length || 0 })}
-                                            </p>
-                                            <div className="flex -space-x-2">
-                                                {Array.from({ length: Math.min(team.members?.length || 0, 3) }).map((_, i) => (
-                                                    <div key={i} className="w-8 h-8 rounded-xl border-2 border-app-bg bg-app-surface-2 overflow-hidden shadow-sm">
-                                                        <img src={getAvatarUrl(team.members?.[i]?.user?.avatar, team.members?.[i]?.user?.name, team.members?.[i]?.user?.id)} className="w-full h-full object-cover" alt="Member" />
-                                                    </div>
-                                                ))}
-                                                {(team.members?.length > 3) && (
-                                                    <div className="w-8 h-8 rounded-xl border-2 border-app-bg bg-app-surface-2 flex items-center justify-center text-[9px] font-black text-primary">
-                                                        +{team.members.length - 3}
-                                                    </div>
-                                                )}
+                                            <h4 className="font-bold text-sm text-[#1A1D1F] dark:text-white truncate">{team.name}</h4>
+                                            <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-400">
+                                                <div className="flex items-center gap-0.5">
+                                                    <span className="material-symbols-rounded text-green-500 text-[14px]">group</span>
+                                                    <span className="font-bold text-[#1A1D1F] dark:text-white">{team.members?.length || 0} members</span>
+                                                </div>
+                                            </div>
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <div className="flex -space-x-1.5">
+                                                    {Array.from({ length: Math.min(team.members?.length || 0, 3) }).map((_, i) => (
+                                                        <div key={i} className="w-5 h-5 rounded-full border-2 border-white dark:border-[#1E2126] bg-slate-200 overflow-hidden">
+                                                            <img src={getAvatarUrl(team.members?.[i]?.user?.avatar, team.members?.[i]?.user?.name, team.members?.[i]?.user?.id)} className="w-full h-full object-cover" alt="Member" />
+                                                        </div>
+                                                    ))}
+                                                    {(team.members?.length > 3) && (
+                                                        <div className="w-5 h-5 rounded-full border-2 border-white dark:border-[#1E2126] bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-500">
+                                                            +{team.members.length - 3}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+
+                                        {/* Action Button */}
+                                        <div className="flex flex-col gap-1.5" onClick={e => e.stopPropagation()}>
                                             <button
                                                 onClick={() => openInviteModal(team, 'team')}
-                                                className="w-11 h-11 rounded-2xl bg-app-surface-2 border border-app-border flex items-center justify-center text-app-text-muted hover:text-primary hover:bg-app-surface-2 transition-all shadow-sm active:scale-90"
+                                                className="h-7 px-3 rounded-lg font-bold text-[9px] uppercase tracking-wide bg-green-500 text-white active:scale-95 transition-all"
                                             >
-                                                <span className="material-symbols-rounded">person_add</span>
-                                            </button>
-                                            <button className="w-11 h-11 rounded-2xl bg-app-surface-2 flex items-center justify-center text-app-text-muted hover:text-app-text transition-all active:scale-90">
-                                                <span className="material-symbols-rounded">chevron_right</span>
+                                                INVITE
                                             </button>
                                         </div>
                                     </div>
@@ -534,7 +593,7 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
             {/* Premium Modals */}
             {(isLobbyModalOpen || isTeamModalOpen) && (
                 <div className="fixed inset-0 z-[100] bg-app-bg/80 backdrop-blur-md flex items-end justify-center p-6 animate-in fade-in duration-500">
-                    <div className="bg-app-surface w-full max-w-sm rounded-[3.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom-32 duration-700 relative border border-app-border">
+                    <div className="bg-app-surface w-full max-w-sm rounded-[3.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom-32 duration-700 relative border border-app-border max-h-[90vh] overflow-y-auto">
                         <button
                             onClick={() => { setIsLobbyModalOpen(false); setIsTeamModalOpen(false); }}
                             className="absolute top-6 right-6 w-10 h-10 bg-app-surface-2 rounded-full flex items-center justify-center text-app-text-muted hover:text-app-text active:scale-90 transition-all"
@@ -551,29 +610,29 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
 
                         <form
                             onSubmit={isLobbyModalOpen ? handleCreateLobby : handleCreateTeam}
-                            className="space-y-8"
+                            className="space-y-4"
                         >
-                            <div className="space-y-2">
+                            <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.display_name')}</label>
                                 <input
                                     type="text"
                                     value={newName}
                                     onChange={(e) => setNewName(e.target.value)}
                                     placeholder={isLobbyModalOpen ? "Saturday Night..." : "Club Elite..."}
-                                    className="w-full bg-app-bg border-2 border-app-border rounded-[1.5rem] px-6 py-4 font-black text-app-text placeholder:text-app-text-muted/40 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                    className="w-full bg-app-bg border-2 border-app-border rounded-[1.2rem] px-4 py-3 font-black text-app-text placeholder:text-app-text-muted/40 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                                 />
                             </div>
 
                             {isLobbyModalOpen && (
                                 <>
                                     {/* Lobby Type */}
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.lobby_type')}</label>
                                         <div className="flex gap-2">
                                             <button
                                                 type="button"
                                                 onClick={() => setLobbyType('public')}
-                                                className={`flex-1 py-3 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-all ${lobbyType === 'public'
+                                                className={`flex-1 py-3 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-all ${lobbyType === 'public'
                                                     ? 'bg-primary text-slate-900 shadow-lg shadow-primary/20'
                                                     : 'bg-app-surface-2 text-app-text-muted border border-app-border hover:bg-app-surface-2'
                                                     }`}
@@ -583,7 +642,7 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                             <button
                                                 type="button"
                                                 onClick={() => setLobbyType('private')}
-                                                className={`flex-1 py-3 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-all ${lobbyType === 'private'
+                                                className={`flex-1 py-3 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-all ${lobbyType === 'private'
                                                     ? 'bg-primary text-slate-900 shadow-lg shadow-primary/20'
                                                     : 'bg-app-surface-2 text-app-text-muted border border-app-border hover:bg-app-surface-2'
                                                     }`}
@@ -591,84 +650,150 @@ const SpacesPage = ({ currentUser }: { currentUser: any }) => {
                                                 {t('spaces.private')}
                                             </button>
                                         </div>
-                                        <p className="text-[9px] text-app-text-muted px-1">
-                                            {lobbyType === 'public' ? t('spaces.lobby_public_sub') : t('spaces.lobby_private_sub')}
-                                        </p>
                                     </div>
 
-                                    {/* Complex Selection */}
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.venue_label')}</label>
-                                        <select
-                                            value={selectedComplexId}
-                                            onChange={(e) => setSelectedComplexId(e.target.value)}
-                                            className="w-full bg-app-bg border-2 border-app-border rounded-[1.5rem] px-6 py-4 font-black text-app-text focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                                            required
-                                        >
-                                            <option value="">{t('spaces.select_venue')}</option>
-                                            {complexes.map(complex => (
-                                                <option key={complex.id} value={complex.id} className="bg-app-surface">
-                                                    {complex.name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {/* Complex Selection */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.venue_label')}</label>
+                                            <select
+                                                value={selectedComplexId}
+                                                onChange={(e) => setSelectedComplexId(e.target.value)}
+                                                className="w-full bg-app-bg border-2 border-app-border rounded-[1.2rem] px-4 py-3 font-black text-app-text focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none"
+                                                required
+                                            >
+                                                <option value="">{t('spaces.select_venue')}</option>
+                                                {complexes.map(complex => (
+                                                    <option key={complex.id} value={complex.id} className="bg-app-surface">
+                                                        {complex.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* Pitch Selection */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">Pitch</label>
+                                            <select
+                                                value={selectedPitchId}
+                                                onChange={(e) => setSelectedPitchId(e.target.value)}
+                                                disabled={!selectedComplexId}
+                                                className="w-full bg-app-bg border-2 border-app-border rounded-[1.2rem] px-4 py-3 font-black text-app-text focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none disabled:opacity-50"
+                                                required
+                                            >
+                                                <option value="">{selectedComplexId ? 'Select pitch' : 'Choose venue'}</option>
+                                                {pitches.map(pitch => (
+                                                    <option key={pitch.id} value={pitch.id} className="bg-app-surface">
+                                                        {pitch.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
 
-                                    {/* Date Selection */}
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.date_label')}</label>
-                                        <input
-                                            type="date"
-                                            value={preferredDate}
-                                            onChange={(e) => setPreferredDate(e.target.value)}
-                                            min={new Date().toISOString().split('T')[0]}
-                                            className="w-full bg-app-bg border-2 border-app-border rounded-[1.5rem] px-6 py-4 font-black text-app-text focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                                            required
-                                        />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {/* Level Selection */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.level_label')}</label>
+                                            <select
+                                                value={level}
+                                                onChange={(e) => setLevel(e.target.value)}
+                                                className="w-full bg-app-bg border-2 border-app-border rounded-[1.2rem] px-4 py-3 font-black text-app-text focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none"
+                                            >
+                                                <option value="all">All Levels</option>
+                                                <option value="beginner">Beginner</option>
+                                                <option value="intermediate">Intermediate</option>
+                                                <option value="pro">Pro</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Age Range */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.age_label')}</label>
+                                            <input
+                                                type="text"
+                                                value={ageRange}
+                                                onChange={(e) => setAgeRange(e.target.value)}
+                                                placeholder="e.g. 18-25"
+                                                className="w-full bg-app-bg border-2 border-app-border rounded-[1.2rem] px-4 py-3 font-black text-app-text placeholder:text-app-text-muted/40 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                            />
+                                        </div>
                                     </div>
 
-                                    {/* Time Selection */}
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.time_label')}</label>
-                                        <input
-                                            type="time"
-                                            value={preferredTime}
-                                            onChange={(e) => setPreferredTime(e.target.value)}
-                                            className="w-full bg-app-bg border-2 border-app-border rounded-[1.5rem] px-6 py-4 font-black text-app-text focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                                            required
-                                        />
-                                    </div>
-
-                                    {/* Capacity */}
-                                    <div className="space-y-4">
+                                    {/* Team Size Slider */}
+                                    <div className="bg-app-bg/50 border-2 border-app-border rounded-[1.5rem] p-4 space-y-4 shadow-inner">
                                         <div className="flex justify-between items-center px-1">
-                                            <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">{t('spaces.capacity')}</label>
-                                            <span className="text-sm font-black text-primary">{t('spaces.players_count', { count: maxPlayers })}</span>
+                                            <div className="flex flex-col">
+                                                <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest">{t('spaces.team_size_label')}</label>
+                                                <span className="text-[9px] font-bold text-app-text-muted/60">{teamSize * 2} players total</span>
+                                            </div>
+                                            <div className="bg-primary/20 px-3 py-1 rounded-full border border-primary/30">
+                                                <span className="text-sm font-black text-primary">{teamSize} vs {teamSize}</span>
+                                            </div>
                                         </div>
-                                        <input
-                                            type="range"
-                                            min="2"
-                                            max="22"
-                                            step="2"
-                                            value={maxPlayers}
-                                            onChange={(e) => setMaxPlayers(parseInt(e.target.value))}
-                                            className="w-full h-1.5 bg-app-surface rounded-lg appearance-none cursor-pointer accent-primary"
-                                        />
-                                        <div className="flex justify-between text-[8px] font-black text-app-text-muted uppercase tracking-widest">
-                                            <span>{t('spaces.players_count', { count: 2 })}</span>
-                                            <span>{t('spaces.players_count', { count: 22 })}</span>
+                                        <div className="px-2 pb-2">
+                                            <input
+                                                type="range"
+                                                min="2"
+                                                max="11"
+                                                step="1"
+                                                value={teamSize}
+                                                onChange={(e) => setTeamSize(parseInt(e.target.value))}
+                                                className="w-full h-1.5 bg-app-surface rounded-lg appearance-none cursor-pointer accent-primary"
+                                            />
+                                            <div className="flex justify-between w-full px-1.5 mt-2">
+                                                {[2, 5, 8, 11].map(val => (
+                                                    <span key={val} className="text-[8px] font-bold text-app-text-muted/40">{val}v{val}</span>
+                                                ))}
+                                            </div>
                                         </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3 items-end">
+                                        {/* Date Selection */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.date_label')}</label>
+                                            <input
+                                                type="date"
+                                                value={preferredDate}
+                                                onChange={(e) => setPreferredDate(e.target.value)}
+                                                min={new Date().toISOString().split('T')[0]}
+                                                className="w-full bg-app-bg border-2 border-app-border rounded-[1.2rem] px-4 py-3 font-black text-app-text focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                                required
+                                            />
+                                        </div>
+
+                                        {/* Time Selection */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-app-text-muted uppercase tracking-widest block px-1">{t('spaces.time_label')}</label>
+                                            <input
+                                                type="time"
+                                                value={preferredTime}
+                                                onChange={(e) => setPreferredTime(e.target.value)}
+                                                className="w-full bg-app-bg border-2 border-app-border rounded-[1.2rem] px-4 py-3 font-black text-app-text focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Price and Action Row */}
+                                    <div className="flex gap-3 items-stretch">
+                                        <div className="bg-app-surface-2 px-6 py-1 rounded-[1.5rem] flex flex-col justify-center flex-1 border border-app-border/30">
+                                            <span className="text-[8px] font-black text-app-text-muted uppercase tracking-widest">{t('spaces.price_per_player')}</span>
+                                            <span className="text-base font-black text-primary leading-tight">{pricePerPlayer} TND</span>
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            disabled={!newName.trim()}
+                                            className="flex-[1.5] bg-primary text-slate-900 py-4 rounded-[1.5rem] font-black uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all text-[11px] disabled:opacity-20 flex items-center justify-center gap-2"
+                                        >
+                                            <span className="material-symbols-rounded text-lg">rocket_launch</span>
+                                            {isLobbyModalOpen ? t('spaces.launch_lobby') : t('spaces.establish_club')}
+                                        </button>
                                     </div>
                                 </>
                             )}
-
-                            <button
-                                type="submit"
-                                disabled={!newName.trim()}
-                                className="w-full bg-primary text-slate-900 py-5 rounded-[1.5rem] font-black uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-all text-[11px] disabled:opacity-20"
-                            >
-                                {isLobbyModalOpen ? 'Launch Lobby' : 'Establish Club'}
-                            </button>
                         </form>
                     </div>
                 </div>

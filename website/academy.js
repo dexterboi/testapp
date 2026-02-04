@@ -643,6 +643,11 @@ function setupEventListeners() {
             coach_id: coachId || null
         };
 
+        if (!currentAcademy) {
+            alert('Veuillez d\'abord sélectionner ou créer une académie');
+            return;
+        }
+
         let programs = [...(currentAcademy.programs || [])];
         if (index !== '') {
             programs[index] = newProgram;
@@ -792,6 +797,11 @@ async function uploadToImageKit(file) {
 }
 
 async function updateStats() {
+    if (!currentAcademy) {
+        console.log('No academy selected, skipping stats update');
+        return;
+    }
+
     try {
         // Step 1: Get all registration IDs for this academy
         const { data: regs, error: regsError } = await supabaseClient
@@ -824,9 +834,13 @@ async function updateStats() {
 async function loadRequests() {
     if (!supabaseClient) initSupabase();
     if (!supabaseClient) return;
+    if (!currentAcademy) {
+        console.log('No academy selected, skipping request load');
+        return;
+    }
 
     const { data: requests } = await supabaseClient.from('academy_registrations')
-        .select('*, user_profiles(name)')
+        .select('*, parent:user_profiles(name)')
         .eq('academy_id', currentAcademy.id)
         .eq('status', 'pending');
 
@@ -878,6 +892,11 @@ async function loadRequests() {
 }
 
 async function loadStudents() {
+    if (!currentAcademy) {
+        console.log('No academy selected, skipping student load');
+        return;
+    }
+
     const { data: students, error } = await supabaseClient.from('academy_students')
         .select(`
             *,
@@ -888,7 +907,7 @@ async function loadStudents() {
                 parent_name,
                 parent_phone,
                 selected_program,
-                user_profiles(name)
+                parent:user_profiles(name)
             )
         `)
         .eq('academy_registrations.academy_id', currentAcademy.id)

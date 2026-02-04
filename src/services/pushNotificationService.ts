@@ -5,7 +5,7 @@ import { supabase } from './supabase';
  * Initialize push notifications
  * Call this when the app starts and user is logged in
  */
-export const initializePushNotifications = async (userId: string) => {
+export const initializePushNotifications = async (userId: string, onNotificationClick?: (data: any) => void) => {
     try {
         console.log('🔔 [Push] Starting initialization for user:', userId);
 
@@ -64,7 +64,11 @@ export const initializePushNotifications = async (userId: string) => {
         // Listen for push notification actions (when user taps notification)
         await PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
             console.log('🔔 [Push] Notification tapped:', notification.actionId);
-            handleNotificationAction(notification);
+            console.log('🔔 [Push] Notification data:', notification.notification.data);
+
+            if (onNotificationClick) {
+                onNotificationClick(notification.notification.data);
+            }
         });
 
         console.log('🔔 [Push] Listeners set up. Now registering with FCM...');
@@ -179,7 +183,7 @@ const handleNotificationAction = (notification: any) => {
     // Navigate based on notification type
     if (data?.type === 'lobby_invite' || data?.type === 'lobby_access_request') {
         // Navigate to lobby detail or spaces page
-        window.location.href = `/#/spaces/lobby/${data.lobby_id}`;
+        window.location.href = `/#/matches/match/${data.lobby_id}`;
     } else if (data?.type === 'friend_request') {
         // Navigate to crew page
         window.location.href = '/#/crew';

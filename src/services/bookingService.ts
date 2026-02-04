@@ -119,6 +119,7 @@ export const getAvailableSlots = async (
 
     if (pitchError || !pitch) throw pitchError;
 
+    console.log('🔍 [SLOTS] Pitch status:', pitch.status);
     if (pitch.status !== 'active') return [];
 
     const { matchDuration, bufferMins } = resolveSlotConfig(pitch)
@@ -134,6 +135,7 @@ export const getAvailableSlots = async (
       pricePerHour,
       bufferMins
     );
+    console.log('🔍 [SLOTS] Generated slots:', allSlots.length);
 
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
@@ -141,15 +143,22 @@ export const getAvailableSlots = async (
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const { data: bookings, error: bookingsError } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('pitch_id', pitchId)
-      .gte('start_time', startOfDay.toISOString())
-      .lte('start_time', endOfDay.toISOString())
-      .in('status', ['approved', 'pending']);
+    console.log('🔍 [SLOTS] Checking availability for:', startOfDay.toISOString(), 'to', endOfDay.toISOString());
 
-    if (bookingsError) throw bookingsError;
+    const { data: bookings, error: bookingsError } = await supabase
+      .rpc('get_pitch_availability', {
+        p_pitch_id: pitchId,
+        p_start_time: startOfDay.toISOString(),
+        p_end_time: endOfDay.toISOString(),
+        p_exclude_booking_id: null
+      });
+
+    if (bookingsError) {
+      console.error('❌ [SLOTS] RPC Error:', bookingsError);
+      throw bookingsError;
+    }
+
+    console.log('🔍 [SLOTS] Found bookings:', bookings?.length || 0);
 
     const availableSlots = allSlots.map(slot => ({
       ...slot,
@@ -172,6 +181,7 @@ export const createBookingRequest = async (data: {
   start_time: Date;
   end_time: Date;
   total_price: number;
+  participantIds?: string[];
 }) => {
   try {
     const { data: pitch, error: pitchErr } = await supabase
@@ -189,12 +199,12 @@ export const createBookingRequest = async (data: {
     checkEnd.setMinutes(checkEnd.getMinutes() + bufferMins);
 
     const { data: bookings, error: bookingsError } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('pitch_id', data.pitch)
-      .gte('start_time', checkStart.toISOString())
-      .lte('start_time', checkEnd.toISOString())
-      .in('status', ['approved', 'pending']);
+      .rpc('get_pitch_availability', {
+        p_pitch_id: data.pitch,
+        p_start_time: checkStart.toISOString(),
+        p_end_time: checkEnd.toISOString(),
+        p_exclude_booking_id: null
+      });
 
     if (bookingsError) throw bookingsError;
 
@@ -507,6 +517,164 @@ export const updatePitchSettings = async (
     return pitch;
   } catch (error) {
     console.error('Error updating pitch settings:', error);
+    throw error;
+  }
+};
+
+/**
+ * Modify a booking
+ */
+export const modifyBooking = async (
+  bookingId: string,
+  newSlot: { start: Date; end: Date; price: number },
+  currentStatus: string
+) => {
+  try {
+    // Check availability first
+    const { data: booking, error: fetchError } = await supabase
+      .from('bookings')
+      .select('pitch_id')
+      .eq('id', bookingId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const { data: pitch, error: pitchErr } = await supabase
+      .from('pitches')
+      .select('*, sport_types(*)')
+      .eq('id', booking.pitch_id)
+      .single();
+
+    if (pitchErr) throw pitchErr;
+
+    const { bufferMins } = resolveSlotConfig(pitch);
+
+    const checkStart = new Date(newSlot.start);
+    checkStart.setMinutes(checkStart.getMinutes() - bufferMins);
+
+    const checkEnd = new Date(newSlot.end);
+    checkEnd.setMinutes(checkEnd.getMinutes() + bufferMins);
+
+    const { data: bookings, error: bookingsError } = await supabase
+      .rpc('get_pitch_availability', {
+        p_pitch_id: booking.pitch_id,
+        p_start_time: checkStart.toISOString(),
+        p_end_time: checkEnd.toISOString(),
+        p_exclude_booking_id: bookingId
+      });
+
+    if (bookingsError) throw bookingsError;
+
+    // Filter out the current booking from conflict check if we are just moving it
+    // But get_pitch_availability returns times, not IDs. 
+    // However, since we are updating the SAME booking, we don't need to worry about self-conflict 
+    // IF we were checking against the table. But RPC returns occupied slots.
+    // If the new slot overlaps with the OLD slot of the SAME booking, it might look like a conflict.
+    // BUT, get_pitch_availability returns ALL bookings.
+    // We need to be careful. The RPC returns occupied slots.
+    // If we are modifying an existing booking, its current time is in the DB.
+    // So the RPC will return the current booking's time as occupied.
+    // We need to filter out the current booking's time from the conflict check.
+    // Since RPC returns just times, we can't filter by ID.
+    // This is a limitation of the secure RPC.
+
+    // Workaround: We can't easily filter by ID with the current RPC.
+    // We might need to update the RPC to exclude a specific booking ID.
+    // For now, let's assume the user is picking a DIFFERENT slot.
+    // If they pick a slot that overlaps with their current slot, it will show as conflict.
+    // This is acceptable for now, or we can update the RPC.
+
+    // Let's update the RPC to accept an optional exclude_booking_id.
+
+    if (checkSlotConflict(newSlot.start, newSlot.end, bookings || [], bufferMins)) {
+      // Check if the conflict is ONLY with the current booking (if we could).
+      // For now, just throw error.
+      throw new Error(`This time slot is not available.`);
+    }
+
+    if (currentStatus === 'pending') {
+      // Direct update
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          start_time: newSlot.start.toISOString(),
+          end_time: newSlot.end.toISOString(),
+          total_price: newSlot.price
+        })
+        .eq('id', bookingId);
+      if (error) throw error;
+    } else {
+      // Request modification
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          new_start_time: newSlot.start.toISOString(),
+          new_end_time: newSlot.end.toISOString(),
+          new_total_price: newSlot.price,
+          modification_status: 'pending'
+        })
+        .eq('id', bookingId);
+      if (error) throw error;
+    }
+  } catch (error) {
+    console.error('Error modifying booking:', error);
+    throw error;
+  }
+};
+
+/**
+ * Approve booking modification
+ */
+export const approveModification = async (bookingId: string) => {
+  try {
+    // Fetch the new details first
+    const { data: booking, error: fetchError } = await supabase
+      .from('bookings')
+      .select('new_start_time, new_end_time, new_total_price')
+      .eq('id', bookingId)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!booking.new_start_time) throw new Error('No modification details found');
+
+    const { error } = await supabase
+      .from('bookings')
+      .update({
+        start_time: booking.new_start_time,
+        end_time: booking.new_end_time,
+        total_price: booking.new_total_price,
+        modification_status: 'approved',
+        new_start_time: null,
+        new_end_time: null,
+        new_total_price: null
+      })
+      .eq('id', bookingId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error approving modification:', error);
+    throw error;
+  }
+};
+
+/**
+ * Reject booking modification
+ */
+export const rejectModification = async (bookingId: string) => {
+  try {
+    const { error } = await supabase
+      .from('bookings')
+      .update({
+        modification_status: 'rejected',
+        new_start_time: null,
+        new_end_time: null,
+        new_total_price: null
+      })
+      .eq('id', bookingId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error rejecting modification:', error);
     throw error;
   }
 };

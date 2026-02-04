@@ -115,26 +115,43 @@ export const getUserBookings = async (userId: string, includeCompleted: boolean 
 
         // Removed auto-delete call - we want to preserve booking history
         // Note: Removed user_profiles join as there's no FK relationship defined
+        // Fetch bookings where user is owner OR participant
+        // We use a separate query for participant IDs to stay compatible with Supabase's current JS client capabilities for OR conditions across tables
+        const { data: participantData } = await supabase
+            .from('booking_participants')
+            .select('booking_id, status')
+            .eq('user_id', userId);
+
+        const participantMap = new Map(participantData?.map(p => [p.booking_id, p.status]) || []);
+        const participantBookingIds = Array.from(participantMap.keys());
+
         let query = supabase
             .from('bookings')
-            .select('*, pitches(*, complexes(*))')
-            .eq('user_id', userId)
-            .order('start_time', { ascending: false });
+            .select('*, pitches(*, complexes(*))');
 
-        if (!includeCompleted) {
-            query = query.neq('status', 'cancelled');
+        if (participantBookingIds.length > 0) {
+            query = query.or(`user_id.eq.${userId},id.in.(${participantBookingIds.join(',')})`);
+        } else {
+            query = query.eq('user_id', userId);
         }
 
-        console.log('🔍 [BOOKINGS] Executing query...');
-        const { data, error } = await query;
+        query = query.order('start_time', { ascending: false });
 
+        console.log('🔍 [BOOKINGS] Executing query...');
+        let { data, error } = await query;
         if (error) {
             console.error('❌ [BOOKINGS] Query error:', error);
             throw error;
         }
 
+        // Add participant status to the results
+        const enrichedData = data?.map(booking => ({
+            ...booking,
+            is_participant: booking.user_id !== userId,
+            participant_status: participantMap.get(booking.id) || null
+        }));
+
         console.log('✅ [BOOKINGS] Query successful!');
-        console.log('📊 [BOOKINGS] Total bookings fetched:', data?.length || 0);
 
         if (data && data.length > 0) {
             console.log('📋 [BOOKINGS] First booking sample:', {
@@ -155,6 +172,22 @@ export const getUserBookings = async (userId: string, includeCompleted: boolean 
     } catch (error) {
         console.error('❌ [BOOKINGS] Fatal error:', error);
         return [];
+    }
+};
+
+export const getBooking = async (id: string) => {
+    try {
+        const { data, error } = await supabase
+            .from('bookings')
+            .select('*, pitches(*, complexes(*)), user_profiles(*)')
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error('Error fetching booking:', error);
+        return null;
     }
 };
 
@@ -588,11 +621,16 @@ export const createLobby = async (lobbyData: {
     name: string,
     host_id: string,
     complex_id: string,
+    pitch_id?: string,
     max_players: number,
     type: 'private' | 'public',
     preferred_date: string,
     preferred_time: string,
-    status?: string
+    status?: string,
+    level?: string,
+    age_range?: string,
+    team_size?: number,
+    price_per_player?: number
 }) => {
     try {
         const { data, error } = await supabase
@@ -601,11 +639,16 @@ export const createLobby = async (lobbyData: {
                 name: lobbyData.name,
                 host_id: lobbyData.host_id,
                 complex_id: lobbyData.complex_id,
+                pitch_id: lobbyData.pitch_id,
                 max_players: lobbyData.max_players,
                 type: lobbyData.type,
                 preferred_date: lobbyData.preferred_date,
                 preferred_time: lobbyData.preferred_time,
-                status: lobbyData.status || 'open'
+                status: lobbyData.status || 'open',
+                level: lobbyData.level || 'all',
+                age_range: lobbyData.age_range,
+                team_size: lobbyData.team_size || 5,
+                price_per_player: lobbyData.price_per_player || 0
             }])
             .select()
             .single();
@@ -622,6 +665,36 @@ export const createLobby = async (lobbyData: {
         return { success: true, data };
     } catch (error: any) {
         console.error('Error creating lobby:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+export const updateLobby = async (lobbyId: string, lobbyData: Partial<{
+    name: string,
+    complex_id: string,
+    pitch_id: string | null,
+    max_players: number,
+    type: 'private' | 'public',
+    preferred_date: string,
+    preferred_time: string,
+    status: string,
+    level: string,
+    age_range: string,
+    team_size: number,
+    price_per_player: number
+}>) => {
+    try {
+        const { data, error } = await supabase
+            .from('lobbies')
+            .update(lobbyData)
+            .eq('id', lobbyId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return { success: true, data };
+    } catch (error: any) {
+        console.error('Error updating lobby:', error);
         return { success: false, error: error.message };
     }
 };

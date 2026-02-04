@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, User, Search } from 'lucide-react';
+import { ChevronLeft, User, Search, AlertCircle, Check, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getComplexBookings, updateBookingStatus, cancelBooking } from '@/services/bookingService';
+import { getComplexBookings, updateBookingStatus, cancelBooking, approveModification, rejectModification } from '@/services/bookingService';
 import { getRelation } from '@/utils';
 import { SuccessModal } from '@/components/common/ConfirmationModal';
 
@@ -30,10 +30,17 @@ const OwnerBookingsPage = () => {
         setLoading(false);
     };
 
-    const handleAction = async (id: string, status: string, isCancel = false) => {
+    const handleAction = async (id: string, action: string, isCancel = false) => {
         try {
-            if (isCancel) await cancelBooking(id);
-            else await updateBookingStatus(id, status as any);
+            if (action === 'approve_modification') {
+                await approveModification(id);
+            } else if (action === 'reject_modification') {
+                await rejectModification(id);
+            } else if (isCancel) {
+                await cancelBooking(id);
+            } else {
+                await updateBookingStatus(id, action as any);
+            }
             fetchBookings();
         } catch (e) {
             setErrorMessage(t('activity.update_failed'));
@@ -219,6 +226,7 @@ const OwnerBookingsPage = () => {
                         const user = getRelation(booking, 'user_profiles');
                         const startTime = new Date(booking.start_time);
                         const endTime = new Date(booking.end_time);
+                        const isModificationPending = booking.modification_status === 'pending';
 
                         return (
                             <div key={booking.id} className="bg-app-surface rounded-3xl p-5 border border-app-border group hover:bg-app-surface transition-all">
@@ -241,25 +249,55 @@ const OwnerBookingsPage = () => {
                                             <span className="w-1 h-1 bg-slate-500 rounded-full"></span>
                                             <span>{user?.name || 'Player'}</span>
                                         </div>
+
+                                        {/* Modification Request Details */}
+                                        {isModificationPending && (
+                                            <div className="mt-2 p-2 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                                                <div className="flex items-center gap-1 text-amber-500 text-[10px] font-bold uppercase mb-1">
+                                                    <AlertCircle size={12} />
+                                                    <span>Modification Requested</span>
+                                                </div>
+                                                <p className="text-[11px] text-slate-300">
+                                                    New Time: {new Date(booking.new_start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - {new Date(booking.new_end_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                                </p>
+                                                <div className="flex gap-2 mt-2">
+                                                    <button
+                                                        onClick={() => handleAction(booking.id, 'approve_modification')}
+                                                        className="flex-1 bg-green-500/20 text-green-500 py-1.5 rounded-lg text-[10px] font-bold uppercase hover:bg-green-500/30"
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleAction(booking.id, 'reject_modification')}
+                                                        className="flex-1 bg-red-500/20 text-red-500 py-1.5 rounded-lg text-[10px] font-bold uppercase hover:bg-red-500/30"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Status Badge and Menu */}
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-col items-end gap-2">
                                         <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${getStatusBadge(booking.status)}`}>
                                             {getStatusText(booking.status)}
                                         </span>
-                                        <button
-                                            onClick={() => {
-                                                if (booking.status === 'pending') {
-                                                    handleAction(booking.id, 'approved');
-                                                } else if (booking.status === 'cancel_request') {
-                                                    handleAction(booking.id, 'cancelled', true);
-                                                }
-                                            }}
-                                            className="w-8 h-8 bg-app-surface-2 rounded-full flex items-center justify-center hover:bg-app-surface-2 transition-colors"
-                                        >
-                                            <span className="material-symbols-rounded text-lg text-slate-400">more_vert</span>
-                                        </button>
+
+                                        {!isModificationPending && (
+                                            <button
+                                                onClick={() => {
+                                                    if (booking.status === 'pending') {
+                                                        handleAction(booking.id, 'approved');
+                                                    } else if (booking.status === 'cancel_request') {
+                                                        handleAction(booking.id, 'cancelled', true);
+                                                    }
+                                                }}
+                                                className="w-8 h-8 bg-app-surface-2 rounded-full flex items-center justify-center hover:bg-app-surface-2 transition-colors"
+                                            >
+                                                <span className="material-symbols-rounded text-lg text-slate-400">more_vert</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

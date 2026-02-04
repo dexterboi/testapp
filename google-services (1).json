@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1036021429427",
+    "project_id": "larena-4acd2",
+    "storage_bucket": "larena-4acd2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1036021429427:android:d78265d451d0d9b3346cc6",
+        "android_client_info": {
+          "package_name": "com.pitchperfect.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmzI7ojBsiBMzsrzAI6bql-iFFDopL7Qk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

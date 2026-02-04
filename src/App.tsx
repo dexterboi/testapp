@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/services/supabase';
 import { Auth } from '@/components/pages/Auth';
 import { UserProfile } from '@/components/pages/UserProfile';
+import { OnboardingProfile } from '@/components/pages/OnboardingProfile';
 import { OwnerDashboard } from '@/components/pages/OwnerDashboard';
 import { AchievementsPage } from '@/components/pages/AchievementsPage';
 import { HistoryPage } from '@/components/pages/HistoryPage';
@@ -31,6 +32,8 @@ import AdminPage from '@/components/pages/AdminPage';
 import OwnerBookingsPage from '@/components/pages/OwnerBookingsPage';
 import OwnerPitchesPage from '@/components/pages/OwnerPitchesPage';
 import { VersionCheckModal } from '@/components/layout/VersionCheckModal';
+import { BookingRequestModal } from '@/components/common/BookingRequestModal';
+import { MatchConfirmationModal } from '@/components/common/MatchConfirmationModal';
 import pkg from '../package.json';
 
 export interface User {
@@ -51,16 +54,47 @@ const ScrollToTop = () => {
   return null;
 };
 
+// Component to handle push notifications with navigation
+const NotificationHandler = ({ userId, onNotification }: { userId: string | undefined, onNotification: (data: any) => void }) => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (userId && Capacitor.isNativePlatform()) {
+      console.log('🔔 [App] Initializing push for user:', userId);
+      initializePushNotifications(userId, (data) => {
+        console.log('🔔 [App] Notification clicked:', data);
+        if (data?.type === 'modification_request' || data?.type === 'new_booking' || data?.type === 'cancel_request') {
+          onNotification(data);
+        } else if (data?.type === 'booking_status') {
+          navigate('/profile/history');
+        } else if (data?.type === 'match_reminder' || data?.type === 'booking_invitation') {
+          onNotification(data);
+        }
+      })
+        .then(result => console.log('🔔 [Push] Startup init result:', result))
+        .catch(err => console.error('🔔 [Push] Startup init error:', err));
+    }
+  }, [userId]);
+
+  return null;
+};
+
 const App = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showSplash, setShowSplash] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState<Record<string, any>>({});
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const presenceChannelRef = useRef<any>(null);
 
   const [updateInfo, setUpdateInfo] = useState<{ latestVersion: string; releaseNotes: string; downloadUrl: string } | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+
+  // Notification Modal State
+  const [notificationBookingId, setNotificationBookingId] = useState<string | null>(null);
+  const [notificationType, setNotificationType] = useState<string | null>(null);
+
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
     return (localStorage.getItem('theme') as any) || 'system';
   });
@@ -97,15 +131,7 @@ const App = () => {
     checkForUpdates();
   }, []);
 
-  // Initialize push notifications as soon as user is available
-  useEffect(() => {
-    if (user?.id && Capacitor.isNativePlatform()) {
-      console.log('🔔 [App] Initializing push for user:', user.id);
-      initializePushNotifications(user.id)
-        .then(result => console.log('🔔 [Push] Startup init result:', result))
-        .catch(err => console.error('🔔 [Push] Startup init error:', err));
-    }
-  }, [user?.id]);
+  // Removed direct useEffect for push notifications - moved to NotificationHandler
 
   const checkForUpdates = async () => {
     const controller = new AbortController();
@@ -125,7 +151,11 @@ const App = () => {
 
       console.log(`📱 [Version] Check: Remote=${latestVersion}, Local=${currentVersion}`);
 
-      if (latestVersion && latestVersion !== currentVersion) {
+      // Normalize versions for comparison (remove 'v' prefix if present)
+      const normalizedLatest = latestVersion?.toString().replace(/^v/, '').trim();
+      const normalizedCurrent = currentVersion?.toString().replace(/^v/, '').trim();
+
+      if (normalizedLatest && normalizedLatest !== normalizedCurrent) {
         console.log('🚀 [Version] New version detected! Opening modal...');
 
         setUpdateInfo({
@@ -134,6 +164,8 @@ const App = () => {
           downloadUrl: data.download_url
         });
         setIsUpdateModalOpen(true);
+      } else {
+        console.log('✅ [Version] App is up to date');
       }
     } catch (error) {
       console.warn('⚠️ [Version] Check failed:', error);
@@ -185,6 +217,8 @@ const App = () => {
           role: authUser.user_metadata?.role || 'user',
           phone: authUser.phone || null,
         });
+        // Show onboarding for new users without profile
+        setShowOnboarding(true);
         return;
       }
 
@@ -200,6 +234,11 @@ const App = () => {
       };
 
       setUser(appUser);
+
+      // Check if profile is incomplete (new user)
+      if (!profile.profile_completed && !profile.phone) {
+        setShowOnboarding(true);
+      }
       console.log('👤 [App] Profile synced from database:', appUser.name);
     } catch (err) {
       console.error('Critical error in fetchAndSetUserProfile:', err);
@@ -369,9 +408,27 @@ const App = () => {
 
       {!user ? (
         <Auth onSuccess={() => checkUser()} />
+      ) : showOnboarding ? (
+        <OnboardingProfile
+          user={user}
+          onComplete={() => {
+            setShowOnboarding(false);
+            refreshUser();
+          }}
+          onSkip={() => setShowOnboarding(false)}
+        />
       ) : (
         <HashRouter>
           <ScrollToTop />
+          <NotificationHandler
+            userId={user?.id}
+            onNotification={(data) => {
+              if (data?.bookingId) {
+                setNotificationBookingId(data.bookingId);
+                setNotificationType(data.type);
+              }
+            }}
+          />
           <Routes>
             <Route path="/" element={<HomePage user={user} pendingCount={pendingRequestsCount} />} />
             <Route path="/profile" element={<UserProfile user={user} onLogout={() => setUser(null)} onRefresh={refreshUser} />} />
@@ -387,11 +444,11 @@ const App = () => {
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/teams" element={<TeamsPage />} />
             <Route path="/preferences" element={<PreferencesPage theme={theme} onThemeChange={setTheme} />} />
-            <Route path="/spaces" element={<SpacesPage currentUser={user} />} />
-            <Route path="/lobby/:id" element={<LobbyDetailPage currentUser={user} />} />
+            <Route path="/matches" element={<SpacesPage currentUser={user} />} />
+            <Route path="/match/:id" element={<LobbyDetailPage currentUser={user} />} />
             <Route path="/team/:id" element={<TeamDetailPage currentUser={user} />} />
             <Route path="/admin" element={<AdminPage />} />
-            <Route path="/owner" element={<OwnerDashboard user={user} />} />
+            <Route path="/owner" element={<OwnerDashboard />} />
             <Route path="/owner/bookings/:complexId" element={<OwnerBookingsPage />} />
             <Route path="/owner/pitches/:complexId" element={<OwnerPitchesPage />} />
             <Route path="/confirm-email" element={<EmailConfirmationPage />} />
@@ -410,6 +467,28 @@ const App = () => {
           onClose={() => setIsUpdateModalOpen(false)}
         />
       )}
+
+      <BookingRequestModal
+        bookingId={notificationBookingId}
+        type={notificationType}
+        onClose={() => setNotificationBookingId(null)}
+        onActionComplete={() => {
+          // Refresh data if needed, e.g. by triggering a global refresh event
+          // For now, just close
+        }}
+      />
+      <MatchConfirmationModal
+        isOpen={notificationType === 'match_reminder' && !!notificationBookingId}
+        onClose={() => {
+          setNotificationBookingId(null);
+          setNotificationType(null);
+        }}
+        bookingId={notificationBookingId || ''}
+        onConfirm={() => {
+          // Maybe show a final thank you or just close
+          console.log('✅ Match confirmed');
+        }}
+      />
     </div>
   );
 };

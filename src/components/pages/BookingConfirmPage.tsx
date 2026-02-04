@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Trophy, QrCode, CreditCard } from 'lucide-react';
 import { supabase } from '@/services/supabase';
@@ -12,11 +12,49 @@ const BookingConfirmPage = () => {
     const navigate = useNavigate();
     const [isPaid, setIsPaid] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [friends, setFriends] = useState<any[]>([]);
+    const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([]);
+
+    useEffect(() => {
+        const fetchFriends = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data, error } = await supabase
+                .from('friendships')
+                .select(`
+                    *,
+                    user:user_id (id, name, avatar, takwira_id),
+                    friend:friend_id (id, name, avatar, takwira_id)
+                `)
+                .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+                .eq('status', 'accepted');
+
+            if (!error && data) {
+                const processed = data.map(f => {
+                    const profile = f.user_id === user.id ? f.friend : f.user;
+                    // Fix potential null profiles (e.g. if user profile was deleted)
+                    return profile || null;
+                }).filter(Boolean);
+                setFriends(processed);
+            }
+        };
+
+        fetchFriends();
+    }, []);
 
     if (!state) {
         navigate('/');
         return null;
     }
+
+    const toggleParticipant = (friendId: string) => {
+        setSelectedParticipantIds(prev =>
+            prev.includes(friendId)
+                ? prev.filter(id => id !== friendId)
+                : [...prev, friendId]
+        );
+    };
 
     const handlePay = async () => {
         setLoading(true);
@@ -40,7 +78,8 @@ const BookingConfirmPage = () => {
                 user: authUser.id,
                 start_time: new Date(state.slot.start),
                 end_time: new Date(state.slot.end),
-                total_price: state.total
+                total_price: state.total,
+                participantIds: selectedParticipantIds
             });
 
             setIsPaid(true);
@@ -150,6 +189,59 @@ const BookingConfirmPage = () => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div className="bg-app-surface/50 backdrop-blur-md p-6 rounded-[2rem] shadow-sm border border-app-border mb-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-black text-app-text tracking-tight uppercase tracking-widest text-[10px]">Invite Crew</h3>
+                    <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase">
+                        {selectedParticipantIds.length} SELECTED
+                    </span>
+                </div>
+
+                {friends.length > 0 ? (
+                    <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+                        {friends.map(friend => (
+                            <button
+                                key={friend.id}
+                                onClick={() => toggleParticipant(friend.id)}
+                                className="flex flex-col items-center gap-2 flex-shrink-0"
+                            >
+                                <div className={`relative w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all ${selectedParticipantIds.includes(friend.id)
+                                    ? 'border-primary ring-4 ring-primary/20 scale-95'
+                                    : 'border-app-border'
+                                    }`}>
+                                    <img
+                                        src={friend.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.name}`}
+                                        className="w-full h-full object-cover"
+                                        alt={friend.name}
+                                    />
+                                    {selectedParticipantIds.includes(friend.id) && (
+                                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                            <div className="bg-primary text-slate-900 rounded-full p-0.5">
+                                                <span className="material-symbols-rounded text-sm font-bold">check</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <span className={`text-[8px] font-black uppercase truncate w-14 text-center ${selectedParticipantIds.includes(friend.id) ? 'text-primary' : 'text-app-text-muted'
+                                    }`}>
+                                    {friend.name.split(' ')[0]}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="bg-app-surface-2 p-4 rounded-2xl border border-app-border border-dashed text-center">
+                        <p className="text-[10px] text-app-text-muted font-bold">No friends in your Crew yet.</p>
+                        <button
+                            onClick={() => navigate('/crew')}
+                            className="text-[10px] text-primary font-black uppercase mt-2 hover:underline"
+                        >
+                            ADD FRIENDS
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div className="bg-app-surface/50 backdrop-blur-md p-6 rounded-[2rem] shadow-sm border border-app-border mb-auto">

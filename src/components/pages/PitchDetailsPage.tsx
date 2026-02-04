@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Zap, Star, MapPin, Share2, Heart, Wifi, Car, ShowerHead, CreditCard, Trophy } from 'lucide-react';
 import { getPitch } from '@/services/dataService';
-import { getAvailableSlots, createBookingRequest } from '@/services/bookingService';
+import { getAvailableSlots, createBookingRequest, modifyBooking } from '@/services/bookingService';
 import { supabase, getFileUrl } from '@/services/supabase';
 import { getRealPlaceholderImage } from '@/services/assetService';
 import { ConfirmationModal, SuccessModal } from '@/components/common/ConfirmationModal';
@@ -14,6 +14,8 @@ import { ADD_ONS } from '@/constants';
 const PitchDetailsPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const modifyingBooking = location.state?.modifyingBooking;
     const { t } = useTranslation();
     const [pitch, setPitch] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
@@ -100,13 +102,25 @@ const PitchDetailsPage = () => {
             const { data: { user: authUser } } = await supabase.auth.getUser();
             if (!authUser) throw new Error('User not authenticated');
 
-            await createBookingRequest({
-                pitch: pitch.id,
-                user: authUser.id,
-                start_time: new Date(selectedSlot.start),
-                end_time: new Date(selectedSlot.end),
-                total_price: calculateTotal()
-            });
+            if (modifyingBooking) {
+                await modifyBooking(
+                    modifyingBooking.id,
+                    {
+                        start: new Date(selectedSlot.start),
+                        end: new Date(selectedSlot.end),
+                        price: calculateTotal()
+                    },
+                    modifyingBooking.status
+                );
+            } else {
+                await createBookingRequest({
+                    pitch: pitch.id,
+                    user: authUser.id,
+                    start_time: new Date(selectedSlot.start),
+                    end_time: new Date(selectedSlot.end),
+                    total_price: calculateTotal()
+                });
+            }
 
             setIsBooking(false);
             setShowSuccessModal(true);
@@ -148,7 +162,7 @@ const PitchDetailsPage = () => {
         <div className="bg-app-bg text-app-text antialiased min-h-screen pb-[calc(120px+env(safe-area-inset-bottom))] font-display">
             <div className="max-w-[430px] mx-auto min-h-screen relative flex flex-col">
                 {/* Hero Section */}
-                <div className="relative h-[400px] w-full shrink-0">
+                <div className="relative h-[350px] w-full shrink-0">
                     {imagesArray.length > 0 ? (
                         <img
                             src={getImageUrl(imagesArray[0], 'pitch-images', pitch.id, getFileUrl)}
@@ -168,26 +182,26 @@ const PitchDetailsPage = () => {
                     )}
 
                     {/* Top Floating Buttons */}
-                    <div className="absolute top-12 left-6 right-6 flex justify-between items-center z-20">
+                    <div className="absolute top-[calc(2rem+env(safe-area-inset-top))] left-6 right-6 flex justify-between items-center z-20">
                         <button
                             onClick={() => navigate(-1)}
-                            className="w-10 h-10 rounded-full bg-app-bg/20 backdrop-blur-md flex items-center justify-center text-app-text border border-app-border active:scale-90 transition-all"
+                            className="w-10 h-10 rounded-xl bg-white/80 dark:bg-[#1E2126]/80 backdrop-blur-md flex items-center justify-center text-[#1A1D1F] dark:text-white shadow-lg active:scale-90 transition-all"
                         >
                             <ChevronLeft size={24} />
                         </button>
                         <div className="flex gap-2">
-                            <button className="w-10 h-10 rounded-full bg-app-bg/20 backdrop-blur-md flex items-center justify-center text-app-text border border-app-border active:scale-90 transition-all">
+                            <button className="w-10 h-10 rounded-xl bg-white/80 dark:bg-[#1E2126]/80 backdrop-blur-md flex items-center justify-center text-[#1A1D1F] dark:text-white shadow-lg active:scale-90 transition-all">
                                 <Share2 size={20} />
                             </button>
-                            <button className="w-10 h-10 rounded-full bg-app-bg/20 backdrop-blur-md flex items-center justify-center text-app-text border border-app-border active:scale-90 transition-all">
+                            <button className="w-10 h-10 rounded-xl bg-white/80 dark:bg-[#1E2126]/80 backdrop-blur-md flex items-center justify-center text-[#1A1D1F] dark:text-white shadow-lg active:scale-90 transition-all">
                                 <Heart size={20} />
                             </button>
                         </div>
                     </div>
 
                     {/* Rating Badge Overlay */}
-                    <div className="absolute bottom-10 left-6 z-20">
-                        <div className="px-3 py-1.5 bg-primary rounded-full text-black text-xs font-bold flex items-center gap-1 shadow-lg shadow-primary/20">
+                    <div className="absolute bottom-8 left-6 z-20">
+                        <div className="px-3 py-1.5 bg-primary rounded-full text-[#1A1D1F] text-xs font-bold flex items-center gap-1 shadow-lg shadow-primary/20">
                             <Star size={14} fill="currentColor" />
                             4.9 (120+ {t('common.reviews')})
                         </div>
@@ -195,53 +209,53 @@ const PitchDetailsPage = () => {
                 </div>
 
                 {/* Content Section */}
-                <div className="px-6 pt-8 -mt-6 rounded-t-[32px] bg-app-bg z-10 flex-grow">
+                <div className="px-6 pt-6 -mt-4 rounded-t-[24px] bg-[#F8F9FA] dark:bg-[#121417] z-10 flex-grow">
                     {/* Title & Price Section */}
-                    <div className="flex justify-between items-start mb-6">
+                    <div className="flex justify-between items-start mb-4">
                         <div>
-                            <h1 className="text-2xl font-extrabold tracking-tight mb-1 text-app-text">{pitch.name}</h1>
-                            <div className="flex items-center text-app-text-muted text-sm font-medium">
+                            <h1 className="text-xl font-extrabold tracking-tight mb-1 text-[#1A1D1F] dark:text-white">{pitch.name}</h1>
+                            <div className="flex items-center text-slate-500 text-sm font-medium">
                                 <MapPin className="text-primary text-base mr-1" size={16} />
                                 {(Array.isArray(pitch.complexes) ? pitch.complexes[0] : pitch.complexes)?.name || 'Premium Venue'}
                             </div>
                         </div>
                         <div className="text-right">
-                            <div className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest mb-1">{t('pitch.per_hour')}</div>
-                            <div className="text-xl font-bold text-primary">{pitch.price_per_hour || 45}.00 TND</div>
+                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{t('pitch.per_hour')}</div>
+                            <div className="text-lg font-bold text-primary">{pitch.price_per_hour || 45}.00 TND</div>
                         </div>
                     </div>
 
                     {/* Amenities Chips */}
-                    <div className="flex gap-2 mb-8 overflow-x-auto no-scrollbar pb-1">
+                    <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar pb-1">
                         {pitch.sport_type && (
-                            <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 backdrop-blur-md rounded-full whitespace-nowrap shadow-sm border border-blue-500/20">
-                                <span className="material-symbols-rounded text-blue-400 text-[18px]">
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 rounded-full whitespace-nowrap">
+                                <span className="material-symbols-rounded text-blue-500 text-base">
                                     {pitch.sport_type.toLowerCase().includes('football') ? 'sports_soccer' :
                                         pitch.sport_type.toLowerCase().includes('padel') ? 'sports_tennis' :
                                             pitch.sport_type.toLowerCase().includes('tennis') ? 'sports_tennis' :
                                                 pitch.sport_type.toLowerCase().includes('basketball') ? 'sports_basketball' : 'sports_soccer'}
                                 </span>
-                                <span className="text-sm font-bold text-blue-400">{pitch.sport_type}</span>
+                                <span className="text-xs font-bold text-blue-500">{pitch.sport_type}</span>
                             </div>
                         )}
-                        <div className="flex items-center gap-2 px-4 py-2 bg-app-surface backdrop-blur-md rounded-full whitespace-nowrap shadow-sm border border-app-border">
-                            <Wifi className="text-primary" size={18} />
-                            <span className="text-sm font-medium">{t('common.free_wifi')}</span>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#1E2126] rounded-full whitespace-nowrap shadow-sm">
+                            <Wifi className="text-primary" size={16} />
+                            <span className="text-xs font-medium text-[#1A1D1F] dark:text-white">{t('common.free_wifi')}</span>
                         </div>
-                        <div className="flex items-center gap-2 px-4 py-2 bg-app-surface backdrop-blur-md rounded-full whitespace-nowrap shadow-sm border border-app-border">
-                            <Car className="text-primary" size={18} />
-                            <span className="text-sm font-medium">{t('common.parking')}</span>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#1E2126] rounded-full whitespace-nowrap shadow-sm">
+                            <Car className="text-primary" size={16} />
+                            <span className="text-xs font-medium text-[#1A1D1F] dark:text-white">{t('common.parking')}</span>
                         </div>
-                        <div className="flex items-center gap-2 px-4 py-2 bg-app-surface backdrop-blur-md rounded-full whitespace-nowrap shadow-sm border border-app-border">
-                            <ShowerHead className="text-primary" size={18} />
-                            <span className="text-sm font-medium">{t('common.showers')}</span>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#1E2126] rounded-full whitespace-nowrap shadow-sm">
+                            <ShowerHead className="text-primary" size={16} />
+                            <span className="text-xs font-medium text-[#1A1D1F] dark:text-white">{t('common.showers')}</span>
                         </div>
                     </div>
 
                     {/* About Section */}
-                    <div className="mb-8">
-                        <h2 className="text-lg font-bold mb-3 text-app-text">{t('pitch.about_venue')}</h2>
-                        <p className="text-app-text-muted text-sm leading-relaxed">
+                    <div className="mb-6">
+                        <h2 className="text-sm font-bold mb-2 text-[#1A1D1F] dark:text-white">{t('pitch.about_venue')}</h2>
+                        <p className="text-slate-500 text-sm leading-relaxed">
                             Experience {pitch.name} at {(Array.isArray(pitch.complexes) ? pitch.complexes[0] : pitch.complexes)?.name}.
                             Featuring high-quality {pitch.surface || 'Field'} surface, {pitch.size || 'standard'} size, and premium facilities.
                             Perfect for both competitive play and leisure sessions with friends.
@@ -362,7 +376,7 @@ const PitchDetailsPage = () => {
                                     <span>{t('pitch.processing')}</span>
                                 </>
                             ) : (
-                                t('pitch.book_now')
+                                modifyingBooking ? t('common.modify') : t('pitch.book_now')
                             )}
                         </button>
                     </div>
@@ -371,7 +385,7 @@ const PitchDetailsPage = () => {
 
             <ConfirmationModal
                 isOpen={showConfirmModal}
-                title={t('pitch.review_booking')}
+                title={modifyingBooking ? t('common.modify_booking') : t('pitch.review_booking')}
                 message={t('pitch.review_sub')}
                 details={[
                     { label: t('pitch.label_pitch'), value: pitch.name },
@@ -387,8 +401,8 @@ const PitchDetailsPage = () => {
 
             <SuccessModal
                 isOpen={showSuccessModal}
-                title={t('pitch.booking_sent')}
-                message={t('pitch.booking_sent_sub', { amount: calculateTotal() })}
+                title={modifyingBooking ? t('common.success') : t('pitch.booking_sent')}
+                message={modifyingBooking ? t('booking.modification_success') : t('pitch.booking_sent_sub', { amount: calculateTotal() })}
                 buttonText={t('pitch.back_to_grounds')}
                 onClose={handleSuccessClose}
             />

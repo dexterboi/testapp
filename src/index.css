@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Utilities that were previously in <style> tag or implicit - moving explicit ones here if needed, 
+   but most are covered by config. */
